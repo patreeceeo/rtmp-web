@@ -13,6 +13,7 @@ async function handleHttp(conn: Deno.Conn) {
       socket.onerror = (socketEvent) => handleError(socket, httpEvent, socketEvent)
       httpEvent.respondWith(response)
     } else if(url.pathname === "/") {
+      // TODO template
       const response = new Response(indexHtml)
       httpEvent.respondWith(response)
     } else {
