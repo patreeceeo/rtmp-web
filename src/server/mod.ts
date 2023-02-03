@@ -17,7 +17,8 @@ async function handleHttp(conn: Deno.Conn) {
       const response = new Response(indexHtml)
       httpEvent.respondWith(response)
     } else if(url.pathname.startsWith("/public")) {
-      const content = Deno.readFileSync(`${rootDir}/${url.pathname}`)
+      // TODO use NGINX or the like
+      const content = await Deno.readFile(`${rootDir}/${url.pathname}`)
       const response = new Response(content)
       httpEvent.respondWith(response)
     }
