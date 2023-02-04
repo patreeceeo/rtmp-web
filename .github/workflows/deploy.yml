@@ -6,10 +6,6 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
 
-    uses: denoland/setup-deno@v1
-    with:
-      deno-version: v1.30
-
     permissions:
       id-token: write # Needed for auth with Deno Deploy
       contents: read # Needed to clone the repository
@@ -19,9 +15,15 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Build client
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.30
         run: ./scripts/build-client.sh
 
       - name: Build server
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.30
         run: ./scripts/build-server.sh
 
       - name: Upload to Deno Deploy
