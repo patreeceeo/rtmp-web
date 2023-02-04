@@ -1,4 +1,4 @@
-import { handleOpen, handleClose, handleMessage, handleError } from "./chat.ts"
+import { handleOpen, handleClose, handleMessage, handleError } from "./game.ts"
 const rootDir = Deno.cwd()
 const indexHtml = Deno.readFileSync(`${rootDir}/public/index.html`)
 

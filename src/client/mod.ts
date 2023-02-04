@@ -1,50 +1,81 @@
-const myUsername = prompt("Please enter your name") || "Anonymous";
+import { composeUpdateRequest, ExitMessage, MessageFromServer, MessagePayloadFromServer, UpdateMessage, WelcomeMessage } from "../common/Message.ts";
+import { createState } from "../common/State.ts";
+
+const handleWelcome = ({networkId}: WelcomeMessage["payload"]) => {
+  state.localPlayer.networkId = networkId
+  state.networkedEntities[networkId] = {x: 100, y: 100}
+}
+const handleUpdate = (updatedEntities: UpdateMessage["payload"]) => {
+  Object.assign(state.networkedEntities, updatedEntities)
+}
+const handleEnter = () => {}
+const handleExit = ({networkId}: ExitMessage["payload"]) => {
+  delete state.networkedEntities[networkId]
+}
+
 const socket = new WebSocket(
-  `ws://localhost:2222/start_web_socket?username=${myUsername}`,
+  `ws://localhost:2222/start_web_socket`,
 );
 
-socket.onmessage = (m) => {
-  const data = JSON.parse(m.data);
+socket.onmessage = (message) => {
+  const parsedMessage = JSON.parse(message.data) as MessageFromServer;
 
-  switch (data.event) {
-    case "update-users": {
-      // refresh displayed user list
-      let userListHtml = "";
-      for (const username of data.usernames) {
-        userListHtml += `<div> ${username} </div>`;
-      }
-      document.getElementById("users")!.innerHTML = userListHtml;
-      break;
-    }
-    case "send-message": {
-      // display new chat message
-      addMessage(data.username, data.message);
-      break;
-    }
+  const handler = socketRouter[parsedMessage.type]
+  if(handler) {
+    handler(parsedMessage.payload as MessagePayloadFromServer)
+  } else {
+    console.warn("No handler for", parsedMessage.type)
   }
 };
 
-function addMessage(username: string, message: string) {
-  // displays new message
-  document.getElementById(
-    "conversation",
-  )!.innerHTML += `<b> ${username} </b>: ${message} <br/>`;
+window.onload = () => {
+  requestAnimationFrame(updateScreen)
+};
+
+window.onkeydown = (ev) => {
+  switch(ev.code) {
+    case "KeyA": {
+      move(-1, 0)
+    }
+    break
+    case "KeyW": {
+      move(0, 1)
+    }
+    break
+    case "KeyS": {
+      move(0, -1)
+    }
+    break
+    case "KeyD": {
+      move(1, 0)
+    }
+  }
 }
 
-// on page load
-window.onload = () => {
-  // when the client hits the ENTER key
-  document.getElementById("data")!.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-      const inputElement = document.getElementById("data") as HTMLInputElement;
-      const message = inputElement!.value;
-      inputElement!.value = "";
-      socket.send(
-        JSON.stringify({
-          event: "send-message",
-          message: message,
-        }),
-      );
-    }
-  });
-};
+const move = (x: number, y: number) => {
+  if(state.localPlayer.networkId) {
+    const localEntity = state.networkedEntities[state.localPlayer.networkId!]
+    localEntity.x += x
+    localEntity.y += y
+    socket.send(JSON.stringify(composeUpdateRequest(state.networkedEntities)))
+  } else {
+    console.warn("Trying to move without a network connection")
+  }
+}
+
+const socketRouter = {
+  welcome: handleWelcome,
+  update: handleUpdate,
+  enter: handleEnter,
+  exit: handleExit
+}
+
+const state = createState()
+
+const updateScreen = () => {
+  const el = document.querySelector("#screen")
+  el!.innerHTML = JSON.stringify(state, null, 4)
+  requestAnimationFrame(updateScreen)
+}
+
+
