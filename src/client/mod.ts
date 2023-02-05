@@ -13,8 +13,10 @@ const handleExit = ({networkId}: ExitMessage["payload"]) => {
   delete state.networkedEntities[networkId]
 }
 
+const wsProtocol = location.origin.startsWith('https') ? 'wss' : 'ws'
+
 const socket = new WebSocket(
-  `ws://${location.host}/start_web_socket`,
+  `${wsProtocol}://${location.host}/start_web_socket`,
 );
 
 socket.onmessage = (message) => {
