@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: denoland/setup-deno@v1
         with:
-          deno-version: v1.30
+          deno-version: v1.30.0
 
       - name: Clone repository
         uses: actions/checkout@v3
@@ -28,5 +28,5 @@ jobs:
         uses: denoland/deployctl@v1
         with:
           project: "rtmp-web"
-          entrypoint: "../dist/server/mod.ts"
+          entrypoint: ./dist/server/mod.ts
           root: dist
