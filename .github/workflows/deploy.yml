@@ -30,3 +30,4 @@ jobs:
           project: "rtmp-web"
           entrypoint: ./server/mod.ts
           root: dist
+          import-map: ./import_map.json
