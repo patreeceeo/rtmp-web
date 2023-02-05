@@ -2,6 +2,8 @@ import { handleOpen, handleClose, handleMessage, handleError } from "./game.ts"
 const rootDir = Deno.cwd()
 const indexHtml = Deno.readFileSync(`${rootDir}/public/index.html`)
 
+console.info("Version info:",Deno.version)
+
 async function handleHttp(conn: Deno.Conn) {
   for await (const httpEvent of Deno.serveHttp(conn)) {
     const url = new URL(httpEvent.request.url)
