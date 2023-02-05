@@ -28,5 +28,5 @@ jobs:
         uses: denoland/deployctl@v1
         with:
           project: "rtmp-web"
-          entrypoint: "/dist/server/mod.ts"
+          entrypoint: "../dist/server/mod.ts"
           root: dist
