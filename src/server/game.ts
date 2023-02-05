@@ -10,7 +10,7 @@ function broadcast(message: Parameters<typeof WebSocket["prototype"]["send"]>[0]
   }
 }
 
-export const handleOpen = (client: WebSocket, _: Deno.RequestEvent, __: Event) => {
+export const handleOpen = (client: WebSocket, _: Event) => {
   const networkId = crypto.randomUUID()
   const welcome = composeWelcome(networkId)
 
@@ -19,7 +19,7 @@ export const handleOpen = (client: WebSocket, _: Deno.RequestEvent, __: Event) =
   client.send(JSON.stringify(welcome))
 }
 
-export const handleClose = (client: WebSocket, _: Deno.RequestEvent, __: Event) => {
+export const handleClose = (client: WebSocket, _: Event) => {
   const playerId = connectedClientsReverse.get(client)
   const exit = {
     type: "exit",
@@ -34,10 +34,10 @@ export const handleClose = (client: WebSocket, _: Deno.RequestEvent, __: Event) 
   }
 }
 
-export const handleError = (_client: WebSocket, _: Deno.RequestEvent, _message: Event) => {
+export const handleError = (_client: WebSocket, _message: Event) => {
 }
 
-export const handleMessage = (client: WebSocket, _: Deno.RequestEvent, message: MessageEvent) => {
+export const handleMessage = (client: WebSocket, message: MessageEvent) => {
   const parsedMessage = JSON.parse(message.data) as MessageFromClient;
 
   const handler = socketRouter[parsedMessage.type]

@@ -1,4 +1,7 @@
 {
+  "imports": {
+    "http": "https://deno.land/std@0.176.0/http/mod.ts"
+  },
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "dom.asynciterable", "deno.ns"]
   }
