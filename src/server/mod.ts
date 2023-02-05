@@ -22,6 +22,4 @@ async function handleHttp(request: Request) {
   return new Response("Not found", {status: 404})
 }
 
-const port = 2222
-serve(handleHttp, {port})
-console.log("Listening on port:" + port);
+serve(handleHttp)
