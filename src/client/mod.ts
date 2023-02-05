@@ -14,7 +14,7 @@ const handleExit = ({networkId}: ExitMessage["payload"]) => {
 }
 
 const socket = new WebSocket(
-  `ws://localhost:2222/start_web_socket`,
+  `ws://${location.host}/start_web_socket`,
 );
 
 socket.onmessage = (message) => {
