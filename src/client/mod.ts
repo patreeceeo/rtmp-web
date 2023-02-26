@@ -1,5 +1,6 @@
 import { composeUpdateRequest, ExitMessage, MessageFromServer, MessagePayloadFromServer, UpdateMessage, WelcomeMessage } from "../common/Message.ts";
-import { createState } from "../common/State.ts";
+import { createState, InputState } from "../common/State.ts";
+import { drawCircle } from "./canvas.ts";
 
 const handleWelcome = ({networkId}: WelcomeMessage["payload"]) => {
   state.localPlayer.networkId = networkId
@@ -19,6 +20,8 @@ const socket = new WebSocket(
   `${wsProtocol}://${location.host}/start_web_socket`,
 );
 
+socket.onopen = startNetworkLoop
+
 socket.onmessage = (message) => {
   const parsedMessage = JSON.parse(message.data) as MessageFromServer;
 
@@ -31,35 +34,30 @@ socket.onmessage = (message) => {
 };
 
 window.onload = () => {
-  requestAnimationFrame(updateScreen)
+  const el: HTMLCanvasElement = document.querySelector("#screen")!
+  const ctx = el.getContext("2d")
+  if(ctx) {
+    updateScreen(ctx)
+  } else {
+    console.log("Failed to get canvas rendering context")
+  }
 };
 
 window.onkeydown = (ev) => {
-  switch(ev.code) {
-    case "KeyA": {
-      move(-1, 0)
-    }
-    break
-    case "KeyW": {
-      move(0, 1)
-    }
-    break
-    case "KeyS": {
-      move(0, -1)
-    }
-    break
-    case "KeyD": {
-      move(1, 0)
-    }
-  }
+  const inputState = state.localPlayer.input[ev.code] ||= {pressTime: 0, releaseTime: 0}
+  inputState.pressTime = Date.now()
 }
+window.onkeyup = (ev) => {
+  const inputState = state.localPlayer.input[ev.code]
+  inputState.releaseTime = Date.now()
+}
+
 
 const move = (x: number, y: number) => {
   if(state.localPlayer.networkId) {
     const localEntity = state.networkedEntities[state.localPlayer.networkId!]
     localEntity.x += x
     localEntity.y += y
-    socket.send(JSON.stringify(composeUpdateRequest(state.networkedEntities)))
   } else {
     console.warn("Trying to move without a network connection")
   }
@@ -74,10 +72,46 @@ const socketRouter = {
 
 const state = createState()
 
-const updateScreen = () => {
-  const el = document.querySelector("#screen")
-  el!.innerHTML = JSON.stringify(state, null, 4)
-  requestAnimationFrame(updateScreen)
+const updateScreen = (ctx: CanvasRenderingContext2D) => {
+  drawPlayers(ctx)
+  requestAnimationFrame(() => updateScreen(ctx))
+}
+
+function startNetworkLoop() {
+
+  setInterval(() => {
+
+    function isPressed(state: InputState) {
+      return state && state.pressTime > state.releaseTime
+    }
+
+    const inputState = state.localPlayer.input
+    const keyA = inputState["KeyA"]
+    const keyW = inputState["KeyW"]
+    const keyS = inputState["KeyS"]
+    const keyD = inputState["KeyD"]
+    console.log({inputState})
+    if(isPressed(keyA)) {
+      move(-1, 0)
+    }
+    if(isPressed(keyW)) {
+      move(0, -1)
+    }
+    if(isPressed(keyS)) {
+      move(0, 1)
+    }
+    if(isPressed(keyD)) {
+      move(1, 0)
+    }
+    socket.send(JSON.stringify(composeUpdateRequest(state.networkedEntities)))
+  }, 20)
+}
+
+function drawPlayers(ctx: CanvasRenderingContext2D) {
+  for(const [id, entity] of Object.entries(state.networkedEntities)) {
+    ctx.fillStyle = id === state.localPlayer.networkId ? "red" : "blue"
+    drawCircle(ctx, entity.x, entity.y, 4)
+  }
 }
 
 
