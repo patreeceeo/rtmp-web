@@ -1,5 +1,5 @@
 #!/bin/bash
 mkdir -p ./dist/server \
-  && cp ./src/server ./dist -a \
-  && cp ./src/common ./dist -a \
+  && cp -a ./src/server ./dist \
+  && cp -a ./src/common ./dist \
   && cp ./import_map.json ./dist
