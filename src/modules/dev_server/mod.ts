@@ -106,6 +106,7 @@ export async function addModifyFileListener(
   }, 200);
 
   listenerCount++;
+  // TODO multiple listeners being created, one per request.
   console.log(
     `Starting modify file listener #${listenerCount} for ${
       absPaths.join(", ")

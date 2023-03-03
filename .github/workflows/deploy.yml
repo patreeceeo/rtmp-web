@@ -28,6 +28,6 @@ jobs:
         uses: denoland/deployctl@v1
         with:
           project: "rtmp-web"
-          entrypoint: ./server/mod.ts
+          entrypoint: ./modules/server/mod.ts
           root: dist
           import-map: ./import_map.json

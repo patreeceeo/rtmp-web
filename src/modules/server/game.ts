@@ -4,8 +4,8 @@ import {
   MessageFromClient,
   MessagePayloadFromClient,
   UpdateRequestMessage,
-} from "../common/Message.ts";
-import { createState } from "../common/State.ts";
+} from "~/common/Message.ts";
+import { createState } from "~/common/State.ts";
 const connectedClients = new Map<string, WebSocket>();
 const connectedClientsReverse = new Map<WebSocket, string>();
 

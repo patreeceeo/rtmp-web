@@ -5,9 +5,9 @@ import {
   MessagePayloadFromServer,
   UpdateMessage,
   WelcomeMessage,
-} from "../common/Message.ts";
-import { createState, InputState } from "../common/State.ts";
-import { drawCircle } from "./canvas.ts";
+} from "~/common/Message.ts";
+import { createState, InputState } from "~/common/State.ts";
+import { drawCircle } from "~/client/canvas.ts";
 
 const handleWelcome = ({ networkId }: WelcomeMessage["payload"]) => {
   state.localPlayer.networkId = networkId;
