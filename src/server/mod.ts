@@ -2,7 +2,7 @@ import { serve } from "http";
 import * as Game from "./game.ts";
 import { HotSwapServer } from "~/common/dev_tools/mod.ts";
 import { contentType as getContentType } from "media_types";
-import {extname} from "path"
+import { extname } from "path";
 
 const rootDir = Deno.cwd();
 
@@ -24,13 +24,13 @@ async function handleHttp(request: Request) {
     const indexHtml = await Deno.readFile(`${rootDir}/public/index.html`);
     return new Response(indexHtml);
   } else if (url.pathname.startsWith("/public")) {
-    const contentType = getContentType(extname(url.pathname))
-    if(contentType) {
+    const contentType = getContentType(extname(url.pathname));
+    if (contentType) {
       const content = await Deno.readFile(`${rootDir}/${url.pathname}`);
       return new Response(content, {
         headers: {
-          "content-type": contentType
-        }
+          "content-type": contentType,
+        },
       });
     }
   }

@@ -1,12 +1,15 @@
-
-import { HotSwapPayload, MessageType, parseMessage } from "~/common/dev_tools/mod.ts";
+import {
+  HotSwapPayload,
+  MessageType,
+  parseMessage,
+} from "~/common/dev_tools/mod.ts";
 
 const wsProtocol = location.origin.startsWith("https") ? "wss" : "ws";
 const devSocket = new WebSocket(
-  `${wsProtocol}://${location.host}/dev_socket`
+  `${wsProtocol}://${location.host}/dev_socket`,
 );
 devSocket.onmessage = (event) => {
-  const message = parseMessage(event.data)
+  const message = parseMessage(event.data);
 
   const handler = devSocketRouter[message.type];
   if (handler) {
@@ -17,27 +20,27 @@ devSocket.onmessage = (event) => {
 };
 
 const devSocketRouter = {
-  [MessageType.hotSwap]: handleHotSwap
-}
+  [MessageType.hotSwap]: handleHotSwap,
+};
 
 function handleHotSwap(msg: HotSwapPayload) {
-  const scriptsByPath: Record<string, HTMLScriptElement> = {}
-  for(const el of document.head.querySelectorAll("script")) {
-    const path = (new URL(el.src)).pathname
-    scriptsByPath[path] = el
+  const scriptsByPath: Record<string, HTMLScriptElement> = {};
+  for (const el of document.head.querySelectorAll("script")) {
+    const path = (new URL(el.src)).pathname;
+    scriptsByPath[path] = el;
   }
   setTimeout(() => {
-    for(const path of msg.paths) {
-      reloadScript(scriptsByPath[path])
+    for (const path of msg.paths) {
+      reloadScript(scriptsByPath[path]);
     }
-  })
+  });
 }
 
 let cachePrevention = 0;
 function bustCache(href: string) {
-  const [start, _]=href.split('?')
-  cachePrevention++
-  return `${start}?v=${cachePrevention}`
+  const [start, _] = href.split("?");
+  cachePrevention++;
+  return `${start}?v=${cachePrevention}`;
 }
 function reloadScript(oldScript: HTMLScriptElement) {
   const script = document.createElement("script");
@@ -46,4 +49,3 @@ function reloadScript(oldScript: HTMLScriptElement) {
   document.head.removeChild(oldScript);
   document.head.appendChild(script);
 }
-
