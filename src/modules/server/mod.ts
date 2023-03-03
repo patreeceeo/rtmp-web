@@ -1,6 +1,6 @@
 import { serve } from "http";
-import * as Game from "./game.ts";
-import { HotSwapServer } from "~/common/dev_tools/mod.ts";
+import * as Game from "~/server/game.ts";
+import { HotSwapServer } from "~/dev_server/mod.ts";
 import { contentType as getContentType } from "media_types";
 import { extname } from "path";
 

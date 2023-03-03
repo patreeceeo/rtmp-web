@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# TODO just use &&
 function assert_ok() {
   if (( $? != 0 )); then
     echo "Assertion failed: Previous command exited with non-zero status. Exiting..."
@@ -20,10 +21,10 @@ fi
 mkdir public
 cp ./src/index.html ./public
 assert_ok
-deno bundle --watch ./src/client/mod.ts ./public/client.bundle.js &
+deno bundle --watch ./src/modules/client/mod.ts ./public/client.bundle.js &
 assert_ok
-deno bundle --watch ./src/common/dev_tools/client.ts ./public/dev_tools.bundle.js &
+deno bundle --watch ./src/modules/dev_client/mod.ts ./public/dev_client.bundle.js &
 assert_ok
-deno run --allow-net --allow-read --watch ./src/server/mod.ts
+deno run --allow-net --allow-read --watch ./src/modules/server/mod.ts
 assert_ok
 
