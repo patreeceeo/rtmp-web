@@ -7,6 +7,16 @@ function assert_ok() {
   fi
 }
 
+if [ -x .git/hooks/pre-commit ]; then
+  echo "pre-commit hook has been installed :)"
+else
+  echo "pre-commit hook has not been installed!"
+  echo "run: cp scripts/git_hooks/pre-commit .git/hooks"
+  echo "then try again."
+  exit
+fi
+
+
 mkdir public
 cp ./src/index.html ./public
 assert_ok
