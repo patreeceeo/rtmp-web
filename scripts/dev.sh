@@ -1,9 +1,12 @@
 #!/bin/bash
 
-# TODO just use &&
 function assert_ok() {
+  cmd="$@"
+  $cmd
   if (( $? != 0 )); then
-    echo "Assertion failed: Previous command exited with non-zero status. Exiting..."
+    echo "assert_ok: Previous command exited with non-zero status."
+    echo "offending command: \`$cmd\`"
+    echo "Exiting..."
     exit
   fi
 }
@@ -18,13 +21,13 @@ else
 fi
 
 
+server_mod="./src/modules/server/mod.ts"
+
+assert_ok stat "$server_mod" 1>/dev/null 2>/dev/null
+
 mkdir public
 cp ./src/index.html ./public
-assert_ok
-deno bundle --watch ./src/modules/client/mod.ts ./public/client.bundle.js &
-assert_ok
-deno bundle --watch ./src/modules/dev_client/mod.ts ./public/dev_client.bundle.js &
-assert_ok
-deno run --allow-net --allow-read --watch ./src/modules/server/mod.ts
-assert_ok
+assert_ok deno bundle --watch ./src/modules/client/mod.ts ./public/client.bundle.js &
+assert_ok deno bundle --watch ./src/modules/dev_client/mod.ts ./public/dev_client.bundle.js &
+deno run --allow-net --allow-read --watch "$server_mod"
 
