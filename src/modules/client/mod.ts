@@ -44,7 +44,6 @@ if(!state.ws) {
   };
 }
 
-
 window.onload = () => {
   const el: HTMLCanvasElement = document.querySelector("#screen")!;
   const ctx = el.getContext("2d");
@@ -63,7 +62,6 @@ setTimeout(() => {
     window.onload!(new Event("load"))
   }
 })
-
 
 window.onkeydown = (ev) => {
   const inputState = state.localPlayer.input[ev.code] ||= {

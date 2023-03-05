@@ -5,6 +5,7 @@ import {
   parseMessage,
 } from "../dev_common/mod.ts";
 
+
 const wsProtocol = location.origin.startsWith("https") ? "wss" : "ws";
 const devSocket = new WebSocket(
   `${wsProtocol}://${location.host}/dev_socket`,
