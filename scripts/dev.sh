@@ -34,6 +34,7 @@ assert_ok cp ./src/index.html ./public
 ./scripts/build-client-module.sh ./src/modules/client/canvas.ts ./public/client/canvas.js
 ./scripts/build-client-module.sh ./src/modules/common/Message.ts ./public/common/Message.js
 ./scripts/build-client-module.sh ./src/modules/common/State.ts ./public/common/State.js
+./scripts/build-client-module.sh ./src/modules/common/socket.ts ./public/common/socket.js
 ./scripts/build-client-module.sh ./src/modules/dev_client/mod.ts ./public/dev_client/mod.js
 ./scripts/build-client-module.sh ./src/modules/dev_common/mod.ts ./public/dev_common/mod.js
 deno run --allow-net --allow-read --watch "$server_mod"
