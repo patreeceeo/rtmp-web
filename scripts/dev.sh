@@ -1,9 +1,8 @@
 #!/bin/bash
 
 function assert_ok() {
-  cmd="$@"
-  $cmd
-  if (( $? != 0 )); then
+  cmd="$*"
+  if ! $cmd; then
     echo "assert_ok: Previous command exited with non-zero status."
     echo "offending command: \`$cmd\`"
     echo "Exiting..."
