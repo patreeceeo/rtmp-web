@@ -17,6 +17,8 @@ export interface State {
     input: Record<string, InputState>;
   };
   networkedEntities: NetworkEntityRecord;
+  ws?: WebSocket
+  loaded: boolean
 }
 
 export const createState = (): State => ({
@@ -24,4 +26,5 @@ export const createState = (): State => ({
     input: {},
   },
   networkedEntities: {},
+  loaded: false
 });

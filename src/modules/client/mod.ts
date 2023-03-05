@@ -5,17 +5,19 @@ import {
   MessagePayloadFromServer,
   UpdateMessage,
   WelcomeMessage,
-} from "~/common/Message.ts";
-import { createState, InputState } from "~/common/State.ts";
-import { drawCircle } from "~/client/canvas.ts";
+} from "../common/Message.ts";
+import { InputState, createState } from "../common/State.ts";
+import { drawCircle } from "../client/canvas.ts";
 
-const handleWelcome = ({ networkId }: WelcomeMessage["payload"]) => {
+const state = createState();
+
+function handleWelcome({ networkId }: WelcomeMessage["payload"]) {
   state.localPlayer.networkId = networkId;
   state.networkedEntities[networkId] = { x: 100, y: 100 };
-};
-const handleUpdate = (updatedEntities: UpdateMessage["payload"]) => {
+}
+function handleUpdate(updatedEntities: UpdateMessage["payload"]) {
   Object.assign(state.networkedEntities, updatedEntities);
-};
+}
 const handleEnter = () => {};
 const handleExit = ({ networkId }: ExitMessage["payload"]) => {
   delete state.networkedEntities[networkId];
@@ -23,32 +25,45 @@ const handleExit = ({ networkId }: ExitMessage["payload"]) => {
 
 const wsProtocol = location.origin.startsWith("https") ? "wss" : "ws";
 
-const socket = new WebSocket(
-  `${wsProtocol}://${location.host}/start_web_socket`,
-);
+if(!state.ws) {
+  const socket = state.ws = new WebSocket(
+    `${wsProtocol}://${location.host}/start_web_socket`,
+  );
 
-socket.onopen = startNetworkLoop;
+  socket.onopen = startNetworkLoop;
 
-socket.onmessage = (message) => {
-  const parsedMessage = JSON.parse(message.data) as MessageFromServer;
+  socket.onmessage = (message) => {
+    const parsedMessage = JSON.parse(message.data) as MessageFromServer;
 
-  const handler = socketRouter[parsedMessage.type];
-  if (handler) {
-    handler(parsedMessage.payload as MessagePayloadFromServer);
-  } else {
-    console.warn("No handler for", parsedMessage.type);
-  }
-};
+    const handler = socketRouter[parsedMessage.type];
+    if (handler) {
+      handler(parsedMessage.payload as MessagePayloadFromServer);
+    } else {
+      console.warn("No handler for", parsedMessage.type);
+    }
+  };
+}
+
 
 window.onload = () => {
   const el: HTMLCanvasElement = document.querySelector("#screen")!;
   const ctx = el.getContext("2d");
   if (ctx) {
+    ctx.imageSmoothingEnabled = false;
     updateScreen(ctx);
   } else {
     console.log("Failed to get canvas rendering context");
   }
+  state.loaded = true
 };
+
+// In case load already happened
+setTimeout(() => {
+  if(!state.loaded) {
+    window.onload!(new Event("load"))
+  }
+})
+
 
 window.onkeydown = (ev) => {
   const inputState = state.localPlayer.input[ev.code] ||= {
@@ -79,8 +94,6 @@ const socketRouter = {
   exit: handleExit,
 };
 
-const state = createState();
-
 const updateScreen = (ctx: CanvasRenderingContext2D) => {
   drawPlayers(ctx);
   requestAnimationFrame(() => updateScreen(ctx));
@@ -97,7 +110,6 @@ function startNetworkLoop() {
     const keyW = inputState["KeyW"];
     const keyS = inputState["KeyS"];
     const keyD = inputState["KeyD"];
-    console.log({ inputState });
     if (isPressed(keyA)) {
       move(-1, 0);
     }
@@ -110,7 +122,9 @@ function startNetworkLoop() {
     if (isPressed(keyD)) {
       move(1, 0);
     }
-    socket.send(JSON.stringify(composeUpdateRequest(state.networkedEntities)));
+    if(state.ws?.readyState === WebSocket.OPEN) {
+      state.ws?.send(JSON.stringify(composeUpdateRequest(state.networkedEntities)));
+    }
   }, 20);
 }
 

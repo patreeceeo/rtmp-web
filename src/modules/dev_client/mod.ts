@@ -1,10 +1,9 @@
 
-// TODO move to (dev_)common
 import {
   HotSwapPayload,
   MessageType,
   parseMessage,
-} from "~/dev_server/mod.ts";
+} from "../dev_common/mod.ts";
 
 const wsProtocol = location.origin.startsWith("https") ? "wss" : "ws";
 const devSocket = new WebSocket(

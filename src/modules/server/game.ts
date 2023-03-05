@@ -4,8 +4,8 @@ import {
   MessageFromClient,
   MessagePayloadFromClient,
   UpdateRequestMessage,
-} from "~/common/Message.ts";
-import { createState } from "~/common/State.ts";
+} from "../common/Message.ts";
+import { createState } from "../common/State.ts";
 const connectedClients = new Map<string, WebSocket>();
 const connectedClientsReverse = new Map<WebSocket, string>();
 
@@ -24,7 +24,9 @@ export const handleOpen = (client: WebSocket, _: Event) => {
 
   connectedClients.set(networkId, client);
   connectedClientsReverse.set(client, networkId);
-  client.send(JSON.stringify(welcome));
+  if(client.readyState === WebSocket.OPEN) {
+    client.send(JSON.stringify(welcome));
+  }
 };
 
 export const handleClose = (client: WebSocket, _: Event) => {
