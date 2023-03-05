@@ -6,7 +6,7 @@ import {
   UpdateMessage,
   WelcomeMessage,
 } from "../common/Message.ts";
-import { InputState, createState } from "../common/State.ts";
+import { createState, InputState } from "../common/State.ts";
 import { drawCircle } from "../client/canvas.ts";
 
 const state = createState();
@@ -25,7 +25,7 @@ const handleExit = ({ networkId }: ExitMessage["payload"]) => {
 
 const wsProtocol = location.origin.startsWith("https") ? "wss" : "ws";
 
-if(!state.ws) {
+if (!state.ws) {
   const socket = state.ws = new WebSocket(
     `${wsProtocol}://${location.host}/start_web_socket`,
   );
@@ -53,15 +53,15 @@ window.onload = () => {
   } else {
     console.log("Failed to get canvas rendering context");
   }
-  state.loaded = true
+  state.loaded = true;
 };
 
 // In case load already happened
 setTimeout(() => {
-  if(!state.loaded) {
-    window.onload!(new Event("load"))
+  if (!state.loaded) {
+    window.onload!(new Event("load"));
   }
-})
+});
 
 window.onkeydown = (ev) => {
   const inputState = state.localPlayer.input[ev.code] ||= {
@@ -120,8 +120,10 @@ function startNetworkLoop() {
     if (isPressed(keyD)) {
       move(1, 0);
     }
-    if(state.ws?.readyState === WebSocket.OPEN) {
-      state.ws?.send(JSON.stringify(composeUpdateRequest(state.networkedEntities)));
+    if (state.ws?.readyState === WebSocket.OPEN) {
+      state.ws?.send(
+        JSON.stringify(composeUpdateRequest(state.networkedEntities)),
+      );
     }
   }, 20);
 }
