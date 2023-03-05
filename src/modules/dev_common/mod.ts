@@ -1,4 +1,4 @@
-type SerializedData = Parameters<WebSocket["send"]>[0];
+import { SerializedData } from "../common/socket.ts";
 
 export interface Message<Payload> {
   payload: Payload;

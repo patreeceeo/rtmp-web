@@ -8,6 +8,7 @@ import {
 } from "../common/Message.ts";
 import { createState, InputState } from "../common/State.ts";
 import { drawCircle } from "../client/canvas.ts";
+import { sendIfOpen } from "../common/socket.ts";
 
 const state = createState();
 
@@ -120,11 +121,7 @@ function startNetworkLoop() {
     if (isPressed(keyD)) {
       move(1, 0);
     }
-    if (state.ws?.readyState === WebSocket.OPEN) {
-      state.ws?.send(
-        JSON.stringify(composeUpdateRequest(state.networkedEntities)),
-      );
-    }
+    sendIfOpen(state.ws!, JSON.stringify(composeUpdateRequest(state.networkedEntities)))
   }, 20);
 }
 

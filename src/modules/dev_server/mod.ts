@@ -2,6 +2,7 @@ import { createHash } from "hash";
 import { debounce } from "async";
 import { common, relative } from "path";
 import { HotSwapMessage, Message, HotSwapPayload } from "../dev_common/mod.ts";
+import { sendIfOpen } from "../common/socket.ts";
 
 
 export class HotSwapServer {
@@ -28,7 +29,7 @@ export class HotSwapServer {
   }
   #broadcast(message: Message<HotSwapPayload>) {
     for(const client of this.#clientSockets) {
-      client.send(message.serializeWithEnvelope());
+      sendIfOpen(client, message.serializeWithEnvelope());
     }
   }
   handleModifyFile(paths: IterableIterator<string>) {

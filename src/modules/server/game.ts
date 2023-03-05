@@ -5,16 +5,17 @@ import {
   MessagePayloadFromClient,
   UpdateRequestMessage,
 } from "../common/Message.ts";
+import { sendIfOpen, SerializedData } from "../common/socket.ts";
 import { createState } from "../common/State.ts";
 const connectedClients = new Map<string, WebSocket>();
 const connectedClientsReverse = new Map<WebSocket, string>();
 
 // send a message to all connected clients
 function broadcast(
-  message: Parameters<typeof WebSocket["prototype"]["send"]>[0],
+  message: SerializedData,
 ) {
   for (const client of connectedClients.values()) {
-    client.send(message);
+    sendIfOpen(client, message)
   }
 }
 
@@ -24,9 +25,7 @@ export const handleOpen = (client: WebSocket, _: Event) => {
 
   connectedClients.set(networkId, client);
   connectedClientsReverse.set(client, networkId);
-  if(client.readyState === WebSocket.OPEN) {
-    client.send(JSON.stringify(welcome));
-  }
+  sendIfOpen(client, JSON.stringify(welcome))
 };
 
 export const handleClose = (client: WebSocket, _: Event) => {
