@@ -10,6 +10,30 @@ function assert_ok() {
   fi
 }
 
+function get_screen_session_name_for_path () {
+  activity=$1
+  preserved_path=$2
+  sanitized_path=$(echo "$preserved_path" | tr "/" "-")
+  echo "$activity:$sanitized_path"
+}
+
+function screen_session_quit_all_by_name() {
+  for session in $(screen -ls | grep "$1" | awk '{print $1}'); do
+    screen -S "$session" -X quit
+  done
+}
+
+function cleanup() {
+  # quit sessions
+  for in_path in $sub_module_rel_paths; do
+    preserved_path="$(echo "$in_path" | cut -d/ -f 3-)"
+    screen_session_name=$(get_screen_session_name_for_path build "$preserved_path")
+    if screen_session_quit_all_by_name "$screen_session_name"; then
+      echo "quit session $screen_session_name"
+    fi
+  done
+}
+
 hook_install_location=".git/hooks/pre-commit"
 hook_source_location="scripts/git_hooks/pre-commit"
 
@@ -34,13 +58,17 @@ mkdir -p public/client
 mkdir -p public/common
 mkdir -p public/dev_client
 assert_ok cp ./src/index.html ./public
-./scripts/build-client-module.sh ./src/modules/client/mod.ts ./public/client/mod.js
-./scripts/build-client-module.sh ./src/modules/client/canvas.ts ./public/client/canvas.js
-./scripts/build-client-module.sh ./src/modules/common/Message.ts ./public/common/Message.js
-./scripts/build-client-module.sh ./src/modules/common/State.ts ./public/common/State.js
-./scripts/build-client-module.sh ./src/modules/common/socket.ts ./public/common/socket.js
-./scripts/build-client-module.sh ./src/modules/dev_client/mod.ts ./public/dev_client/mod.js
-./scripts/build-client-module.sh ./src/modules/dev_common/mod.ts ./public/dev_common/mod.js
-deno run --allow-net --allow-read --watch "$server_mod"
 
-# TODO make all the screen sessions exit
+sub_module_rel_paths=$(ls -1rd src/modules/**/*.ts)
+
+
+for in_path in $sub_module_rel_paths; do
+  preserved_path="$(echo "$in_path" | cut -d/ -f 3-)"
+  out_path="public/$preserved_path"
+  screen_session_name=$(get_screen_session_name_for_path build "$preserved_path")
+  ./scripts/build-client-module.sh "$screen_session_name" "$in_path" "$out_path"
+done
+
+trap cleanup SIGINT
+deno run --allow-net --allow-read --watch "$server_mod"
+cleanup
