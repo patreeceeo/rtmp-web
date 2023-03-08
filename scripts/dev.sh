@@ -49,18 +49,15 @@ fi
 
 
 server_mod="./src/modules/server/mod.ts"
+sub_module_rel_paths=$(ls -1rd src/modules/**/*.ts)
 
 assert_ok stat "$server_mod" 1>/dev/null 2>/dev/null
 
-rm esbuild_out.txt 2>/dev/null
 rm -rf public
-mkdir -p public/client
-mkdir -p public/common
-mkdir -p public/dev_client
+assert_ok mkdir -p public/client
+assert_ok mkdir -p public/common
+assert_ok mkdir -p public/dev_client
 assert_ok cp ./src/index.html ./public
-
-sub_module_rel_paths=$(ls -1rd src/modules/**/*.ts)
-
 
 for in_path in $sub_module_rel_paths; do
   preserved_path="$(echo "$in_path" | cut -d/ -f 3-)"
