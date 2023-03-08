@@ -10,10 +10,14 @@ function assert_ok() {
   fi
 }
 
-if [ -x .git/hooks/pre-commit ]; then
+hook_install_location=".git/hooks/pre-commit"
+hook_source_location="scripts/git_hooks/pre-commit"
+
+# check that installed hook is executable and its contents are eqaul to the source
+if [ -x "$hook_install_location" ] && diff "$hook_install_location" "$hook_source_location"; then
   echo "pre-commit hook has been installed :)"
 else
-  echo "pre-commit hook has not been installed!"
+  echo "pre-commit hook is either not executable, or its contents do not match what was expected."
   echo "run: cp scripts/git_hooks/pre-commit .git/hooks"
   echo "then try again."
   exit
