@@ -1,2 +1,3 @@
 #!/bin/bash
-screen -d -m npx esbuild "$1" --outfile="$2" --platform=neutral --format=esm --target=esnext --watch
+echo "starting $1: $2 > $3"
+screen -S "$1" -d -m npx esbuild "$2" --outfile="$3" --platform=neutral --format=esm --target=esnext --watch
