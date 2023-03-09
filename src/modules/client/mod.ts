@@ -9,6 +9,14 @@ import {
 import { createState, InputState } from "../common/State.ts";
 import { drawCircle } from "../client/canvas.ts";
 import { sendIfOpen } from "../common/socket.ts";
+import * as devClient from "../dev_client/mod.ts";
+
+devClient.start();
+const hot = devClient.createHotContext(import.meta.url);
+
+hot.accept([], ({ module: { updateScreen: _updateScreen } }) => {
+  updateScreen = _updateScreen;
+});
 
 const state = createState();
 
@@ -93,7 +101,7 @@ const socketRouter = {
   exit: handleExit,
 };
 
-const updateScreen = (ctx: CanvasRenderingContext2D) => {
+export let updateScreen = (ctx: CanvasRenderingContext2D) => {
   drawPlayers(ctx);
   requestAnimationFrame(() => updateScreen(ctx));
 };
@@ -121,7 +129,10 @@ function startNetworkLoop() {
     if (isPressed(keyD)) {
       move(1, 0);
     }
-    sendIfOpen(state.ws!, JSON.stringify(composeUpdateRequest(state.networkedEntities)))
+    sendIfOpen(
+      state.ws!,
+      JSON.stringify(composeUpdateRequest(state.networkedEntities)),
+    );
   }, 20);
 }
 

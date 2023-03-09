@@ -1,53 +1,195 @@
+/**
+ * A client-side implementation of the ESM-HMR spec, for real.
+ */
 
-import {
-  HotSwapPayload,
-  MessageType,
-  parseMessage,
-} from "../dev_common/mod.ts";
+type DisposeCallback = () => void;
+// deno-lint-ignore no-explicit-any
+type AcceptCallback = (args: { module: any; deps: any[] }) => void;
+type AcceptCallbackObject = {
+  deps: string[];
+  callback: AcceptCallback;
+};
 
+// deno-lint-ignore no-explicit-any
+function debug(...args: any[]) {
+  console.log(`[ESM-HMR]`, ...args);
+}
+function reload() {
+  location.reload();
+}
 
-const wsProtocol = location.origin.startsWith("https") ? "wss" : "ws";
-const devSocket = new WebSocket(
-  `${wsProtocol}://${location.host}/dev_socket`,
-);
-devSocket.onmessage = (event) => {
-  const message = parseMessage(event.data);
-
-  const handler = devSocketRouter[message.type];
-  if (handler) {
-    handler(message.payload);
+// deno-lint-ignore no-explicit-any
+let SOCKET_MESSAGE_QUEUE: any[] = [];
+// deno-lint-ignore no-explicit-any
+function _sendSocketMessage(msg: any) {
+  debug("send", JSON.stringify(msg));
+  socket.send(JSON.stringify(msg));
+}
+// deno-lint-ignore no-explicit-any
+function sendSocketMessage(msg: any) {
+  if (socket.readyState !== socket.OPEN) {
+    SOCKET_MESSAGE_QUEUE.push(msg);
   } else {
-    console.warn("No handler for", message.type);
+    _sendSocketMessage(msg);
   }
-};
+}
 
-const devSocketRouter = {
-  [MessageType.hotSwap]: handleHotSwap,
-};
+const socketURL =
+  // deno-lint-ignore no-explicit-any
+  (window as any).HMR_WEBSOCKET_URL ||
+  // TODO make common function
+  (location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/";
+// Seems like Deno cannot handle subprotocols
+// const socket = new WebSocket(socketURL, "esm-hmr");
+const socket = new WebSocket(socketURL);
+socket.addEventListener("open", () => {
+  SOCKET_MESSAGE_QUEUE.forEach(_sendSocketMessage);
+  SOCKET_MESSAGE_QUEUE = [];
+});
 
-function handleHotSwap(msg: HotSwapPayload) {
-  const scriptsByPath: Record<string, HTMLScriptElement> = {};
-  for (const el of document.head.querySelectorAll("script")) {
-    const path = (new URL(el.src)).pathname;
-    scriptsByPath[path] = el;
+const REGISTERED_MODULES: { [key: string]: HotModuleState } = {};
+
+class HotModuleState {
+  id: string;
+  // deno-lint-ignore no-explicit-any
+  data: any = {};
+  isLocked = false;
+  isDeclined = false;
+  isAccepted = false;
+  acceptCallbacks: AcceptCallbackObject[] = [];
+  disposeCallbacks: DisposeCallback[] = [];
+
+  constructor(id: string) {
+    this.id = id;
   }
-  setTimeout(() => {
-    for (const path of msg.paths) {
-      reloadScript(scriptsByPath[path]);
+
+  lock(): void {
+    this.isLocked = true;
+  }
+
+  dispose(callback: DisposeCallback): void {
+    this.disposeCallbacks.push(callback);
+  }
+
+  invalidate(): void {
+    reload();
+  }
+
+  decline(): void {
+    this.isDeclined = true;
+  }
+
+  accept(_deps: string[], callback: true | AcceptCallback = true): void {
+    if (this.isLocked) {
+      return;
     }
-  });
+    if (!this.isAccepted) {
+      sendSocketMessage({ id: this.id, type: "hotAccept" });
+      this.isAccepted = true;
+    }
+    if (!Array.isArray(_deps)) {
+      callback = _deps || callback;
+      _deps = [];
+    }
+    if (callback === true) {
+      callback = () => {};
+    }
+    const deps = _deps.map((dep) => {
+      // TODO assume full, explicit paths
+      const ext = dep.split(".").pop();
+      if (!ext) {
+        dep += ".js";
+      } else if (ext !== "js") {
+        dep += ".proxy.js";
+      }
+      return new URL(dep, `${window.location.origin}${this.id}`).pathname;
+    });
+    this.acceptCallbacks.push({
+      deps,
+      callback,
+    });
+  }
 }
 
-let cachePrevention = 0;
-function bustCache(href: string) {
-  const [start, _] = href.split("?");
-  cachePrevention++;
-  return `${start}?v=${cachePrevention}`;
+export function createHotContext(fullUrl: string) {
+  const id = new URL(fullUrl).pathname;
+  const existing = REGISTERED_MODULES[id];
+  if (existing) {
+    existing.lock();
+    return existing;
+  }
+  const state = new HotModuleState(id);
+  REGISTERED_MODULES[id] = state;
+  return state;
 }
-function reloadScript(oldScript: HTMLScriptElement) {
-  const script = document.createElement("script");
-  script.src = bustCache(oldScript.src);
-  script.type = oldScript.type;
-  document.head.removeChild(oldScript);
-  document.head.appendChild(script);
+
+export function installHotContext() {
+  // TODO conditionally inject this in build
+  // this condition is a temporary workaround until I figure out how to inject config/env vars,
+  // or accomplish the above TODO
+  if (location.hostname === "localhost") {
+    // deno-lint-ignore no-explicit-any
+    (import.meta as any).hot = createHotContext(import.meta.url);
+  }
+}
+
+async function applyUpdate(id: string) {
+  const state = REGISTERED_MODULES[id];
+  if (!state) {
+    return false;
+  }
+  if (state.isDeclined) {
+    return false;
+  }
+
+  const acceptCallbacks = state.acceptCallbacks;
+  const disposeCallbacks = state.disposeCallbacks;
+  state.disposeCallbacks = [];
+  state.data = {};
+
+  disposeCallbacks.map((callback) => callback());
+  const updateID = Date.now();
+  for (const { deps, callback: acceptCallback } of acceptCallbacks) {
+    const [module, ...depModules] = await Promise.all([
+      import(id + `?mtime=${updateID}`),
+      ...deps.map((d) => import(d + `?mtime=${updateID}`)),
+    ]);
+    acceptCallback({ module, deps: depModules });
+  }
+
+  return true;
+}
+
+export function start() {
+  socket.addEventListener("message", ({ data: _data }) => {
+    console.log("message!");
+    if (!_data) {
+      return;
+    }
+    const data = JSON.parse(_data);
+    debug("message", data);
+    if (data.type === "reload") {
+      debug("message: reload");
+      reload();
+      return;
+    }
+    if (data.type !== "update") {
+      debug("message: unknown", data);
+      return;
+    }
+    debug("message: update", data);
+    debug(data.url, Object.keys(REGISTERED_MODULES));
+    applyUpdate(data.url)
+      .then((ok) => {
+        if (!ok) {
+          reload();
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        reload();
+      });
+  });
+
+  debug("listening for file changes...");
 }

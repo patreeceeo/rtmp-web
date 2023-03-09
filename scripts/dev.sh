@@ -29,9 +29,12 @@ function cleanup() {
     preserved_path="$(echo "$in_path" | cut -d/ -f 3-)"
     screen_session_name=$(get_screen_session_name_for_path build "$preserved_path")
     if screen_session_quit_all_by_name "$screen_session_name"; then
-      echo "quit session $screen_session_name"
+      echo "quit screen $screen_session_name session"
     fi
   done
+  if screen_session_quit_all_by_name "dev_server"; then
+    echo "quit screen dev_server session"
+  fi
 }
 
 hook_install_location=".git/hooks/pre-commit"
@@ -61,10 +64,13 @@ assert_ok cp ./src/index.html ./public
 
 for in_path in $sub_module_rel_paths; do
   preserved_path="$(echo "$in_path" | cut -d/ -f 3-)"
-  out_path="public/$preserved_path"
-  screen_session_name=$(get_screen_session_name_for_path build "$preserved_path")
+  preserved_path_js="${preserved_path%.ts}.js"
+  out_path="public/$preserved_path_js"
+  screen_session_name=$(get_screen_session_name_for_path build "$preserved_path_js")
   ./scripts/build-client-module.sh "$screen_session_name" "$in_path" "$out_path"
 done
+
+screen -S dev_server -d -m deno run --allow-net --allow-read --watch "src/modules/dev_server/mod.ts"
 
 trap cleanup SIGINT
 deno run --allow-net --allow-read --watch "$server_mod"
