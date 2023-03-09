@@ -46,8 +46,12 @@ EOF
 fi
 
 staged_ts_file_paths=$(git diff --name-only --cached | grep ".ts$")
-deno fmt "$staged_ts_file_paths"
-git add "$staged_ts_file_paths"
+if [ -n "$staged_ts_file_paths" ]; then
+  # shellcheck disable=SC2086
+  deno fmt $staged_ts_file_paths
+  # shellcheck disable=SC2086
+  git add $staged_ts_file_paths
+fi
 
 # If there are whitespace errors, print the offending file names and fail.
 exec git diff-index --check --cached "$against" --
