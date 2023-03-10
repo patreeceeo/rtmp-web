@@ -160,7 +160,7 @@ function startHmrClient(socket: WebSocket) {
     SOCKET_MESSAGE_QUEUE.forEach((msg) => _sendSocketMessage(socket, msg));
     SOCKET_MESSAGE_QUEUE = [];
   });
-  socket.addEventListener("message", ({ data: _data }) => {
+  socket.addEventListener("message", async ({ data: _data }) => {
     if (!_data) {
       return;
     }
@@ -177,17 +177,15 @@ function startHmrClient(socket: WebSocket) {
     }
     debug("message: update", data);
     debug(data.url, Object.keys(REGISTERED_MODULES));
-    // TODO use async/await
-    applyUpdate(data.url)
-      .then((ok) => {
-        if (!ok) {
-          reload();
-        }
-      })
-      .catch((err) => {
-        console.error(err);
+    try {
+      const ok = await applyUpdate(data.url)
+      if (!ok) {
         reload();
-      });
+      }
+    } catch (err) {
+      console.error(err);
+      reload();
+    }
   });
 
   isHmrClientRunning = true
