@@ -22,16 +22,15 @@ function reload() {
 // deno-lint-ignore no-explicit-any
 let SOCKET_MESSAGE_QUEUE: any[] = [];
 // deno-lint-ignore no-explicit-any
-function _sendSocketMessage(msg: any) {
-  debug("send", JSON.stringify(msg));
+function _sendSocketMessage(socket: WebSocket, msg: any) {
   socket.send(JSON.stringify(msg));
 }
 // deno-lint-ignore no-explicit-any
-function sendSocketMessage(msg: any) {
+function sendSocketMessage(socket: WebSocket, msg: any) {
   if (socket.readyState !== socket.OPEN) {
     SOCKET_MESSAGE_QUEUE.push(msg);
   } else {
-    _sendSocketMessage(msg);
+    _sendSocketMessage(socket, msg);
   }
 }
 
@@ -40,18 +39,12 @@ const socketURL =
   (window as any).HMR_WEBSOCKET_URL ||
   // TODO make common function
   (location.protocol === "http:" ? "ws://" : "wss://") + location.host + "/";
-// Seems like Deno cannot handle subprotocols
-// const socket = new WebSocket(socketURL, "esm-hmr");
-const socket = new WebSocket(socketURL);
-socket.addEventListener("open", () => {
-  SOCKET_MESSAGE_QUEUE.forEach(_sendSocketMessage);
-  SOCKET_MESSAGE_QUEUE = [];
-});
 
 const REGISTERED_MODULES: { [key: string]: HotModuleState } = {};
 
 export class HotModuleState {
   id: string;
+  #socket: WebSocket;
   // deno-lint-ignore no-explicit-any
   data: any = {};
   isLocked = false;
@@ -60,8 +53,9 @@ export class HotModuleState {
   acceptCallbacks: AcceptCallbackObject[] = [];
   disposeCallbacks: DisposeCallback[] = [];
 
-  constructor(id: string) {
+  constructor(id: string, socket: WebSocket) {
     this.id = id;
+    this.#socket = socket;
   }
 
   lock(): void {
@@ -85,7 +79,7 @@ export class HotModuleState {
       return;
     }
     if (!this.isAccepted) {
-      sendSocketMessage({ id: this.id, type: "hotAccept" });
+      sendSocketMessage(this.#socket, { id: this.id, type: "hotAccept" });
       this.isAccepted = true;
     }
     if (!Array.isArray(_deps)) {
@@ -112,24 +106,24 @@ export class HotModuleState {
   }
 }
 
-function createHotContext(fullUrl: string) {
+function createHotContext(fullUrl: string, socket: WebSocket) {
   const id = new URL(fullUrl).pathname;
   const existing = REGISTERED_MODULES[id];
   if (existing) {
     existing.lock();
     return existing;
   }
-  const state = new HotModuleState(id);
+  const state = new HotModuleState(id, socket);
   REGISTERED_MODULES[id] = state;
   return state;
 }
 
-function installHotContext(importMeta: ImportMeta) {
+function installHotContext(importMeta: ImportMeta, socket: WebSocket) {
   // TODO conditionally inject this in build
   // this condition is a temporary workaround until I figure out how to inject config/env vars,
   // or accomplish the above TODO
   if (location.hostname === "localhost") {
-    importMeta.hot = createHotContext(importMeta.url);
+    importMeta.hot = createHotContext(importMeta.url, socket);
   }
 }
 
@@ -161,9 +155,12 @@ async function applyUpdate(id: string) {
 }
 
 let isHmrClientRunning = false
-function startHmrClient() {
+function startHmrClient(socket: WebSocket) {
+  socket.addEventListener("open", () => {
+    SOCKET_MESSAGE_QUEUE.forEach((msg) => _sendSocketMessage(socket, msg));
+    SOCKET_MESSAGE_QUEUE = [];
+  });
   socket.addEventListener("message", ({ data: _data }) => {
-    console.log("message!");
     if (!_data) {
       return;
     }
@@ -180,6 +177,7 @@ function startHmrClient() {
     }
     debug("message: update", data);
     debug(data.url, Object.keys(REGISTERED_MODULES));
+    // TODO use async/await
     applyUpdate(data.url)
       .then((ok) => {
         if (!ok) {
@@ -198,7 +196,10 @@ function startHmrClient() {
 
 export function useHmr(importMeta: ImportMeta) {
   if(!isHmrClientRunning) {
-    startHmrClient()
+    // Seems like Deno cannot handle subprotocols
+    // const socket = new WebSocket(socketURL, "esm-hmr");
+    const socket = new WebSocket(socketURL);
+    startHmrClient(socket)
+    installHotContext(importMeta, socket)
   }
-  installHotContext(importMeta)
 }

@@ -40,8 +40,8 @@ export class EsmHmrEngine {
     client.onerror = () => {
       console.warn(`Socket error!`);
     };
-    client.onclose = () => {
-      console.info("socket closed");
+    client.onclose = (e) => {
+      console.info("socket closed", e.reason, e.code, e.wasClean);
       this.clients.delete(client);
     };
   }
@@ -130,6 +130,7 @@ export class EsmHmrEngine {
   }
 
   disconnectClient(client: WebSocket) {
+    console.log("disconnecting client")
     client.close();
     this.clients.delete(client);
   }
