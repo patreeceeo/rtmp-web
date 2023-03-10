@@ -1,5 +1,6 @@
 /**
  * A server-side implementation of the ESM-HMR spec, for real.
+ * See https://github.com/FredKSchott/esm-hmr
  */
 import { serve } from "http";
 import { relative } from "path";
