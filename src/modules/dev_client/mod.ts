@@ -90,13 +90,6 @@ export class HotModuleState {
       callback = () => {};
     }
     const deps = _deps.map((dep) => {
-      // TODO assume full, explicit paths
-      const ext = dep.split(".").pop();
-      if (!ext) {
-        dep += ".js";
-      } else if (ext !== "js") {
-        dep += ".proxy.js";
-      }
       return new URL(dep, `${window.location.origin}${this.id}`).pathname;
     });
     this.acceptCallbacks.push({
