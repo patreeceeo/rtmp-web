@@ -50,7 +50,7 @@ socket.addEventListener("open", () => {
 
 const REGISTERED_MODULES: { [key: string]: HotModuleState } = {};
 
-class HotModuleState {
+export class HotModuleState {
   id: string;
   // deno-lint-ignore no-explicit-any
   data: any = {};
@@ -112,7 +112,7 @@ class HotModuleState {
   }
 }
 
-export function createHotContext(fullUrl: string) {
+function createHotContext(fullUrl: string) {
   const id = new URL(fullUrl).pathname;
   const existing = REGISTERED_MODULES[id];
   if (existing) {
@@ -124,13 +124,12 @@ export function createHotContext(fullUrl: string) {
   return state;
 }
 
-export function installHotContext() {
+function installHotContext(importMeta: ImportMeta) {
   // TODO conditionally inject this in build
   // this condition is a temporary workaround until I figure out how to inject config/env vars,
   // or accomplish the above TODO
   if (location.hostname === "localhost") {
-    // deno-lint-ignore no-explicit-any
-    (import.meta as any).hot = createHotContext(import.meta.url);
+    importMeta.hot = createHotContext(importMeta.url);
   }
 }
 
@@ -161,7 +160,8 @@ async function applyUpdate(id: string) {
   return true;
 }
 
-export function start() {
+let isHmrClientRunning = false
+function startHmrClient() {
   socket.addEventListener("message", ({ data: _data }) => {
     console.log("message!");
     if (!_data) {
@@ -192,5 +192,13 @@ export function start() {
       });
   });
 
+  isHmrClientRunning = true
   debug("listening for file changes...");
+}
+
+export function useHmr(importMeta: ImportMeta) {
+  if(!isHmrClientRunning) {
+    startHmrClient()
+  }
+  installHotContext(importMeta)
 }

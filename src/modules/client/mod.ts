@@ -9,14 +9,14 @@ import {
 import { createState, InputState } from "../common/State.ts";
 import { drawCircle } from "../client/canvas.ts";
 import { sendIfOpen } from "../common/socket.ts";
-import * as devClient from "../dev_client/mod.ts";
+import {useHmr} from "../dev_client/mod.ts";
 
-devClient.start();
-const hot = devClient.createHotContext(import.meta.url);
-
-hot.accept([], ({ module: { updateScreen: _updateScreen } }) => {
-  updateScreen = _updateScreen;
-});
+useHmr(import.meta)
+if(import.meta.hot) {
+  import.meta.hot.accept([], ({ module: { updateScreen: _updateScreen } }) => {
+    updateScreen = _updateScreen;
+  });
+}
 
 const state = createState();
 
