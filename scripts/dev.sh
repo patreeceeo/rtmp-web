@@ -27,7 +27,8 @@ function cleanup() {
   # quit sessions
   for in_path in $sub_module_rel_paths; do
     preserved_path="$(echo "$in_path" | cut -d/ -f 3-)"
-    screen_session_name=$(get_screen_session_name_for_path build "$preserved_path")
+    preserved_path_js="${preserved_path%.ts}.js"
+    screen_session_name=$(get_screen_session_name_for_path build "$preserved_path_js")
     if screen_session_quit_all_by_name "$screen_session_name"; then
       echo "quit screen $screen_session_name session"
     fi
