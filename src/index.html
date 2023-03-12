@@ -5,6 +5,14 @@
     <script>
       window.HMR_WEBSOCKET_URL = "ws://localhost:12321"
     </script>
+    <script type="importmap">
+      // TODO figure out how to not duplicate info from server-side importmap
+      {
+        "imports": {
+          "hot_mod/": "https://deno.land/x/hot_mod/"
+        }
+      }
+    </script>
     <script src="/public/client/mod.js" type="module"></script>
     <style>
       body {

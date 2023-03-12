@@ -9,10 +9,10 @@ import {
 import { createState, InputState } from "../common/State.ts";
 import { drawCircle } from "../client/canvas.ts";
 import { sendIfOpen } from "../common/socket.ts";
-import {useHmr} from "../dev_client/mod.ts";
+import { useHmr } from "hot_mod/client/mod.js";
 
-useHmr(import.meta)
-if(import.meta.hot) {
+useHmr(import.meta);
+if (import.meta.hot) {
   import.meta.hot.accept([], ({ module: { updateScreen: _updateScreen } }) => {
     updateScreen = _updateScreen;
   });
@@ -35,9 +35,9 @@ const handleExit = ({ networkId }: ExitMessage["payload"]) => {
 const wsProtocol = location.origin.startsWith("https") ? "wss" : "ws";
 
 if (!state.ws) {
-  const socket = state.ws = new WebSocket(
+  const socket = (state.ws = new WebSocket(
     `${wsProtocol}://${location.host}/start_web_socket`,
-  );
+  ));
 
   socket.onopen = startNetworkLoop;
 
@@ -73,10 +73,10 @@ setTimeout(() => {
 });
 
 window.onkeydown = (ev) => {
-  const inputState = state.localPlayer.input[ev.code] ||= {
+  const inputState = (state.localPlayer.input[ev.code] ||= {
     pressTime: 0,
     releaseTime: 0,
-  };
+  });
   inputState.pressTime = Date.now();
 };
 window.onkeyup = (ev) => {
