@@ -27,8 +27,7 @@ function cleanup() {
   # quit sessions
   for in_path in $sub_module_rel_paths; do
     preserved_path="$(echo "$in_path" | cut -d/ -f 3-)"
-    preserved_path_js="${preserved_path%.ts}.js"
-    screen_session_name=$(get_screen_session_name_for_path build "$preserved_path_js")
+    screen_session_name=$(get_screen_session_name_for_path build "$preserved_path")
     if screen_session_quit_all_by_name "$screen_session_name"; then
       echo "quit screen $screen_session_name session"
     fi
@@ -65,9 +64,8 @@ assert_ok cp ./src/index.html ./public
 
 for in_path in $sub_module_rel_paths; do
   preserved_path="$(echo "$in_path" | cut -d/ -f 3-)"
-  preserved_path_js="${preserved_path%.ts}.js"
-  out_path="public/$preserved_path_js"
-  screen_session_name=$(get_screen_session_name_for_path build "$preserved_path_js")
+  out_path="public/$(dirname "$preserved_path")"
+  screen_session_name=$(get_screen_session_name_for_path build "$preserved_path")
   ./scripts/build-client-module.sh "$screen_session_name" "$in_path" "$out_path"
 done
 
