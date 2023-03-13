@@ -53,7 +53,7 @@ fi
 
 
 server_mod="./src/modules/server/mod.ts"
-sub_module_rel_paths=$(ls -1rd src/modules/**/*.ts)
+sub_module_rel_paths=$(ls -1rd src/modules/client/*.ts src/modules/common/*.ts)
 
 assert_ok stat "$server_mod" 1>/dev/null 2>/dev/null
 
