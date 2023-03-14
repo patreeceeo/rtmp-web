@@ -6,19 +6,25 @@ import {
   UpdateMessage,
   WelcomeMessage,
 } from "../common/Message.ts";
-import { createState, InputState } from "../common/State.ts";
+import { InputState, state } from "../common/State.ts";
 import { drawCircle } from "../client/canvas.ts";
 import { sendIfOpen } from "../common/socket.ts";
-import { useHmr } from "hot_mod/client/mod.js";
+import { useClient } from "hot_mod/dist/client/mod.js";
 
-useHmr(import.meta);
+useClient(import.meta);
+export const hotExports = {
+  updateScreen,
+  drawPlayers,
+};
 if (import.meta.hot) {
-  import.meta.hot.accept([], ({ module: { updateScreen: _updateScreen } }) => {
-    updateScreen = _updateScreen;
+  import.meta.hot.accept([], ({ module }) => {
+    for (
+      const key of Object.keys(hotExports) as Array<keyof typeof hotExports>
+    ) {
+      hotExports[key] = module.hotExports[key];
+    }
   });
 }
-
-const state = createState();
 
 function handleWelcome({ networkId }: WelcomeMessage["payload"]) {
   state.localPlayer.networkId = networkId;
@@ -58,7 +64,7 @@ window.onload = () => {
   const ctx = el.getContext("2d");
   if (ctx) {
     ctx.imageSmoothingEnabled = false;
-    updateScreen(ctx);
+    hotExports.updateScreen(ctx);
   } else {
     console.log("Failed to get canvas rendering context");
   }
@@ -101,10 +107,10 @@ const socketRouter = {
   exit: handleExit,
 };
 
-export let updateScreen = (ctx: CanvasRenderingContext2D) => {
-  drawPlayers(ctx);
+function updateScreen(ctx: CanvasRenderingContext2D) {
+  hotExports.drawPlayers(ctx);
   requestAnimationFrame(() => updateScreen(ctx));
-};
+}
 
 function startNetworkLoop() {
   setInterval(() => {

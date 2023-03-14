@@ -17,14 +17,16 @@ export interface State {
     input: Record<string, InputState>;
   };
   networkedEntities: NetworkEntityRecord;
-  ws?: WebSocket
-  loaded: boolean
+  ws?: WebSocket;
+  loaded: boolean;
 }
 
-export const createState = (): State => ({
+const createState = (): State => ({
   localPlayer: {
     input: {},
   },
   networkedEntities: {},
-  loaded: false
+  loaded: false,
 });
+
+export const state = createState();
