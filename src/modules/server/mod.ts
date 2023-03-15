@@ -10,6 +10,8 @@ import { BadRequestResponse, NotFoundResponse } from "../common/Response.ts";
 
 const rootDir = Deno.cwd();
 
+const allowedFileExtensions = [".html", ".css", ".js", ".jpg", ".jpeg", ".gif", ".png", ".ico"]
+
 async function handleHttp(request: Request) {
   const url = new URL(request.url);
   if (url.pathname === "/start_web_socket") {
@@ -23,15 +25,14 @@ async function handleHttp(request: Request) {
     const indexHtml = await Deno.readFile(`${rootDir}/public/index.html`);
     return new Response(indexHtml);
   } else if (url.pathname.startsWith("/public")) {
-    console.log("public", url.pathname);
     const ext = getExtension(url.pathname);
     const base = getBaseName(url.pathname, `${ext}`);
     const dir = getDirName(url.pathname);
     const extRewrite = ext === ".ts" ? ".js" : ext;
     const contentType = getContentType(extRewrite);
     const assetPath = `${rootDir}${dir}/${base}${extRewrite}`;
-    console.log({ extRewrite, contentType });
-    if (contentType) {
+    if (contentType && allowedFileExtensions.includes(extRewrite)) {
+      console.info(`Requested ${url.pathname} => ${assetPath}, content type: ${contentType}`);
       if (await isFilePath(assetPath)) {
         const content = await Deno.readFile(assetPath);
         return new Response(content, {
@@ -40,10 +41,10 @@ async function handleHttp(request: Request) {
           },
         });
       } else {
-        console.log("not a file")
+        console.warn(`Requested file ${url.pathname} not found`)
       }
     } else {
-      return new BadRequestResponse("Uknown MIME type for requested resource");
+      return new BadRequestResponse(`MIME type for ${url.pathname} is unknown`);
     }
   }
   return new NotFoundResponse();
