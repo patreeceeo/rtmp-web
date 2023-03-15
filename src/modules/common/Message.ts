@@ -35,7 +35,7 @@ const payloadParsersByType: Record<keyof MessagePlayloadByType, (data: string) =
     const obj = JSON.parse(json)
     const nid = obj["nid"]
     const to = obj["to"]
-    return {nid,to: new Vec2(to.x, to.y)}
+    return new PlayerMove(new Vec2(to.x, to.y), nid)
   },
 }
 const payloadSerializersByType: Record<keyof MessagePlayloadByType, (data: MessagePlayloadByType[keyof MessagePlayloadByType]) => string> = {
