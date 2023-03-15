@@ -30,7 +30,7 @@ async function handleHttp(request: Request) {
     const extRewrite = ext === ".ts" ? ".js" : ext;
     const contentType = getContentType(extRewrite);
     const assetPath = `${rootDir}${dir}/${base}${extRewrite}`;
-    console.log({ extRewrite });
+    console.log({ extRewrite, contentType });
     if (contentType) {
       if (await isFilePath(assetPath)) {
         const content = await Deno.readFile(assetPath);
@@ -39,6 +39,8 @@ async function handleHttp(request: Request) {
             "content-type": contentType,
           },
         });
+      } else {
+        console.log("not a file")
       }
     } else {
       return new BadRequestResponse("Uknown MIME type for requested resource");
