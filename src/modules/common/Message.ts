@@ -6,9 +6,9 @@ export class PlayerMove {
 }
 
 export enum MessageType {
-  playerAdded,
-  playerRemoved,
-  playerMoved,
+  playerAdded = '+',
+  playerRemoved = '-',
+  playerMoved = '>',
 }
 export type MessagePlayloadByType = {
   [MessageType.playerAdded]: {isLocal: boolean, player: Player},
@@ -30,8 +30,13 @@ const payloadParsersByType: Record<keyof MessagePlayloadByType, (data: string) =
     const position = player["position"]
     return {isLocal: obj["isLocal"], player: new Player(player["nid"], new Vec2(position.x, position.y))}
   },
-  [MessageType.playerRemoved]: JSON.parse,
-  [MessageType.playerMoved]: JSON.parse,
+  [MessageType.playerRemoved]: parseInt,
+  [MessageType.playerMoved]: (json) => {
+    const obj = JSON.parse(json)
+    const nid = obj["nid"]
+    const to = obj["to"]
+    return {nid,to: new Vec2(to.x, to.y)}
+  },
 }
 const payloadSerializersByType: Record<keyof MessagePlayloadByType, (data: MessagePlayloadByType[keyof MessagePlayloadByType]) => string> = {
   [MessageType.playerAdded]: JSON.stringify,
@@ -42,7 +47,7 @@ const payloadSerializersByType: Record<keyof MessagePlayloadByType, (data: Messa
 export function parseMessage(serializedData: SerializedData): AnyMessage {
   // TODO(optimize) use typed arrays / protobuf / binary
   const dataString = serializedData.toString()
-  const type = parseInt(dataString[0]) as MessageType
+  const type = dataString[0] as MessageType
   const payload = payloadParsersByType[type](dataString.slice(1))
   return {
     type,
@@ -51,7 +56,6 @@ export function parseMessage(serializedData: SerializedData): AnyMessage {
 }
 
 export function serializeMessage<Type extends MessageType>(type: Type, payload: MessagePlayloadByType[Type]) {
-  const typeString = type.toString()
   const payloaString = payloadSerializersByType[type](payload)
-  return `${typeString}${payloaString}`
+  return `${type}${payloaString}`
 }
