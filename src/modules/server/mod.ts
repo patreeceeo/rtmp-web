@@ -6,7 +6,7 @@ import {
   dirname as getDirName,
   extname as getExtension,
 } from "path";
-import { NotFoundResponse } from "../common/Response.ts";
+import { BadRequestResponse, NotFoundResponse } from "../common/Response.ts";
 
 const rootDir = Deno.cwd();
 
@@ -30,13 +30,18 @@ async function handleHttp(request: Request) {
     const extRewrite = ext === ".ts" ? ".js" : ext;
     const contentType = getContentType(extRewrite);
     const assetPath = `${rootDir}${dir}/${base}${extRewrite}`;
-    if (contentType && await isFilePath(assetPath)) {
-      const content = await Deno.readFile(assetPath);
-      return new Response(content, {
-        headers: {
-          "content-type": contentType,
-        },
-      });
+    console.log({ extRewrite });
+    if (contentType) {
+      if (await isFilePath(assetPath)) {
+        const content = await Deno.readFile(assetPath);
+        return new Response(content, {
+          headers: {
+            "content-type": contentType,
+          },
+        });
+      }
+    } else {
+      return new BadRequestResponse("Uknown MIME type for requested resource");
     }
   }
   return new NotFoundResponse();
