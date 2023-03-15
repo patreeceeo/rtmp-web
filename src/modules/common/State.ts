@@ -1,19 +1,14 @@
 import { distanceSquared } from "./math.ts";
+import { isClient } from "./env.ts";
+import { Vec2 } from "./Vec2.ts";
+
 export class Player {
   constructor(readonly nid: NetworkId, readonly position: Vec2) {}
 }
 
-export class Vec2 {
-  constructor(public x = 0, public y = 0) {}
-  __copy__(src: Vec2) {
-    this.x = src.x
-    this.y = src.y
-  }
-}
 
 
 export type NetworkId = number;
-const isClient = !("Deno" in globalThis)
 let nextNetworkId = 0;
 function createNetworkId() {
   if (!isClient) {

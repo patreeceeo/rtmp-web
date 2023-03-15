@@ -1,4 +1,4 @@
-import { Vec2 } from "./State.ts";
+import { Vec2 } from "./Vec2.ts";
 
 export function distanceSquared(a: Vec2, b: Vec2) {
   return Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2)
