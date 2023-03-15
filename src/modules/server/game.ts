@@ -1,3 +1,4 @@
+import { clampLine } from "../common/math.ts";
 import {
   serializeMessage,
   parseMessage,
@@ -65,10 +66,17 @@ const socketRouter: Record<keyof ServerMessagePlayloadByType, (client: WebSocket
   [MessageType.playerMoved]: handlePlayerMoved,
 };
 
-const MAX_MOVE_DISTANCE_SQUARED = 5
-function handlePlayerMoved(_client: WebSocket, move: PlayerMove) {
-  if(PlayerState.getPlayerDistanceSquared(move.nid, move.to) < MAX_MOVE_DISTANCE_SQUARED) {
-    PlayerState.movePlayer(move.nid, move.to)
+const MAX_MOVE_DISTANCE = 5
+const MAX_MOVE_DISTANCE_SQUARED = MAX_MOVE_DISTANCE * MAX_MOVE_DISTANCE
+function handlePlayerMoved(_client: WebSocket, requestedMove: PlayerMove) {
+  let move: PlayerMove
+  if(PlayerState.getPlayerDistanceSquared(requestedMove.nid, requestedMove.to) < MAX_MOVE_DISTANCE_SQUARED) {
+    move = requestedMove
+  } else {
+    const player = PlayerState.getPlayer(requestedMove.nid)
+    const clamped = clampLine(player!.position, requestedMove.to, MAX_MOVE_DISTANCE)
+    move = new PlayerMove(clamped!, requestedMove.nid)
   }
+  PlayerState.movePlayer(requestedMove.nid, move.to)
   broadcast(serializeMessage(MessageType.playerMoved, move))
 }

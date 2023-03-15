@@ -1,4 +1,4 @@
-import { distanceSquared2 } from "./math.ts";
+import { distanceSquared } from "./math.ts";
 export class Player {
   constructor(readonly nid: NetworkId, readonly position: Vec2) {}
 }
@@ -157,7 +157,7 @@ class PlayerStateApi {
 
   getPlayerDistanceSquared(nid: NetworkId, pos: Vec2) {
     const player = this.getPlayer(nid)
-    return distanceSquared2(player!.position, pos)
+    return distanceSquared(player!.position, pos)
   }
 
   movePlayer(nid: NetworkId, to: Vec2) {
