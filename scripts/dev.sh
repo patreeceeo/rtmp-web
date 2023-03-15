@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./scripts/common.sh
+
 function assert_ok() {
   cmd="$*"
   if ! $cmd; then
@@ -25,7 +27,7 @@ function screen_session_quit_all_by_name() {
 
 function cleanup() {
   # quit sessions
-  for in_path in $sub_module_rel_paths; do
+  for in_path in $client_sub_module_rel_paths; do
     preserved_path="$(echo "$in_path" | cut -d/ -f 3-)"
     screen_session_name=$(get_screen_session_name_for_path build "$preserved_path")
     if screen_session_quit_all_by_name "$screen_session_name"; then
@@ -52,7 +54,6 @@ fi
 
 
 server_mod="./src/modules/server/mod.ts"
-sub_module_rel_paths=$(ls -1rd src/modules/client/*.ts src/modules/common/*.ts)
 
 assert_ok stat "$server_mod" 1>/dev/null 2>/dev/null
 
@@ -62,9 +63,8 @@ assert_ok mkdir -p public/common
 assert_ok mkdir -p public/dev_client
 assert_ok cp ./src/index.html ./public
 
-for in_path in $sub_module_rel_paths; do
-  preserved_path="$(echo "$in_path" | cut -d/ -f 3-)"
-  out_path="public/$(dirname "$preserved_path")"
+for in_path in $client_sub_module_rel_paths; do
+  out_path=$(get_out_path_for_client_module "$in_path")
   screen_session_name=$(get_screen_session_name_for_path build "$preserved_path")
   ./scripts/build-client-module.sh "$screen_session_name" "$in_path" "$out_path"
 done
