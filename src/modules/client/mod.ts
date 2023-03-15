@@ -1,12 +1,5 @@
-import {
-  composeUpdateRequest,
-  ExitMessage,
-  MessageFromServer,
-  MessagePayloadFromServer,
-  UpdateMessage,
-  WelcomeMessage,
-} from "../common/Message.ts";
-import { InputState, state } from "../common/State.ts";
+import { MessagePlayloadByType, MessageType, parseMessage, PlayerMove, serializeMessage } from "../common/Message.ts";
+import { AppState, InputState, Player, PlayerState, Vec2 } from "../common/State.ts";
 import { drawCircle } from "../client/canvas.ts";
 import { sendIfOpen } from "../common/socket.ts";
 import { useClient } from "hot_mod/dist/client/mod.js";
@@ -26,40 +19,7 @@ if (import.meta.hot) {
   });
 }
 
-function handleWelcome({ networkId }: WelcomeMessage["payload"]) {
-  state.localPlayer.networkId = networkId;
-  state.networkedEntities[networkId] = { x: 100, y: 100 };
-}
-function handleUpdate(updatedEntities: UpdateMessage["payload"]) {
-  Object.assign(state.networkedEntities, updatedEntities);
-}
-const handleEnter = () => {};
-const handleExit = ({ networkId }: ExitMessage["payload"]) => {
-  delete state.networkedEntities[networkId];
-};
-
-const wsProtocol = location.origin.startsWith("https") ? "wss" : "ws";
-
-if (!state.ws) {
-  const socket = (state.ws = new WebSocket(
-    `${wsProtocol}://${location.host}/start_web_socket`,
-  ));
-
-  socket.onopen = startNetworkLoop;
-
-  socket.onmessage = (message) => {
-    const parsedMessage = JSON.parse(message.data) as MessageFromServer;
-
-    const handler = socketRouter[parsedMessage.type];
-    if (handler) {
-      handler(parsedMessage.payload as MessagePayloadFromServer);
-    } else {
-      console.warn("No handler for", parsedMessage.type);
-    }
-  };
-}
-
-window.onload = () => {
+function init (){
   const el: HTMLCanvasElement = document.querySelector("#screen")!;
   const ctx = el.getContext("2d");
   if (ctx) {
@@ -68,83 +28,105 @@ window.onload = () => {
   } else {
     console.log("Failed to get canvas rendering context");
   }
-  state.loaded = true;
+
+  const wsProtocol = location.origin.startsWith("https") ? "wss" : "ws";
+
+  const socket = new WebSocket(
+    `${wsProtocol}://${location.host}/start_web_socket`,
+  );
+
+  socket.onopen = startNetworkLoop;
+
+  socket.onmessage = (ev) => handleMessage(socket, ev)
+
+  AppState.setLoaded(socket)
+}
+
+export const handleMessage = (server: WebSocket, message: MessageEvent) => {
+  const parsedMessage = parseMessage(message.data)
+
+  if(parsedMessage.type in socketRouter) {
+    const handler = socketRouter[parsedMessage.type as keyof typeof socketRouter];
+    handler(server, parsedMessage.payload as ClientMessagePlayloadByType[keyof ClientMessagePlayloadByType]);
+  } else {
+    console.warn("No handler for", parsedMessage.type);
+  }
 };
 
-// In case load already happened
+type ClientMessagePlayloadByType = Pick<MessagePlayloadByType, MessageType.playerMoved | MessageType.playerAdded>
+
+const socketRouter: Record<keyof ClientMessagePlayloadByType, (client: WebSocket, data: ClientMessagePlayloadByType[keyof ClientMessagePlayloadByType]) => void> = {
+  // TODO figure out how to get rid of these explicit anys
+  // deno-lint-ignore no-explicit-any
+  [MessageType.playerAdded]: handlePlayerAdded as any,
+  // deno-lint-ignore no-explicit-any
+  [MessageType.playerMoved]: handlePlayerMoved as any
+};
+
+function handlePlayerAdded(_server: WebSocket, {isLocal, player}: MessagePlayloadByType[MessageType.playerAdded]) {
+  if(isLocal) {
+    PlayerState.setLocalPlayer(player)
+  } else {
+    PlayerState.addExistingPlayer(player)
+  }
+}
+function handlePlayerMoved(_server: WebSocket, move: PlayerMove) {
+  PlayerState.movePlayer(move.nid, move.to)
+}
+
+window.onload = init
+
+// In case load event already happened
 setTimeout(() => {
-  if (!state.loaded) {
-    window.onload!(new Event("load"));
+  if (!AppState.isLoaded) {
+    init()
   }
 });
 
 window.onkeydown = (ev) => {
-  const inputState = (state.localPlayer.input[ev.code] ||= {
-    pressTime: 0,
-    releaseTime: 0,
-  });
-  inputState.pressTime = Date.now();
+  InputState.setKeyPressed(ev.code)
 };
 window.onkeyup = (ev) => {
-  const inputState = state.localPlayer.input[ev.code];
-  inputState.releaseTime = Date.now();
+  InputState.setKeyReleased(ev.code)
 };
 
-const move = (x: number, y: number) => {
-  if (state.localPlayer.networkId) {
-    const localEntity = state.networkedEntities[state.localPlayer.networkId!];
-    localEntity.x += x;
-    localEntity.y += y;
-  } else {
-    console.warn("Trying to move without a network connection");
-  }
-};
-
-const socketRouter = {
-  welcome: handleWelcome,
-  update: handleUpdate,
-  enter: handleEnter,
-  exit: handleExit,
-};
 
 function updateScreen(ctx: CanvasRenderingContext2D) {
   hotExports.drawPlayers(ctx);
   requestAnimationFrame(() => updateScreen(ctx));
 }
 
+const to = new Vec2()
 function startNetworkLoop() {
   setInterval(() => {
-    function isPressed(state: InputState) {
-      return state && state.pressTime > state.releaseTime;
+    const player = PlayerState.getLocalPlayer()
+    if(player) {
+      let dx = 0, dy = 0
+      if (InputState.isKeyPressed("KeyA")) {
+        dx = -1
+      }
+      if (InputState.isKeyPressed("KeyW")) {
+        dy = -1
+      }
+      if (InputState.isKeyPressed("KeyS")) {
+        dy = 1
+      }
+      if (InputState.isKeyPressed("KeyD")) {
+        dx = 1
+      }
+      to.x = player.position.x + dx
+      to.y = player.position.y + dy
+      PlayerState.movePlayer(player.nid, to)
+      if(dx !== 0 || dy !== 0) {
+        sendIfOpen(AppState.socket!, serializeMessage(MessageType.playerMoved, new PlayerMove(to, player.nid)))
+      }
     }
-
-    const inputState = state.localPlayer.input;
-    const keyA = inputState["KeyA"];
-    const keyW = inputState["KeyW"];
-    const keyS = inputState["KeyS"];
-    const keyD = inputState["KeyD"];
-    if (isPressed(keyA)) {
-      move(-1, 0);
-    }
-    if (isPressed(keyW)) {
-      move(0, -1);
-    }
-    if (isPressed(keyS)) {
-      move(0, 1);
-    }
-    if (isPressed(keyD)) {
-      move(1, 0);
-    }
-    sendIfOpen(
-      state.ws!,
-      JSON.stringify(composeUpdateRequest(state.networkedEntities)),
-    );
   }, 20);
 }
 
 function drawPlayers(ctx: CanvasRenderingContext2D) {
-  for (const [id, entity] of Object.entries(state.networkedEntities)) {
-    ctx.fillStyle = id === state.localPlayer.networkId ? "red" : "blue";
-    drawCircle(ctx, entity.x, entity.y, 4);
+  for (const player of PlayerState.getPlayers()) {
+    ctx.fillStyle = PlayerState.isLocalPlayer(player.nid) ? "red" : "blue";
+    drawCircle(ctx, player.position.x, player.position.y, 4);
   }
 }

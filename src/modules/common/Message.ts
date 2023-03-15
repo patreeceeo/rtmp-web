@@ -1,44 +1,57 @@
-import { NetworkEntityRecord, NetworkId } from "./State.ts";
+import { SerializedData } from "../common/socket.ts";
+import { NetworkId, Player, Vec2 } from "../common/State.ts";
 
-export type BaseMessage<Type extends string, Payload> = {
+export class PlayerMove {
+  constructor(readonly to: Vec2, readonly nid: NetworkId) {}
+}
+
+export enum MessageType {
+  playerAdded,
+  playerRemoved,
+  playerMoved,
+}
+export type MessagePlayloadByType = {
+  [MessageType.playerAdded]: {isLocal: boolean, player: Player},
+  [MessageType.playerRemoved]: NetworkId,
+  [MessageType.playerMoved]: PlayerMove
+}
+
+export interface Message<Type extends MessageType> {
   type: Type;
-  payload: Payload;
-};
+  payload: MessagePlayloadByType[Type];
+}
 
-export type UpdateRequestMessage = BaseMessage<
-  "updateRequest",
-  NetworkEntityRecord
->;
-export const composeUpdateRequest = (
-  networkedEntities: NetworkEntityRecord,
-) => ({
-  type: "updateRequest",
-  payload: networkedEntities,
-});
+export type AnyMessage = Message<MessageType>
 
-export type WelcomeMessage = BaseMessage<"welcome", { networkId: NetworkId }>;
-export const composeWelcome = (networkId: NetworkId): WelcomeMessage => ({
-  type: "welcome",
-  payload: { networkId },
-});
+const payloadParsersByType: Record<keyof MessagePlayloadByType, (data: string) => MessagePlayloadByType[keyof MessagePlayloadByType]> = {
+  [MessageType.playerAdded]: (json) => {
+    const obj = JSON.parse(json)
+    const player = obj["player"]
+    const position = player["position"]
+    return {isLocal: obj["isLocal"], player: new Player(player["nid"], new Vec2(position.x, position.y))}
+  },
+  [MessageType.playerRemoved]: JSON.parse,
+  [MessageType.playerMoved]: JSON.parse,
+}
+const payloadSerializersByType: Record<keyof MessagePlayloadByType, (data: MessagePlayloadByType[keyof MessagePlayloadByType]) => string> = {
+  [MessageType.playerAdded]: JSON.stringify,
+  [MessageType.playerRemoved]: JSON.stringify,
+  [MessageType.playerMoved]: JSON.stringify,
+}
 
-export type UpdateMessage = BaseMessage<"update", NetworkEntityRecord>;
-export const composeUpdate = (networkedEntities: NetworkEntityRecord) => ({
-  type: "update",
-  payload: networkedEntities,
-});
+export function parseMessage(serializedData: SerializedData): AnyMessage {
+  // TODO(optimize) use typed arrays / protobuf / binary
+  const dataString = serializedData.toString()
+  const type = parseInt(dataString[0]) as MessageType
+  const payload = payloadParsersByType[type](dataString.slice(1))
+  return {
+    type,
+    payload
+  }
+}
 
-export type ExitMessage = BaseMessage<"exit", { networkId: NetworkId }>;
-export const composeExit = (networkId: NetworkId) => ({
-  type: "exit",
-  payload: { networkId },
-});
-
-export type MessageFromServer = WelcomeMessage | UpdateMessage | ExitMessage;
-export type MessagePayloadFromServer =
-  & WelcomeMessage["payload"]
-  & UpdateMessage["payload"]
-  & ExitMessage["payload"];
-
-export type MessageFromClient = UpdateRequestMessage;
-export type MessagePayloadFromClient = UpdateRequestMessage["payload"];
+export function serializeMessage<Type extends MessageType>(type: Type, payload: MessagePlayloadByType[Type]) {
+  const typeString = type.toString()
+  const payloaString = payloadSerializersByType[type](payload)
+  return `${typeString}${payloaString}`
+}

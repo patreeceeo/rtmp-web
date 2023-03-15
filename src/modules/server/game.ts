@@ -1,14 +1,17 @@
 import {
-  composeUpdate,
-  composeWelcome,
-  MessageFromClient,
-  MessagePayloadFromClient,
-  UpdateRequestMessage,
+  serializeMessage,
+  parseMessage,
+MessageType,
+MessagePlayloadByType,
+PlayerMove
 } from "../common/Message.ts";
+
 import { sendIfOpen, SerializedData } from "../common/socket.ts";
-import { state } from "../common/State.ts";
-const connectedClients = new Map<string, WebSocket>();
-const connectedClientsReverse = new Map<WebSocket, string>();
+import { PlayerState } from "../common/State.ts";
+// TODO use array
+const connectedClients = new Map<number, WebSocket>();
+// TODO use weakmap?
+const connectedClientsReverse = new Map<WebSocket, number>();
 
 // send a message to all connected clients
 function broadcast(
@@ -20,51 +23,52 @@ function broadcast(
 }
 
 export const handleOpen = (client: WebSocket, _: Event) => {
-  const networkId = crypto.randomUUID();
-  const welcome = composeWelcome(networkId);
+  const addedPlayer = PlayerState.createPlayer()
 
-  connectedClients.set(networkId, client);
-  connectedClientsReverse.set(client, networkId);
-  sendIfOpen(client, JSON.stringify(welcome));
-};
-
-export const handleClose = (client: WebSocket, _: Event) => {
-  const playerId = connectedClientsReverse.get(client);
-  const exit = {
-    type: "exit",
-    payload: {
-      playerId,
-    },
-  };
-  connectedClientsReverse.delete(client);
-  if (playerId) {
-    connectedClients.delete(playerId);
-    broadcast(JSON.stringify(exit));
+  connectedClients.set(addedPlayer.nid, client);
+  connectedClientsReverse.set(client, addedPlayer.nid);
+  sendIfOpen(client, serializeMessage(MessageType.playerAdded, {isLocal: true, player: addedPlayer}));
+  broadcast(serializeMessage(MessageType.playerAdded, {isLocal: false, player: addedPlayer}));
+  for(const player of PlayerState.getPlayers()) {
+    sendIfOpen(client, serializeMessage(MessageType.playerAdded, {isLocal: false, player}));
   }
 };
 
-export const handleError = (_client: WebSocket, _message: Event) => {
+export const handleClose = (client: WebSocket, _: Event) => {
+  const nid = connectedClientsReverse.get(client);
+  connectedClientsReverse.delete(client);
+  if (nid) {
+    connectedClients.delete(nid);
+    PlayerState.deletePlayer(nid)
+    broadcast(serializeMessage(MessageType.playerRemoved, nid));
+  }
+};
+
+export const handleError = (_client: WebSocket, message: Event) => {
+  console.error("Error!", message)
 };
 
 export const handleMessage = (client: WebSocket, message: MessageEvent) => {
-  const parsedMessage = JSON.parse(message.data) as MessageFromClient;
+  const parsedMessage = parseMessage(message.data)
 
-  const handler = socketRouter[parsedMessage.type];
-  if (handler) {
-    handler(client, parsedMessage.payload as MessagePayloadFromClient);
+  if(parsedMessage.type in socketRouter) {
+    const handler = socketRouter[parsedMessage.type as keyof typeof socketRouter];
+    handler(client, parsedMessage.payload as ServerMessagePlayloadByType[keyof ServerMessagePlayloadByType]);
   } else {
     console.warn("No handler for", parsedMessage.type);
   }
 };
 
-const handleUpdateRequest = (
-  _client: WebSocket,
-  payload: UpdateRequestMessage["payload"],
-) => {
-  Object.assign(state.networkedEntities, payload);
-  broadcast(JSON.stringify(composeUpdate(state.networkedEntities)));
+type ServerMessagePlayloadByType = Pick<MessagePlayloadByType, MessageType.playerMoved>
+
+const socketRouter: Record<keyof ServerMessagePlayloadByType, (client: WebSocket, data: ServerMessagePlayloadByType[keyof ServerMessagePlayloadByType]) => void> = {
+  [MessageType.playerMoved]: handlePlayerMoved,
 };
 
-const socketRouter = {
-  updateRequest: handleUpdateRequest,
-};
+const MAX_MOVE_DISTANCE_SQUARED = 5
+function handlePlayerMoved(_client: WebSocket, move: PlayerMove) {
+  if(PlayerState.getPlayerDistanceSquared(move.nid, move.to) < MAX_MOVE_DISTANCE_SQUARED) {
+    PlayerState.movePlayer(move.nid, move.to)
+  }
+  broadcast(serializeMessage(MessageType.playerMoved, move))
+}
