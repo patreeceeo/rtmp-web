@@ -116,6 +116,10 @@ class PlayerStateApi {
     ));
   }
 
+  hasPlayer(nid: NetworkId) {
+    return nid in this.#state.networkedEntities
+  }
+
   addExistingPlayer(player: Player) {
     console.log(`Added existing player ${player.nid}`)
     this.#state.networkedEntities[player.nid] = player
