@@ -1,5 +1,6 @@
 import { MessagePlayloadByType, MessageType, parseMessage, PlayerMove, serializeMessage } from "../common/Message.ts";
-import { AppState, InputState, PlayerState } from "../common/State.ts";
+import { AppState, InputState } from "../common/State.ts";
+import { PlayerState } from "../common/state/Player.ts";
 import { Vec2 } from "../common/Vec2.ts";
 import { drawCircle } from "../client/canvas.ts";
 import { sendIfOpen } from "../common/socket.ts";

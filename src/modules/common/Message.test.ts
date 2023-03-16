@@ -1,6 +1,6 @@
 import * as Message from './Message.ts'
 import * as asserts from 'asserts'
-import { Player } from './State.ts'
+import { Player } from './state/Player.ts'
 import { Vec2 } from "./Vec2.ts"
 
 Deno.test("parseMessage/serializeMessage", () => {

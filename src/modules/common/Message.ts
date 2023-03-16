@@ -1,5 +1,6 @@
 import { SerializedData } from "../common/socket.ts";
-import { NetworkId, Player } from "../common/State.ts";
+import { NetworkId } from "../common/state/mod.ts";
+import { Player } from "../common/state/Player.ts";
 import { Vec2 } from "./Vec2.ts";
 
 export class PlayerMove {

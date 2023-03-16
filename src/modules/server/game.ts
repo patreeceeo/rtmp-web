@@ -8,7 +8,7 @@ PlayerMove
 } from "../common/Message.ts";
 
 import { sendIfOpen, SerializedData } from "../common/socket.ts";
-import { PlayerState } from "../common/State.ts";
+import { PlayerState } from "../common/state/Player.ts";
 // TODO use array
 const connectedClients = new Map<number, WebSocket>();
 // TODO use weakmap?
