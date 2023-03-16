@@ -1,5 +1,6 @@
 import { MessagePlayloadByType, MessageType, parseMessage, PlayerMove, serializeMessage } from "../common/Message.ts";
-import { AppState, InputState } from "../common/State.ts";
+import { NetworkState } from "../common/state/Network.ts";
+import { InputState } from "../common/state/Input.ts";
 import { PlayerState } from "../common/state/Player.ts";
 import { Vec2 } from "../common/Vec2.ts";
 import { drawCircle } from "../client/canvas.ts";
@@ -41,7 +42,7 @@ function init (){
 
   socket.onmessage = (ev) => handleMessage(socket, ev)
 
-  AppState.setLoaded(socket)
+  NetworkState.socket = socket
 }
 
 export const handleMessage = (server: WebSocket, message: MessageEvent) => {
@@ -80,7 +81,7 @@ window.onload = init
 
 // In case load event already happened
 setTimeout(() => {
-  if (!AppState.isLoaded) {
+  if (!NetworkState.isReady) {
     init()
   }
 });
@@ -120,7 +121,7 @@ function startNetworkLoop() {
       to.y = player.position.y + dy
       PlayerState.movePlayer(player.nid, to)
       if(dx !== 0 || dy !== 0) {
-        sendIfOpen(AppState.socket!, serializeMessage(MessageType.playerMoved, new PlayerMove(to, player.nid)))
+        sendIfOpen(NetworkState.maybeSocket!, serializeMessage(MessageType.playerMoved, new PlayerMove(to, player.nid)))
       }
     }
   }, 20);

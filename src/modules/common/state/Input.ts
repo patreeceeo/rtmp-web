@@ -1,38 +1,10 @@
-
-
-export interface InputState {
+export interface Input {
   pressTime: number;
   releaseTime: number;
 }
+type _InputState = Map<string, Input>
 
-interface _AppState {
-  ws?: WebSocket;
-  loaded: boolean;
-}
-
-class AppStateApi {
-  #state: _AppState = {
-    loaded: false,
-  };
-
-  isLoaded() {
-    return this.#state.loaded
-  }
-
-  setLoaded(ws: WebSocket) {
-    this.#state.loaded = true
-    this.#state.ws = ws
-  }
-
-  get socket () {
-    return this.#state.ws
-  }
-}
-
-export const AppState = new AppStateApi();
-
-type _InputState = Map<string, InputState>
-
+// TODO key/button/axis enum
 class InputStateApi {
   #state: _InputState = new Map();
   #idKey(code: KeyboardEvent["code"]): string {
