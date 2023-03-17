@@ -1,87 +1,46 @@
-import { Vec2 } from "../Vec2.ts";
-import { copy, createNetworkId, NetworkId } from "./mod.ts";
-import { distanceSquared } from "../math.ts";
+import { Vec2, Vec2Type } from "../Vec2.ts";
+import { EntityId } from "./mod.ts";
+import * as ECS from "bitecs";
 
 export class Player {
-  constructor(readonly nid: NetworkId, readonly position: Vec2) {}
+  readonly position: Vec2;
+  constructor(readonly world: ECS.IWorld, readonly eid: EntityId) {
+    this.position = Vec2.fromEntityComponent(eid, PositionStore);
+  }
 }
 
-export type NetworkPlayerRecord = Record<NetworkId, Player>;
-
-interface _PlayerState {
-  localPlayer?: NetworkId;
-  networkedPlayers: NetworkPlayerRecord;
-}
+const PositionStore = ECS.defineComponent(Vec2Type);
 
 class PlayerStateApi {
-  #state: _PlayerState = {
-    networkedPlayers: {},
-  };
+  world = ECS.createWorld();
+  #players = ECS.defineQuery([PositionStore]);
 
   createPlayer(): Player {
-    const nid = createNetworkId();
-    console.log(`Created player ${nid}`)
-    return (this.#state.networkedPlayers[nid] = new Player(
-      nid,
-      new Vec2(100, 100)
-    ));
+    const eid = ECS.addEntity(this.world) as EntityId;
+    console.log(`Created player ${eid}`);
+    const player = new Player(this.world, eid);
+    ECS.addComponent(this.world, PositionStore, eid);
+    return player;
   }
 
-  hasPlayer(nid: NetworkId) {
-    return nid in this.#state.networkedPlayers
+  hasPlayer(eid: EntityId) {
+    return ECS.entityExists(this.world, eid);
   }
 
-  addExistingPlayer(player: Player) {
-    console.log(`Added existing player ${player.nid}`)
-    this.#state.networkedPlayers[player.nid] = player
+  deletePlayer(eid: EntityId): void {
+    ECS.removeEntity(this.world, eid);
   }
 
-  setLocalPlayer(player: Player): void {
-    if(!this.#state.localPlayer) {
-      if(!(player.nid in this.#state.networkedPlayers)) {
-        this.#state.localPlayer = player.nid
-        this.#state.networkedPlayers[player.nid] = player
-      } else {
-        throw new Error(`Attempted to recreate network entity ${player.nid}`)
-      }
+  getPlayer(eid: EntityId): Player {
+    if (ECS.entityExists(this.world, eid)) {
+      return new Player(this.world, eid);
     } else {
-      throw new Error(`Attempted to recreate local player`)
+      throw new Error(`Entity ${eid} does not exist`);
     }
   }
 
-  isLocalPlayer(nid: NetworkId) {
-    return nid === this.#state.localPlayer
-  }
-
-  getLocalPlayer(): Player | undefined {
-    if(this.#state.localPlayer !== undefined) {
-      return this.#state.networkedPlayers[this.#state.localPlayer]
-    }
-  }
-
-  deletePlayer(nid: NetworkId): void {
-    if(nid === this.#state.localPlayer) {
-      delete this.#state.localPlayer
-    }
-    delete this.#state.networkedPlayers[nid]
-  }
-
-  getPlayer(nid: NetworkId): Player | undefined {
-    return this.#state.networkedPlayers[nid]
-  }
-
-  getPlayerDistanceSquared(nid: NetworkId, pos: Vec2) {
-    const player = this.getPlayer(nid)
-    return distanceSquared(player!.position, pos)
-  }
-
-  movePlayer(nid: NetworkId, to: Vec2) {
-    const player = this.getPlayer(nid)
-    copy(player!.position, to)
-  }
-
-  getPlayers(): Array<Player> {
-    return Object.values(this.#state.networkedPlayers)
+  getPlayerEids(): Array<EntityId> {
+    return this.#players(this.world) as Array<EntityId>;
   }
 }
 

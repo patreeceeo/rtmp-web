@@ -10,7 +10,18 @@ import { BadRequestResponse, NotFoundResponse } from "../common/Response.ts";
 
 const rootDir = Deno.cwd();
 
-const allowedFileExtensions = [".html", ".css", ".js", ".jpg", ".jpeg", ".gif", ".png", ".ico"]
+const allowedFileExtensions = [
+  ".html",
+  ".css",
+  ".js",
+  ".mjs",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".png",
+  ".ico",
+  ".map",
+];
 
 async function handleHttp(request: Request) {
   const url = new URL(request.url);
@@ -32,7 +43,9 @@ async function handleHttp(request: Request) {
     const contentType = getContentType(extRewrite);
     const assetPath = `${rootDir}${dir}/${base}${extRewrite}`;
     if (contentType && allowedFileExtensions.includes(extRewrite)) {
-      console.info(`Requested ${url.pathname} => ${assetPath}, content type: ${contentType}`);
+      console.info(
+        `Requested ${url.pathname} => ${assetPath}, content type: ${contentType}`,
+      );
       if (await isFilePath(assetPath)) {
         const content = await Deno.readFile(assetPath);
         return new Response(content, {
@@ -41,7 +54,7 @@ async function handleHttp(request: Request) {
           },
         });
       } else {
-        console.warn(`Requested file ${url.pathname} not found`)
+        console.warn(`Requested file ${url.pathname} not found`);
       }
     } else {
       return new BadRequestResponse(`MIME type for ${url.pathname} is unknown`);

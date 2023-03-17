@@ -11,4 +11,5 @@ function build_client_modules() {
 
 mkdir -p ./dist/public \
   && cp ./src/index.html ./dist/public \
+  && cp ./src/modules/bitecs ./dist/public \
   && build_client_modules
