@@ -63,7 +63,6 @@ assert_ok mkdir -p public/client
 assert_ok mkdir -p public/common
 assert_ok mkdir -p public/dev_client
 assert_ok cp ./src/index.html ./public
-assert_ok cp -a ./src/modules/bitecs public
 
 for in_path in $client_sub_module_rel_paths; do
   out_path=$(get_out_path_for_client_module "$in_path")
