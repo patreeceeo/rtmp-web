@@ -1,5 +1,5 @@
 import { Vec2, Vec2Type } from "../Vec2.ts";
-import { EntityId } from "./mod.ts";
+import { defaultWorld, EntityId } from "./mod.ts";
 import * as ECS from "bitecs";
 
 export class Player {
@@ -12,8 +12,8 @@ export class Player {
 const PositionStore = ECS.defineComponent(Vec2Type);
 
 class PlayerStateApi {
-  world = ECS.createWorld();
   #players = ECS.defineQuery([PositionStore]);
+  world = defaultWorld
 
   createPlayer(): Player {
     const eid = ECS.addEntity(this.world) as EntityId;

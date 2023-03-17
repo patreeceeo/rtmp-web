@@ -1,3 +1,5 @@
+import * as ECS from "bitecs";
+
 export interface OpaqueType<T extends string> {
   readonly __opaqueType: T;
 }
@@ -9,3 +11,5 @@ export function copy<Klass extends { __copy__(src: Klass): void }>(
 ) {
   dest.__copy__(src);
 }
+
+export const defaultWorld = ECS.createWorld();
