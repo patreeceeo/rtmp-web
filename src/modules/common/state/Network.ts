@@ -9,6 +9,7 @@ interface _NetworkState {
   reverseMap: Map<EntityId, NetworkId>;
   localEntities: Set<EntityId>;
   nextNetworkId: NetworkId;
+  startTime: number;
 }
 
 class NetworkStateApi {
@@ -17,6 +18,7 @@ class NetworkStateApi {
     reverseMap: new Map(),
     localEntities: new Set(),
     nextNetworkId: 0 as NetworkId,
+    startTime: performance.now()
   };
 
   createId(): NetworkId {
@@ -56,6 +58,10 @@ class NetworkStateApi {
 
   get maybeSocket() {
     return this.#state.ws;
+  }
+
+  get upTime() {
+    return performance.now() - this.#state.startTime
   }
 }
 

@@ -5,7 +5,7 @@ import {
   PlayerMove,
   serializeMessage,
 } from "../common/Message.ts";
-import { NetworkState } from "../common/state/Network.ts";
+import { NetworkId, NetworkState } from "../common/state/Network.ts";
 import { InputState } from "../common/state/Input.ts";
 import { PlayerState } from "../common/state/Player.ts";
 import { drawCircle } from "../client/canvas.ts";
@@ -70,7 +70,7 @@ export const handleMessage = (server: WebSocket, message: MessageEvent) => {
 
 type ClientMessagePlayloadByType = Pick<
   MessagePlayloadByType,
-  MessageType.playerMoved | MessageType.playerAdded
+  MessageType.playerMoved | MessageType.playerAdded | MessageType.playerRemoved
 >;
 
 const socketRouter: Record<
@@ -85,6 +85,8 @@ const socketRouter: Record<
   [MessageType.playerAdded]: handlePlayerAdded as any,
   // deno-lint-ignore no-explicit-any
   [MessageType.playerMoved]: handlePlayerMoved as any,
+  // deno-lint-ignore no-explicit-any
+  [MessageType.playerRemoved]: handlePlayerRemoved as any,
 };
 
 function handlePlayerAdded(
@@ -99,6 +101,10 @@ function handlePlayerMoved(_server: WebSocket, move: PlayerMove) {
   const eid = NetworkState.getEntityId(move.nid);
   const player = PlayerState.getPlayer(eid!);
   player.position.copy(move.to);
+}
+function handlePlayerRemoved(_server: WebSocket, nid: NetworkId) {
+  const eid = NetworkState.getEntityId(nid);
+  PlayerState.deletePlayer(eid!);
 }
 
 window.onload = init;

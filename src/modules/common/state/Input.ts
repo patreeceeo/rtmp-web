@@ -30,14 +30,14 @@ class InputStateApi {
     if(!this.#state.has(id)) {
       this.#initInput(id)
     }
-    this.#state.get(id)!.pressTime = Date.now();
+    this.#state.get(id)!.pressTime = performance.now();
   }
   setKeyReleased(code: KeyboardEvent["code"]): void {
     const id = this.#idKey(code)
     if(!this.#state.has(id)) {
       this.#initInput(id)
     }
-    this.#state.get(id)!.releaseTime = Date.now();
+    this.#state.get(id)!.releaseTime = performance.now();
   }
 }
 

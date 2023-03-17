@@ -139,9 +139,20 @@ function handlePlayerMoved(_client: WebSocket, requestedMove: PlayerMove) {
     }
     player.position.copy(move.to);
     broadcast(serializeMessage(MessageType.playerMoved, move));
+    player.lastActiveTime = NetworkState.upTime
   } else {
     console.warn(
       `Requested moving unknown player with nid ${requestedMove.nid}`,
     );
   }
 }
+
+setInterval(() => {
+  for(const player of PlayerState.getPlayers()) {
+    if(NetworkState.upTime - player.lastActiveTime > 120000) {
+      PlayerState.deletePlayer(player.eid)
+      const nid = NetworkState.getId(player.eid)
+      broadcast(serializeMessage(MessageType.playerRemoved, nid!));
+    }
+  }
+}, 1000)
