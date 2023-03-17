@@ -30,4 +30,4 @@ jobs:
           project: "rtmp-web"
           entrypoint: ./modules/server/mod.ts
           root: dist
-          import-map: ./import_map.json
+          import-map: ./import_map_prod.json # TODO this sucks
