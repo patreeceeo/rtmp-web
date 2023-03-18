@@ -28,8 +28,15 @@ export interface Message<Type extends MessageType> {
   type: Type;
   payload: MessagePlayloadByType[Type];
 }
+export type MessageArgs<Type extends MessageType> = [
+  Type,
+  MessagePlayloadByType[Type]
+]
 
+// TODO replace all instances of AnyMessage with AnyMessageArgs?
 export type AnyMessage = Message<MessageType>;
+export type AnyMessageArgs = MessageArgs<MessageType>;
+export type AnyMessagePayload = MessagePlayloadByType[MessageType];
 
 const payloadParsersByType: Record<
   keyof MessagePlayloadByType,
@@ -75,7 +82,7 @@ export function parseMessage(serializedData: SerializedData): AnyMessage {
 export function serializeMessage<Type extends MessageType>(
   type: Type,
   payload: MessagePlayloadByType[Type],
-) {
+): SerializedData {
   const payloaString = payloadSerializersByType[type](payload);
   return `${type}${payloaString}`;
 }

@@ -1,4 +1,3 @@
-import { clampLine, getDistanceSquared } from "../common/math.ts";
 import {
   MessagePlayloadByType,
   MessageType,
@@ -8,35 +7,21 @@ import {
   serializeMessage,
 } from "../common/Message.ts";
 
-import { sendIfOpen, SerializedData } from "../common/socket.ts";
-import { NetworkId, NetworkState } from "../common/state/Network.ts";
+import { broadcast, sendIfOpen } from "../common/socket.ts";
+import { Client, NetworkState } from "../common/state/Network.ts";
 import { PlayerState } from "../common/state/Player.ts";
-// TODO add this stuff to NetworkState?
-// TODO use array
-const connectedClients = new Map<NetworkId, WebSocket>();
-// TODO use weakmap?
-const connectedClientsReverse = new Map<WebSocket, NetworkId>();
-
-// send a message to all connected clients
-function broadcast(
-  message: SerializedData,
-  except?: WebSocket,
-) {
-  for (const client of connectedClients.values()) {
-    if (except !== client) {
-      sendIfOpen(client, message);
-    }
-  }
-}
+import { NetworkSystem } from "../common/systems/Network.ts";
+import { TimeSystem } from "../common/systems/Time.ts";
+import { AnySystemAction, execute, startFixedStepPipeline, System } from "../common/systems/mod.ts";
+import { MovementSystem } from "../common/systems/Movement.ts";
+import { Time } from "../common/state/Time.ts";
 
 export const handleOpen = (client: WebSocket, _: Event) => {
   const addedPlayer = PlayerState.createPlayer();
   addedPlayer.position.set(100, 100);
   const nid = NetworkState.createId();
   NetworkState.setNetworkEntity(nid, addedPlayer.eid, false);
-
-  connectedClients.set(nid, client);
-  connectedClientsReverse.set(client, nid);
+  NetworkState.setClient(new Client(nid, client, Time.elapsed))
   sendIfOpen(
     client,
     serializeMessage(
@@ -47,6 +32,7 @@ export const handleOpen = (client: WebSocket, _: Event) => {
 
   // Tell other clients about added player
   broadcast(
+    NetworkState.getClientSockets(),
     serializeMessage(
       MessageType.playerAdded,
       new PlayerAdd(false, addedPlayer.position, nid),
@@ -69,14 +55,13 @@ export const handleOpen = (client: WebSocket, _: Event) => {
   }
 };
 
-export const handleClose = (client: WebSocket, _: Event) => {
-  const nid = connectedClientsReverse.get(client);
-  connectedClientsReverse.delete(client);
-  if (nid) {
-    const eid = NetworkState.getEntityId(nid);
-    connectedClients.delete(nid);
+export const handleClose = (ws: WebSocket, _: Event) => {
+  const client = NetworkState.getClientForSocket(ws)
+  if(client) {
+    const eid = NetworkState.getEntityId(client!.nid);
     PlayerState.deletePlayer(eid!);
-    broadcast(serializeMessage(MessageType.playerRemoved, nid));
+    NetworkState.removeClient(client.nid);
+    broadcast(NetworkState.getClientSockets(),  serializeMessage(MessageType.playerRemoved, client.nid));
   }
 };
 
@@ -107,6 +92,9 @@ type ServerMessagePlayloadByType = Pick<
   MessageType.playerMoved
 >;
 
+// TODO use RX subject?
+export const incomingPlayerMoveQueue: Array<PlayerMove> = []
+
 const socketRouter: Record<
   keyof ServerMessagePlayloadByType,
   (
@@ -114,45 +102,8 @@ const socketRouter: Record<
     data: ServerMessagePlayloadByType[keyof ServerMessagePlayloadByType],
   ) => void
 > = {
-  [MessageType.playerMoved]: handlePlayerMoved,
+  [MessageType.playerMoved]: (_client, move) => incomingPlayerMoveQueue.push(move),
 };
 
-const MAX_MOVE_DISTANCE = 5;
-const MAX_MOVE_DISTANCE_SQUARED = MAX_MOVE_DISTANCE * MAX_MOVE_DISTANCE;
-function handlePlayerMoved(_client: WebSocket, requestedMove: PlayerMove) {
-  const eid = NetworkState.getEntityId(requestedMove.nid);
-  if (PlayerState.hasPlayer(eid!)) {
-    const player = PlayerState.getPlayer(eid!);
-    let move: PlayerMove;
-    if (
-      getDistanceSquared(player.position, requestedMove.to) <
-        MAX_MOVE_DISTANCE_SQUARED
-    ) {
-      move = requestedMove;
-    } else {
-      const clamped = clampLine(
-        player!.position,
-        requestedMove.to,
-        MAX_MOVE_DISTANCE,
-      );
-      move = new PlayerMove(clamped!, requestedMove.nid);
-    }
-    player.position.copy(move.to);
-    broadcast(serializeMessage(MessageType.playerMoved, move));
-    player.lastActiveTime = NetworkState.upTime
-  } else {
-    console.warn(
-      `Requested moving unknown player with nid ${requestedMove.nid}`,
-    );
-  }
-}
-
-setInterval(() => {
-  for(const player of PlayerState.getPlayers()) {
-    if(NetworkState.upTime - player.lastActiveTime > 120000) {
-      PlayerState.deletePlayer(player.eid)
-      const nid = NetworkState.getId(player.eid)
-      broadcast(serializeMessage(MessageType.playerRemoved, nid!));
-    }
-  }
-}, 1000)
+const fixedStepSystems = [TimeSystem(), MovementSystem(), NetworkSystem()] as Array<System>
+startFixedStepPipeline(fixedStepSystems, 20)

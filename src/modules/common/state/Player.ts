@@ -5,7 +5,7 @@ import { onlyServerGaurd } from "../env.ts";
 
 export class Player {
   readonly position: Vec2;
-  constructor(readonly world: ECS.IWorld, readonly eid: EntityId) {
+  constructor(readonly eid: EntityId) {
     this.position = Vec2.fromEntityComponent(eid, PositionStore);
   }
   set lastActiveTime(time: number) {
@@ -29,7 +29,7 @@ class PlayerStateApi {
   createPlayer(): Player {
     const eid = ECS.addEntity(this.world) as EntityId;
     console.log(`Created player ${eid}`);
-    const player = new Player(this.world, eid);
+    const player = new Player(eid);
     ECS.addComponent(this.world, PositionStore, eid);
     ECS.addComponent(this.world, LastActiveStore, eid);
     return player;
@@ -46,7 +46,7 @@ class PlayerStateApi {
 
   getPlayer(eid: EntityId): Player {
     if (ECS.entityExists(this.world, eid)) {
-      return new Player(this.world, eid);
+      return new Player(eid);
     } else {
       throw new Error(`Entity ${eid} does not exist`);
     }

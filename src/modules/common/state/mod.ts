@@ -12,4 +12,8 @@ export function copy<Klass extends { __copy__(src: Klass): void }>(
   dest.__copy__(src);
 }
 
-export const defaultWorld = ECS.createWorld();
+export const defaultWorld = Object.assign(ECS.createWorld(), {
+  delta: 0,
+  elapsed: 0,
+  then: performance.now()
+})

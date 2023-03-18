@@ -6,3 +6,16 @@ export function sendIfOpen(socket: WebSocket, data: SerializedData) {
     socket.send(data)
   }
 }
+
+
+export function broadcast(
+  clients: Iterable<WebSocket>,
+  message: SerializedData,
+  except?: WebSocket,
+) {
+  for (const client of clients) {
+    if (except !== client) {
+      sendIfOpen(client, message);
+    }
+  }
+}
