@@ -87,7 +87,6 @@ export const handleMessage = (client: WebSocket, message: MessageEvent) => {
 };
 
 const systems = [TimeSystem(), MovementSystem(), NetworkSystem()] as Array<SystemPartial>
-const movePlayerSystems = systems.filter((s) => s.events?.playerMove)
 
 type ServerMessagePlayloadByType = Pick<
   MessagePlayloadByType,
@@ -102,13 +101,10 @@ const socketRouter: Record<
   ) => void
 > = {
   [MessageType.playerMoved]: (_client, move) => {
-    // eventQueues.playerMove.push([move.nid, move.to])
-    for(const system of movePlayerSystems) {
-      system.events!.playerMove!(move.nid, move.to)
-    }
+    eventQueues.addPlayerMove(move.nid, move.to)
   },
 };
 
 const eventQueues = new SystemEventQueues()
 
-startPipeline(systems, 20, eventQueues)
+startPipeline(systems, 160, eventQueues)

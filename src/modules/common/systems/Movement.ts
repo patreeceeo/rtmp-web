@@ -1,5 +1,3 @@
-import { incomingPlayerMoveQueue } from "../../server/game.ts";
-import { isServer } from "../env.ts";
 import { clampLine, getDistanceSquared } from "../math.ts";
 import { MessageType, PlayerMove } from "../Message.ts";
 import { EntityId } from "../state/mod.ts";
@@ -18,32 +16,33 @@ export function movePlayer (eid: EntityId, to: Vec2) {
   player.lastActiveTime = Time.elapsed
 }
 
+/** server authoritative */
 function handlePlayerMove (nid: NetworkId, to: Vec2) {
-  if(isServer) {
-    const eid = NetworkState.getEntityId(nid);
-    if (PlayerState.hasPlayer(eid!)) {
-      const player = PlayerState.getPlayer(eid!);
-      const clamped =
-        getDistanceSquared(player.position, to) < MAX_MOVE_DISTANCE_SQUARED
-          ? to
-          : clampLine(
-            player!.position,
-            to,
-            MAX_MOVE_DISTANCE,
-          )
+  const eid = NetworkState.getEntityId(nid);
+  if (PlayerState.hasPlayer(eid!)) {
+    const player = PlayerState.getPlayer(eid!);
+    const clamped =
+      getDistanceSquared(player.position, to) < MAX_MOVE_DISTANCE_SQUARED
+        ? to
+        : clampLine(
+          player!.position,
+          to,
+          MAX_MOVE_DISTANCE,
+        )
 
-      movePlayer(eid!, clamped!)
-      broadcastMessage(
-        MessageType.playerMoved,
-        new PlayerMove(clamped!, nid)
-      )
-    } else {
-      console.warn(
-        `Requested moving unknown player with nid ${nid}`,
-      );
-    }
+        console.log(`moving ${nid} to ${to.y} clamped to ${clamped!.y}`)
+        movePlayer(eid!, clamped!)
+        broadcastMessage(
+          MessageType.playerMoved,
+          new PlayerMove(clamped!, nid)
+        )
+  } else {
+    console.warn(
+      `Requested moving unknown player with nid ${nid}`,
+    );
   }
 }
+
 export const MovementSystem: SystemLoader = () => {
   return {events: {playerMove: handlePlayerMove}}
 }
