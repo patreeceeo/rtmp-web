@@ -6,6 +6,7 @@ export class Player {
   readonly position: Vec2;
   constructor(readonly eid: EntityId) {
     this.position = Vec2.fromEntityComponent(eid, PositionStore);
+    this.lastActiveTime = performance.now();
   }
   set lastActiveTime(time: number) {
     LastActiveStore.time[this.eid] = Math.round(time)
