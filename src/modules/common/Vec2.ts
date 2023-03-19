@@ -11,6 +11,11 @@ export class Vec2 {
     this.x = src.x;
     this.y = src.y;
   }
+  clone() {
+    const clone = new Vec2()
+    clone.copy(this)
+    return clone
+  }
   add(dx: number, dy: number) {
     this.x += dx;
     this.y += dy;
