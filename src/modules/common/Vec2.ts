@@ -15,6 +15,15 @@ export class Vec2 {
     this.x += dx;
     this.y += dy;
   }
+
+  get snapshot () {
+    return { x: this.x, y: this.y }
+  }
+
+  applySnapshot(snap: typeof this.snapshot) {
+    this.x = snap.x
+    this.y = snap.y
+  }
   static fromEntityComponent(
     eid: EntityId,
     store: ECS.ComponentType<typeof Vec2Type>,

@@ -1,7 +1,6 @@
 import { Vec2, Vec2Type } from "../Vec2.ts";
 import { defaultWorld, EntityId } from "./mod.ts";
 import * as ECS from "bitecs";
-import { onlyServerGaurd } from "../env.ts";
 
 export class Player {
   readonly position: Vec2;
@@ -9,13 +8,24 @@ export class Player {
     this.position = Vec2.fromEntityComponent(eid, PositionStore);
   }
   set lastActiveTime(time: number) {
-    onlyServerGaurd(() => {
-      LastActiveStore.time[this.eid] = Math.round(time)
-    })
+    LastActiveStore.time[this.eid] = Math.round(time)
   }
 
   get lastActiveTime(): number {
     return LastActiveStore.time[this.eid]
+  }
+
+  get snapshot() {
+    return {
+      eid: this.eid,
+      position: this.position.snapshot,
+      lastActiveTime: this.lastActiveTime
+    }
+  }
+
+  applySnapshot(snap: typeof this.snapshot) {
+    this.position.applySnapshot(snap.position)
+    this.lastActiveTime = snap.lastActiveTime
   }
 }
 
@@ -59,6 +69,38 @@ class PlayerStateApi {
   getPlayers(): Array<Player> {
     return this.getPlayerEids().map((eid) => this.getPlayer(eid))
   }
+
+  get snapshot() {
+    const snap: Array<typeof Player.prototype.snapshot> = []
+    for(const player of PlayerState.getPlayers()) {
+      snap[player.eid] = player.snapshot
+    }
+    return snap
+  }
+
+  applySnapshot(snap: typeof this.snapshot) {
+    for(const playerSnapshot of snap) {
+      this.getPlayer(playerSnapshot.eid).applySnapshot(playerSnapshot)
+    }
+  }
+
+  /**
+  * work in progress
+  getDiff(before: typeof this.snapshot, after: typeof this.snapshot) {
+    const diff = {
+      create: {},
+      update: {},
+      delete: [] as EntityId[],
+    }
+    const longestKeys = before.length > after.length ? before.keys() : after.keys()
+
+    for(const key of longestKeys) {
+      if(key in before && !(key in after)) {
+        diff.delete.push(key as EntityId)
+      }
+    }
+  }
+  */
 }
 
 export const PlayerState = new PlayerStateApi();
