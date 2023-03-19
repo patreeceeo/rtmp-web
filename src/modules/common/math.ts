@@ -8,34 +8,28 @@ export function clampLine(
   start: Vec2,
   end: Vec2,
   maxLength: number,
-): Vec2 | null {
+): Vec2 {
   const { x: x1, y: y1 } = start;
   const { x: x2, y: y2 } = end;
   const dx = x2 - x1;
   const dy = y2 - y1;
-  const distanceCircleToLine = Math.abs(dy * x1 - dx * y1 - x1 * y2 + x2 * y1) /
-    Math.sqrt(dx * dx + dy * dy);
+
+  // Special case: start and end points are the same
+  if (dx === 0 && dy === 0) {
+    return new Vec2(x1, y1);
+  }
+
+  // Calculate the distance between start and end points
   const length = Math.sqrt(dx * dx + dy * dy);
 
-  // Special case
-  if (x1 === x2) {
-    return new Vec2(x1, (y1 + maxLength) * Math.sign(y2));
+  // Special case: start and end points are too close
+  if (length <= maxLength) {
+    return new Vec2(x2, y2);
   }
 
-  // Check if the line intersects the circle
-  if (distanceCircleToLine > maxLength) {
-    return null;
-  }
+  // Calculate the new point that is maxLength away from start in the direction of end
+  const newX = x1 + dx * maxLength / length;
+  const newY = y1 + dy * maxLength / length;
 
-  // Calculate the distance from the intersection point to the endpoints of the line
-  const a = Math.sqrt(
-    maxLength * maxLength - distanceCircleToLine * distanceCircleToLine,
-  );
-  const t = a / length;
-
-  // Calculate the intersection point
-  const x = x1 + t * dx;
-  const y = y1 + t * dy;
-
-  return new Vec2(x, y);
+  return new Vec2(newX, newY);
 }
