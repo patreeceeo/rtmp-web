@@ -1,11 +1,8 @@
 import { NetworkId } from "../state/Network.ts"
-import { AnyMessageArgs, AnyMessagePayload, MessageType, serializeMessage } from "../Message.ts";
+import { AnyMessagePayload, MessageType, serializeMessage } from "../Message.ts";
 import { broadcast, sendIfOpen } from "../socket.ts";
 import { NetworkState } from "../state/Network.ts";
-import { PlayerState } from "../state/Player.ts";
-import { EntityId } from "../state/mod.ts";
 import { Vec2 } from "../Vec2.ts";
-import { Time } from "../state/Time.ts";
 
 export function sendMessageToServer (type: MessageType, payload: AnyMessagePayload) {
   const socket = NetworkState.socket
@@ -17,24 +14,47 @@ export function broadcastMessage (type: MessageType, payload: AnyMessagePayload,
   broadcast(NetworkState.getClientSockets(), serializeMessage(type, payload), exclude ? NetworkState.getClient(exclude)!.ws : undefined)
 }
 
-export function movePlayer (eid: EntityId, to: Vec2) {
-  const player = PlayerState.getPlayer(eid!);
-  player.position.copy(to);
-  player.lastActiveTime = Time.elapsed
-}
 
 export interface System {
-  handleFixedStep: () => void,
+  fixie?: () => void,
+  events?: Partial<SystemEvents>
+}
+export type SystemPartial = Partial<System>
+
+type SystemEventName = keyof SystemEvents
+/** TODO(perf) for events that happen much more often than fixed time step */
+type SystemEventQueue<K extends SystemEventName> = Array<Parameters<SystemEvents[K]>>
+interface SystemEvents {
+  playerMove: (nid: NetworkId, to: Vec2) => void
+}
+
+export class SystemEventQueues {
+  playerMove: SystemEventQueue<"playerMove"> = []
 }
 
 export interface SystemLoader {
-  (): Promise<System> | System
+  (): Promise<SystemPartial> | SystemPartial
 }
 
-export function startFixedStepPipeline(systems: Array<System>, stepMs: number) {
+export function startPipeline(systems: Array<SystemPartial>, stepMs: number, _queues: SystemEventQueues) {
+  const fixieSystems = systems.filter((s) => s.fixie)
+  // const movePlayerSystems = systems.filter((s) => s.events?.playerMove)
   setInterval(() => {
-    for(const system of systems) {
-      system.handleFixedStep()
+    for(const system of fixieSystems) {
+      system.fixie!()
     }
+    /**
+    * example queue usage:
+    *
+    if(queues.playerMove.length > 0) {
+      console.log(`processing ${queues.playerMove.length} playerMoves`)
+      for(const system of movePlayerSystems) {
+        for(const event of queues.playerMove) {
+          system.events!.playerMove!.apply(null, event)
+        }
+      }
+    }
+    queues.playerMove.length = 0
+    */
   }, stepMs)
 }

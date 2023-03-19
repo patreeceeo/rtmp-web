@@ -3,7 +3,6 @@ import {
   MessageType,
   parseMessage,
   PlayerAdd,
-  PlayerMove,
   serializeMessage,
 } from "../common/Message.ts";
 
@@ -12,7 +11,7 @@ import { Client, NetworkState } from "../common/state/Network.ts";
 import { PlayerState } from "../common/state/Player.ts";
 import { NetworkSystem } from "../common/systems/Network.ts";
 import { TimeSystem } from "../common/systems/Time.ts";
-import { AnySystemAction, execute, startFixedStepPipeline, System } from "../common/systems/mod.ts";
+import { startPipeline, SystemEventQueues, SystemPartial } from "../common/systems/mod.ts";
 import { MovementSystem } from "../common/systems/Movement.ts";
 import { Time } from "../common/state/Time.ts";
 
@@ -87,13 +86,13 @@ export const handleMessage = (client: WebSocket, message: MessageEvent) => {
   }
 };
 
+const systems = [TimeSystem(), MovementSystem(), NetworkSystem()] as Array<SystemPartial>
+const movePlayerSystems = systems.filter((s) => s.events?.playerMove)
+
 type ServerMessagePlayloadByType = Pick<
   MessagePlayloadByType,
   MessageType.playerMoved
 >;
-
-// TODO use RX subject?
-export const incomingPlayerMoveQueue: Array<PlayerMove> = []
 
 const socketRouter: Record<
   keyof ServerMessagePlayloadByType,
@@ -102,8 +101,14 @@ const socketRouter: Record<
     data: ServerMessagePlayloadByType[keyof ServerMessagePlayloadByType],
   ) => void
 > = {
-  [MessageType.playerMoved]: (_client, move) => incomingPlayerMoveQueue.push(move),
+  [MessageType.playerMoved]: (_client, move) => {
+    // eventQueues.playerMove.push([move.nid, move.to])
+    for(const system of movePlayerSystems) {
+      system.events!.playerMove!(move.nid, move.to)
+    }
+  },
 };
 
-const fixedStepSystems = [TimeSystem(), MovementSystem(), NetworkSystem()] as Array<System>
-startFixedStepPipeline(fixedStepSystems, 20)
+const eventQueues = new SystemEventQueues()
+
+startPipeline(systems, 20, eventQueues)

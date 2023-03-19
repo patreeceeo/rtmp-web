@@ -2,9 +2,9 @@ import { Time } from "../state/Time.ts"
 import { SystemLoader } from "./mod.ts"
 
 export const TimeSystem: SystemLoader = () => {
-  function handleFixedStep () {
+  function fixie () {
     Time.tick()
     return []
   }
-  return {handleFixedStep}
+  return {fixie}
 }

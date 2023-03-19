@@ -6,7 +6,7 @@ import { Time } from "../state/Time.ts";
 import { broadcastMessage, SystemLoader } from "./mod.ts";
 
 export const NetworkSystem: SystemLoader = () => {
-  function handleFixedStep () {
+  function fixie () {
     if(isServer) {
       for(const player of PlayerState.getPlayers()) {
         const inactiveTime = Time.elapsed - player.lastActiveTime
@@ -18,5 +18,5 @@ export const NetworkSystem: SystemLoader = () => {
       }
     }
   }
-  return {handleFixedStep}
+  return {fixie}
 }
