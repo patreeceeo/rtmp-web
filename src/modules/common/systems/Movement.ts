@@ -30,7 +30,6 @@ function handlePlayerMove (nid: NetworkId, to: Vec2) {
           MAX_MOVE_DISTANCE,
         )
 
-        console.log(`moving ${nid} to ${to.y} clamped to ${clamped!.y}`)
         movePlayer(eid!, clamped!)
         broadcastMessage(
           MessageType.playerMoved,
