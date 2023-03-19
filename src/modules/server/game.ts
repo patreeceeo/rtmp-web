@@ -107,4 +107,4 @@ const socketRouter: Record<
 
 const eventQueues = new SystemEventQueues()
 
-startPipeline(systems, 160, eventQueues)
+startPipeline(systems, 80, eventQueues)
