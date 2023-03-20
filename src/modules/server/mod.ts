@@ -1,5 +1,5 @@
 import { serve } from "http";
-import * as Game from "./game.ts";
+import * as Game from "../common/game.ts";
 import { contentType as getContentType } from "media_types";
 import {
   basename as getBaseName,

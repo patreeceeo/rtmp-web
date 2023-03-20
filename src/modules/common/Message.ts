@@ -2,9 +2,24 @@ import { SerializedData } from "../common/socket.ts";
 import { NetworkId } from "./state/Network.ts";
 import { Vec2 } from "./Vec2.ts";
 
-export class PlayerMove {
-  constructor(readonly to: Vec2, readonly nid: NetworkId) {}
+export interface IPlayerMove {
+  delta: Vec2
+  nid: NetworkId
+  /** sequence number */
+  sid: number
 }
+export class PlayerMove implements IPlayerMove {
+  constructor(readonly delta: Vec2, readonly nid: NetworkId, readonly sid: number) {}
+}
+export class PlayerMoveWritable implements IPlayerMove {
+  constructor(public delta = new Vec2(), public nid = 0 as NetworkId, public sid = 0) {}
+  copy(src: IPlayerMove) {
+    this.delta.copy(src.delta)
+    this.nid = src.nid
+    this.sid = src.sid
+  }
+}
+
 export class PlayerAdd {
   constructor(
     readonly isLocal: boolean,
@@ -55,8 +70,9 @@ const payloadParsersByType: Record<
   [MessageType.playerMoved]: (json) => {
     const obj = JSON.parse(json);
     const nid = obj["nid"];
-    const to = obj["to"];
-    return new PlayerMove(new Vec2(to.x, to.y), nid);
+    const delta = obj["delta"];
+    const sid = obj["sid"];
+    return new PlayerMove(new Vec2(delta.x, delta.y), nid, sid);
   },
 };
 const payloadSerializersByType: Record<

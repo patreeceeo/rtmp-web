@@ -4,6 +4,8 @@ import * as ECS from "bitecs";
 
 export class Player {
   readonly position: Vec2;
+  readonly MAX_VELOCITY = 0.02;
+  readonly MAX_VELOCITY_SQR = this.MAX_VELOCITY * this.MAX_VELOCITY
   constructor(readonly eid: EntityId) {
     this.position = Vec2.fromEntityComponent(eid, PositionStore);
     this.lastActiveTime = performance.now();

@@ -16,9 +16,9 @@ export class Vec2 {
     clone.copy(this)
     return clone
   }
-  add(dx: number, dy: number) {
-    this.x += dx;
-    this.y += dy;
+  add(d: Vec2) {
+    this.x += d.x;
+    this.y += d.y;
   }
 
   get snapshot () {

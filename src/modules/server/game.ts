@@ -101,7 +101,7 @@ const socketRouter: Record<
   ) => void
 > = {
   [MessageType.playerMoved]: (_client, move) => {
-    eventQueues.addPlayerMove(move.nid, move.to)
+    eventQueues.addPlayerMove(move.nid, move.delta)
   },
 };
 
