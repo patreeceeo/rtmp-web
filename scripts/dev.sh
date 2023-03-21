@@ -53,14 +53,10 @@ else
 fi
 
 
-server_mod="./src/modules/server/mod.ts"
+server_mod="./src/examples/dots/server/mod.ts"
 
 assert_ok stat "$server_mod" 1>/dev/null 2>/dev/null
 
-rm -rf public
-assert_ok mkdir -p public/client
-assert_ok mkdir -p public/common
-assert_ok mkdir -p public/dev_client
 assert_ok cp ./src/index.html ./public
 
 for in_path in $client_sub_module_rel_paths; do
