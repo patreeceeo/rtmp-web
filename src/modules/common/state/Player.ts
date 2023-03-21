@@ -2,6 +2,16 @@ import { Vec2, Vec2Type } from "../Vec2.ts";
 import { defaultWorld, EntityId } from "./mod.ts";
 import * as ECS from "bitecs";
 
+enum ColorId {
+  RED,
+  ORANGE,
+  YELLOW,
+  GREEN,
+  BLUE,
+  INDIGO,
+  VIOLET
+}
+
 export class Player {
   readonly position: Vec2;
   readonly MAX_VELOCITY = 0.02;
@@ -17,6 +27,14 @@ export class Player {
 
   get lastActiveTime(): number {
     return LastActiveStore.time[this.eid]
+  }
+
+  get color(): ColorId {
+    return ColorStore.value[this.eid] as ColorId
+  }
+
+  set color(cid: ColorId) {
+    ColorStore.value[this.eid] = cid
   }
 
   get snapshot() {
@@ -36,6 +54,7 @@ export class Player {
 const PlayerTagStore = ECS.defineComponent();
 const PositionStore = ECS.defineComponent(Vec2Type);
 const LastActiveStore = ECS.defineComponent({time: ECS.Types.ui32});
+const ColorStore = ECS.defineComponent({value: ECS.Types.ui8});
 
 class PlayerStateApi {
   #players = ECS.defineQuery([PlayerTagStore]);
@@ -48,6 +67,7 @@ class PlayerStateApi {
     ECS.addComponent(this.world, PlayerTagStore, eid);
     ECS.addComponent(this.world, PositionStore, eid);
     ECS.addComponent(this.world, LastActiveStore, eid);
+    ECS.addComponent(this.world, ColorStore, eid);
     return player;
   }
 
