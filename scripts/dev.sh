@@ -28,8 +28,10 @@ function screen_session_quit_all_by_name() {
 function cleanup() {
   # quit sessions
   for in_path in $client_sub_module_rel_paths; do
+    # TODO duplicated code
     preserved_path="$(echo "$in_path" | cut -d/ -f 3-)"
-    screen_session_name=$(get_screen_session_name_for_path build "$preserved_path")
+    preserved_path_js="${preserved_path%.ts}.js"
+    screen_session_name=$(get_screen_session_name_for_path build "$preserved_path_js")
     if screen_session_quit_all_by_name "$screen_session_name"; then
       echo "quit screen $screen_session_name session"
     fi
@@ -37,7 +39,8 @@ function cleanup() {
   if screen_session_quit_all_by_name "dev_server"; then
     echo "quit screen dev_server session"
   fi
-  pkill tsc
+  # kill any esbuild processes still hanging around
+  pkill esbuild
 }
 
 hook_install_location=".git/hooks/pre-commit"
@@ -66,8 +69,8 @@ assert_ok cp ./src/index.html ./public
 
 for in_path in $client_sub_module_rel_paths; do
   out_path=$(get_out_path_for_client_module "$in_path")
-  screen_session_name=$(get_screen_session_name_for_path build "$preserved_path")
-  ./scripts/build-client-module.sh "$screen_session_name" "$in_path" "$out_path"
+  screen_session_name=$(get_screen_session_name_for_path build "$preserved_path_js")
+  dev_client_module "$in_path" "$out_path" "$screen_session_name"
 done
 
 screen -S dev_server -d -m deno run --allow-net --allow-read --watch "src/modules/dev_server/mod.ts"

@@ -7,6 +7,21 @@ export client_sub_module_rel_paths
 function get_out_path_for_client_module () {
   in_path=$1
   preserved_path="$(echo "$in_path" | cut -d/ -f 3-)"
-  echo "public/$(dirname "$preserved_path")"
+  preserved_path_js="${preserved_path%.ts}.js"
+  echo "public/$preserved_path_js"
 }
 export get_out_path_for_client_module
+
+function build_client_module () {
+  in_path="$1"
+  out_path="$2"
+  npx esbuild "$in_path" --outfile="$out_path" --platform=neutral --format=esm --target=esnext
+}
+
+function dev_client_module () {
+  in_path="$1"
+  out_path="$2"
+  screen_session_name="$3"
+  echo "starting $screen_session_name: $in_path > $out_path"
+  screen -S "$screen_session_name" -d -m npx esbuild "$in_path" --outfile="$out_path" --platform=neutral --format=esm --target=esnext --watch
+}
