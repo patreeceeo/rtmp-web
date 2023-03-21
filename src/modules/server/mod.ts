@@ -23,6 +23,8 @@ const allowedFileExtensions = [
 ];
 
 export abstract class ServerApp {
+  /** In seconds */
+  abstract idleTimeout: number
   abstract handleOpen(client: WebSocket, event: Event): void;
   abstract handleClose(client: WebSocket, event: Event): void;
   abstract handleError(client: WebSocket, event: Event): void;
@@ -33,7 +35,7 @@ export function startServer(app: ServerApp) {
   async function handleHttp(request: Request) {
     const url = new URL(request.url);
     if (url.pathname === "/start_web_socket") {
-      const { socket, response } = Deno.upgradeWebSocket(request);
+      const { socket, response } = Deno.upgradeWebSocket(request, {idleTimeout: app.idleTimeout});
       socket.onopen = (socketEvent) => app.handleOpen(socket, socketEvent);
       socket.onclose = (socketEvent) => app.handleClose(socket, socketEvent);
       socket.onmessage = (socketEvent) =>

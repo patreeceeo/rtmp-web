@@ -26,8 +26,8 @@ interface SystemEvents {
   dispose: () => void
 }
 
-export interface SystemLoader {
-  (): Promise<SystemPartial> | SystemPartial
+export interface SystemLoader<Options> {
+  (opts: Partial<Options>): Promise<SystemPartial> | SystemPartial
 }
 
 export function startPipeline(systems: Array<SystemPartial>, stepMs: number) {

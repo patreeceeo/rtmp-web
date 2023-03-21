@@ -18,7 +18,8 @@ import { NetworkSystem } from "~/server/systems/Network.ts";
 import { startPipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { ServerApp, startServer } from "~/server/mod.ts";
 
-const systems = [TimeSystem(), MovementSystem(), NetworkSystem()] as Array<
+const idleTimeout = 6
+const systems = [TimeSystem(), MovementSystem(), NetworkSystem({idleTimeout})] as Array<
   SystemPartial
 >;
 
@@ -40,6 +41,7 @@ const socketRouter: Record<
 };
 
 class DotsServerApp implements ServerApp {
+  idleTimeout = idleTimeout
   handleOpen(client: WebSocket, _: Event) {
     const addedPlayer = PlayerState.createPlayer();
     addedPlayer.position.set(100, 100);
