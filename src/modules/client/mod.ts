@@ -5,22 +5,14 @@ export abstract class ClientApp {
   abstract handleClose(server: WebSocket, event: Event): void;
   abstract handleError(server: WebSocket, event: Event): void;
   abstract handleMessage(server: WebSocket, event: MessageEvent): void;
-  abstract handleLoad(ctx: CanvasRenderingContext2D): void;
+  abstract handleLoad(): void;
   abstract handleKeyDown(e: KeyboardEvent): void;
   abstract handleKeyUp(e: KeyboardEvent): void;
 }
 
 export function startClient(app: ClientApp) {
-  const handleLoad = () => {
-    const el: HTMLCanvasElement = document.querySelector("#screen")!;
-    const ctx = el.getContext("2d");
-    if (ctx) {
-      ctx.imageSmoothingEnabled = false;
-      app.handleLoad(ctx);
-    } else {
-      console.log("Failed to get canvas rendering context");
-    }
 
+  const handleLoad = () => {
     const wsProtocol = location.origin.startsWith("https") ? "wss" : "ws";
 
     const socket = new WebSocket(
@@ -36,6 +28,8 @@ export function startClient(app: ClientApp) {
     };
 
     NetworkState.socket = socket;
+
+    app.handleLoad()
   };
 
   window.onload = handleLoad;

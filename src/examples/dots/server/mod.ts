@@ -17,6 +17,7 @@ import {
 import { NetworkSystem } from "~/server/systems/Network.ts";
 import { startPipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { ServerApp, startServer } from "~/server/mod.ts";
+import { WORLD_DIMENSIONS } from "../mod.ts";
 
 const idleTimeout = 6
 const systems = [TimeSystem(), MovementSystem(), NetworkSystem({idleTimeout})] as Array<
@@ -40,11 +41,15 @@ const socketRouter: Record<
   },
 };
 
+function getRandomInt(min: number, max: number) {
+  return Math.round(Math.random() * max) + min
+}
+
 class DotsServerApp implements ServerApp {
   idleTimeout = idleTimeout
   handleOpen(client: WebSocket, _: Event) {
     const addedPlayer = PlayerState.createPlayer();
-    addedPlayer.position.set(100, 100);
+    addedPlayer.position.set(getRandomInt(0, WORLD_DIMENSIONS.WIDTH), getRandomInt(0, WORLD_DIMENSIONS.HEIGHT));
     const nid = NetworkState.createId();
     NetworkState.setNetworkEntity(nid, addedPlayer.eid, false);
     NetworkState.setClient(new Client(nid, client, Time.elapsed));

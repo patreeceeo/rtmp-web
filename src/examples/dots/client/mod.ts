@@ -16,10 +16,20 @@ import {
 import { startPipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { ClientApp, startClient } from "~/client/mod.ts";
 import { useClient } from "hot_mod/dist/client/mod.js";
+import { WORLD_DIMENSIONS } from "../mod.ts";
 
 export class DotsClientApp extends ClientApp {
-  handleLoad(ctx: CanvasRenderingContext2D): void {
-    hotExports.updateScreen(ctx);
+  handleLoad(): void {
+    const el: HTMLCanvasElement = document.querySelector("#screen")!;
+    el.width = WORLD_DIMENSIONS.WIDTH
+    el.height = WORLD_DIMENSIONS.HEIGHT
+    const ctx = el.getContext("2d");
+    if (ctx) {
+      ctx.imageSmoothingEnabled = false;
+      hotExports.updateScreen(ctx);
+    } else {
+      console.log("Failed to get canvas rendering context");
+    }
   }
   handleOpen(_server: WebSocket, _event: Event): void {
     console.info("socket is open");
