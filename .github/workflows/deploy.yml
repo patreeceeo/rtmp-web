@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: denoland/setup-deno@v1
         with:
-          deno-version: v1.30.0
+          deno-version: v1.31.1
 
       - name: Clone repository
         uses: actions/checkout@v3
