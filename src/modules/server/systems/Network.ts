@@ -10,7 +10,7 @@ interface Options {
 }
 
 export const NetworkSystem: SystemLoader<Options> = (opts) => {
-  const idleTimeout = opts.idleTimeout || 60
+  const idleTimeout = opts?.idleTimeout || 60
   function fixie () {
     for(const player of PlayerState.getPlayers()) {
       const inactiveTime = Time.elapsed - player.lastActiveTime
