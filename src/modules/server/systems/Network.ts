@@ -8,7 +8,6 @@ export const NetworkSystem: SystemLoader = () => {
   function fixie () {
     for(const player of PlayerState.getPlayers()) {
       const inactiveTime = Time.elapsed - player.lastActiveTime
-      console.log({eid: player.eid, lastActiveTime: player.lastActiveTime, elapsed: Time.elapsed})
       if(inactiveTime > 60000) {
         PlayerState.deletePlayer(player.eid)
         const nid = NetworkState.getId(player.eid)
