@@ -25,3 +25,13 @@ function dev_client_module () {
   echo "starting $screen_session_name: $in_path > $out_path"
   screen -S "$screen_session_name" -d -m npx esbuild "$in_path" --outfile="$out_path" --platform=neutral --format=esm --target=esnext --watch
 }
+
+function get_screen_pid() {
+  session_name="$1"
+  screen -ls | grep "$session_name" | cut -d. -f1
+}
+
+function get_child_pid() {
+  pid="$1"
+  ps --ppid "$pid" -o pid --no-header
+}
