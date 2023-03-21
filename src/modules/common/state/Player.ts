@@ -33,17 +33,19 @@ export class Player {
   }
 }
 
+const PlayerTagStore = ECS.defineComponent();
 const PositionStore = ECS.defineComponent(Vec2Type);
 const LastActiveStore = ECS.defineComponent({time: ECS.Types.ui32});
 
 class PlayerStateApi {
-  #players = ECS.defineQuery([PositionStore]);
+  #players = ECS.defineQuery([PlayerTagStore]);
   world = defaultWorld
 
   createPlayer(): Player {
     const eid = ECS.addEntity(this.world) as EntityId;
     console.log(`Created player ${eid}`);
     const player = new Player(eid);
+    ECS.addComponent(this.world, PlayerTagStore, eid);
     ECS.addComponent(this.world, PositionStore, eid);
     ECS.addComponent(this.world, LastActiveStore, eid);
     return player;
