@@ -1,4 +1,3 @@
-import { handleKeyDown, handleKeyUp } from "../common/game.ts";
 import { NetworkState } from "../common/state/Network.ts";
 
 export abstract class ClientApp {
