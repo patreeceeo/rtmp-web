@@ -14,7 +14,7 @@ import {
   addPlayerMoveFromClient,
   MovementSystem,
 } from "~/common/systems/Movement.ts";
-import { NetworkSystem } from "~/common/systems/Network.ts";
+import { NetworkSystem } from "~/server/systems/Network.ts";
 import { startPipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { ServerApp, startServer } from "~/server/mod.ts";
 

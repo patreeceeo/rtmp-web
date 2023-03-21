@@ -13,7 +13,6 @@ import {
   handleMoveFromServer,
   MovementSystem,
 } from "~/common/systems/Movement.ts";
-import { NetworkSystem } from "~/common/systems/Network.ts";
 import { startPipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { ClientApp, startClient } from "~/client/mod.ts";
 import { useClient } from "hot_mod/dist/client/mod.js";
@@ -112,7 +111,6 @@ function drawPlayers(ctx: CanvasRenderingContext2D) {
 const systems = [
   TimeSystem(),
   MovementSystem(),
-  NetworkSystem(),
 ] as Array<SystemPartial>;
 
 startPipeline(systems, 80);

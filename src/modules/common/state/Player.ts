@@ -8,7 +8,8 @@ export class Player {
   readonly MAX_VELOCITY_SQR = this.MAX_VELOCITY * this.MAX_VELOCITY
   constructor(readonly eid: EntityId) {
     this.position = Vec2.fromEntityComponent(eid, PositionStore);
-    this.lastActiveTime = performance.now();
+    // Don't overwrite value from ECS
+    this.lastActiveTime = this.lastActiveTime || performance.now()
   }
   set lastActiveTime(time: number) {
     LastActiveStore.time[this.eid] = Math.round(time)
