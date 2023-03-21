@@ -32,7 +32,6 @@ export interface SystemLoader {
 
 export function startPipeline(systems: Array<SystemPartial>, stepMs: number) {
   const fixieSystems = systems.filter((s) => s.fixie)
-  // const movePlayerSystems = systems.filter((s) => s.events?.playerMove)
   setInterval(() => {
     for(const system of fixieSystems) {
       system.fixie!()

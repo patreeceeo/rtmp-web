@@ -16,8 +16,6 @@ interface _NetworkState {
   startTime: number;
   connectedClients: Map<NetworkId, Client>;
   connectedClientsByWs: Map<WebSocket, Client>;
-  seqNumLastHandled: Map<NetworkId, number>;
-  seqNumLatest: Map<NetworkId, number>;
 }
 
 class NetworkStateApi {
@@ -32,8 +30,6 @@ class NetworkStateApi {
     connectedClients: new Map<NetworkId, Client>(),
     // TODO use weakmap?
     connectedClientsByWs: new Map<WebSocket, Client>(),
-    seqNumLastHandled: new Map(),
-    seqNumLatest: new Map(),
   };
 
   createId(): NetworkId {
