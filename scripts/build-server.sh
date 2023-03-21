@@ -1,4 +1,5 @@
 #!/bin/bash
+pwd
 mkdir -p ./dist/modules \
   && cp -a ./src/examples ./dist/examples \
   && cp -a ./src/modules/server ./dist/modules \

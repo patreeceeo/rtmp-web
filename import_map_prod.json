@@ -8,6 +8,6 @@
     "hot_mod/": "https://deno.land/x/hot_mod/",
     "asserts": "https://deno.land/std@0.179.0/testing/asserts.ts",
     "bitecs": "https://deno.land/x/bitecs/index.mjs",
-    "~/": "./dist/modules/"
+    "~/": "/dist/modules/"
   }
 }
