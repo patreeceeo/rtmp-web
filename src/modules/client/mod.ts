@@ -47,6 +47,6 @@ export function startClient(app: ClientApp) {
     }
   });
 
-  window.onkeydown = (e) => handleKeyDown(e);
-  window.onkeyup = (e) => handleKeyUp(e);
+  window.onkeydown = (e) => app.handleKeyDown(e);
+  window.onkeyup = (e) => app.handleKeyUp(e);
 }
