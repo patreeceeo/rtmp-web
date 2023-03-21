@@ -69,7 +69,7 @@ assert_ok cp ./src/index.html ./public
 
 for in_path in $client_sub_module_rel_paths; do
   out_path=$(get_out_path_for_client_module "$in_path")
-  screen_session_name=$(get_screen_session_name_for_path build "$preserved_path_js")
+  screen_session_name=$(get_screen_session_name_for_path build "$out_path")
   dev_client_module "$in_path" "$out_path" "$screen_session_name"
 done
 
