@@ -1,4 +1,5 @@
 import {
+ColorChange,
   MessagePlayloadByType,
   MessageType,
   parseMessage,
@@ -44,9 +45,9 @@ export class DotsClientApp extends ClientApp {
   handleMessage(server: WebSocket, event: MessageEvent<any>): void {
     const parsedMessage = parseMessage(event.data);
 
-    if (parsedMessage.type in clientSocketRouter) {
-      const handler = clientSocketRouter[
-        parsedMessage.type as keyof typeof clientSocketRouter
+    if (parsedMessage.type in socketRouter) {
+      const handler = socketRouter[
+        parsedMessage.type as keyof typeof socketRouter
       ];
       handler(
         server,
@@ -69,10 +70,10 @@ export class DotsClientApp extends ClientApp {
 
 type ClientMessagePlayloadByType = Pick<
   MessagePlayloadByType,
-  MessageType.playerMoved | MessageType.playerAdded | MessageType.playerRemoved
+  MessageType.playerMoved | MessageType.playerAdded | MessageType.playerRemoved | MessageType.colorChange
 >;
 
-const clientSocketRouter: Record<
+const socketRouter: Record<
   keyof ClientMessagePlayloadByType,
   (
     client: WebSocket,
@@ -86,6 +87,11 @@ const clientSocketRouter: Record<
   [MessageType.playerMoved]: handlePlayerMoved as any,
   // deno-lint-ignore no-explicit-any
   [MessageType.playerRemoved]: handlePlayerRemoved as any,
+  [MessageType.colorChange]: (_server, cc) => {
+    const eid = NetworkState.getEntityId((cc as ColorChange).nid)
+    const player = PlayerState.getPlayer(eid!)
+    player.color = (cc as ColorChange).color
+  }
 };
 
 function handlePlayerAdded(
@@ -111,9 +117,8 @@ function updateScreen(ctx: CanvasRenderingContext2D) {
 
 function drawPlayers(ctx: CanvasRenderingContext2D) {
   ctx.clearRect(0, 0, 1000, 10000);
-  for (const eid of PlayerState.getPlayerEids()) {
-    const player = PlayerState.getPlayer(eid);
-    ctx.fillStyle = NetworkState.isLocalEntity(eid) ? "red" : "blue";
+  for (const player of PlayerState.getPlayers()) {
+    ctx.fillStyle = player.webColor
     drawCircle(ctx, player.position.x, player.position.y, 4);
   }
 }

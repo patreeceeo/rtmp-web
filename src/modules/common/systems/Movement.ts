@@ -1,6 +1,6 @@
 import { isServer } from "../env.ts";
 import { clampLine, getDistanceSquared } from "../math.ts";
-import { MessageType, PlayerMove, PlayerMoveWritable } from "../Message.ts";
+import { ColorChange, MessageType, PlayerMove, PlayerMoveWritable } from "../Message.ts";
 import { RingBuffer } from "../RingBuffer.ts";
 import { InputState } from "../state/Input.ts";
 import { NetworkId, NetworkState } from "../state/Network.ts";
@@ -53,8 +53,11 @@ function acceptMoveFromServer(to: Vec2, nid: NetworkId) {
 function fixieClient() {
   // loop thru local entities
   for (const eid of PlayerState.getPlayerEids()) {
+    // TODO the server should determine whether a client is allowed to control an entity
     if (NetworkState.isLocalEntity(eid)) {
+      console.log("moving", eid)
       const player = PlayerState.getPlayer(eid);
+      const nid = NetworkState.getId(eid);
       const velocity = player.MAX_VELOCITY;
       let dx = 0,
         dy = 0;
@@ -73,7 +76,6 @@ function fixieClient() {
       player.position.x += dx
       player.position.y += dy
       if (dx !== 0 || dy !== 0) {
-        const nid = NetworkState.getId(eid);
         const sid = clientBuffer.writeIndex
         to.set(dx, dy)
         const move = new PlayerMove(to, nid!, sid)
@@ -82,6 +84,15 @@ function fixieClient() {
           MessageType.playerMoved,
           move
         );
+      }
+
+      if (InputState.isKeyPressed("KeyQ")) {
+        player.color = player.color === 0 ? 6 : player.color - 1
+        sendMessageToServer(MessageType.colorChange, new ColorChange(player.color, nid!))
+      }
+      if (InputState.isKeyPressed("KeyE")) {
+        player.color = (player.color + 1) % 6
+        sendMessageToServer(MessageType.colorChange, new ColorChange(player.color, nid!))
       }
     }
   }

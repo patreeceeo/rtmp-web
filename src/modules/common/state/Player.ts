@@ -2,7 +2,7 @@ import { Vec2, Vec2Type } from "../Vec2.ts";
 import { defaultWorld, EntityId } from "./mod.ts";
 import * as ECS from "bitecs";
 
-enum ColorId {
+export enum ColorId {
   RED,
   ORANGE,
   YELLOW,
@@ -11,6 +11,8 @@ enum ColorId {
   INDIGO,
   VIOLET
 }
+
+const webColors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
 
 export class Player {
   readonly position: Vec2;
@@ -35,6 +37,10 @@ export class Player {
 
   set color(cid: ColorId) {
     ColorStore.value[this.eid] = cid
+  }
+
+  get webColor() {
+    return webColors[this.color]
   }
 
   get snapshot() {

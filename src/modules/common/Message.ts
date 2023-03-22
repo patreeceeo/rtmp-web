@@ -1,5 +1,6 @@
 import { SerializedData } from "../common/socket.ts";
 import { NetworkId } from "./state/Network.ts";
+import { ColorId } from "./state/Player.ts";
 import { Vec2 } from "./Vec2.ts";
 
 export interface IPlayerMove {
@@ -22,9 +23,16 @@ export class PlayerMoveWritable implements IPlayerMove {
 
 export class PlayerAdd {
   constructor(
-    readonly isLocal: boolean,
     readonly position: Vec2,
+    readonly isLocal: boolean,
     readonly nid: NetworkId,
+  ) {}
+}
+
+export class ColorChange {
+  constructor(
+    readonly color: ColorId,
+    readonly nid: NetworkId
   ) {}
 }
 
@@ -32,11 +40,13 @@ export enum MessageType {
   playerAdded = "+",
   playerRemoved = "-",
   playerMoved = ">",
+  colorChange = 'c'
 }
 export type MessagePlayloadByType = {
   [MessageType.playerAdded]: PlayerAdd;
   [MessageType.playerRemoved]: NetworkId;
   [MessageType.playerMoved]: PlayerMove;
+  [MessageType.colorChange]: ColorChange;
 };
 
 export interface Message<Type extends MessageType> {
@@ -61,8 +71,8 @@ const payloadParsersByType: Record<
     const obj = JSON.parse(json);
     const position = obj["position"];
     return new PlayerAdd(
-      obj["isLocal"],
       new Vec2(position.x, position.y),
+      obj["isLocal"],
       obj["nid"],
     );
   },
@@ -74,6 +84,12 @@ const payloadParsersByType: Record<
     const sid = obj["sid"];
     return new PlayerMove(new Vec2(delta.x, delta.y), nid, sid);
   },
+  [MessageType.colorChange]: (json) => {
+    const obj = JSON.parse(json);
+    const nid = obj["nid"];
+    const color = obj["color"];
+    return new ColorChange(color, nid);
+  },
 };
 const payloadSerializersByType: Record<
   keyof MessagePlayloadByType,
@@ -82,6 +98,7 @@ const payloadSerializersByType: Record<
   [MessageType.playerAdded]: JSON.stringify,
   [MessageType.playerRemoved]: JSON.stringify,
   [MessageType.playerMoved]: JSON.stringify,
+  [MessageType.colorChange]: JSON.stringify,
 };
 
 export function parseMessage(serializedData: SerializedData): AnyMessage {

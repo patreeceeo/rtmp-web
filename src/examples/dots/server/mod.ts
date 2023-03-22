@@ -1,8 +1,10 @@
 import {
+ColorChange,
   MessagePlayloadByType,
   MessageType,
   parseMessage,
   PlayerAdd,
+  PlayerMove,
   serializeMessage,
 } from "~/common/Message.ts";
 import { Client, NetworkState } from "~/common/state/Network.ts";
@@ -15,7 +17,7 @@ import {
   MovementSystem,
 } from "~/common/systems/Movement.ts";
 import { NetworkSystem } from "~/server/systems/Network.ts";
-import { startPipeline, SystemPartial } from "~/common/systems/mod.ts";
+import { broadcastMessage, startPipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { ServerApp, startServer } from "~/server/mod.ts";
 import { WORLD_DIMENSIONS } from "../mod.ts";
 
@@ -26,7 +28,7 @@ const systems = [TimeSystem(), MovementSystem(), NetworkSystem({idleTimeout})] a
 
 type ServerMessagePlayloadByType = Pick<
   MessagePlayloadByType,
-  MessageType.playerMoved
+  MessageType.playerMoved | MessageType.colorChange
 >;
 
 const socketRouter: Record<
@@ -37,7 +39,14 @@ const socketRouter: Record<
   ) => void
 > = {
   [MessageType.playerMoved]: (_client, move) => {
-    addPlayerMoveFromClient(move);
+    addPlayerMoveFromClient(move as PlayerMove);
+  },
+  [MessageType.colorChange]: (_client, cc) => {
+    const eid = NetworkState.getEntityId(cc.nid)
+    const player = PlayerState.getPlayer(eid!)
+    player.color = (cc as ColorChange).color
+    player.lastActiveTime = Time.elapsed
+    broadcastMessage(MessageType.colorChange, cc, cc.nid)
   },
 };
 
@@ -50,6 +59,7 @@ class DotsServerApp implements ServerApp {
   handleOpen(client: WebSocket, _: Event) {
     const addedPlayer = PlayerState.createPlayer();
     addedPlayer.position.set(getRandomInt(0, WORLD_DIMENSIONS.WIDTH), getRandomInt(0, WORLD_DIMENSIONS.HEIGHT));
+    addedPlayer.color = getRandomInt(0, 6)
     const nid = NetworkState.createId();
     NetworkState.setNetworkEntity(nid, addedPlayer.eid, false);
     NetworkState.setClient(new Client(nid, client, Time.elapsed));
@@ -57,7 +67,7 @@ class DotsServerApp implements ServerApp {
       client,
       serializeMessage(
         MessageType.playerAdded,
-        new PlayerAdd(true, addedPlayer.position, nid),
+        new PlayerAdd(addedPlayer.position, true, nid),
       ),
     );
 
@@ -66,7 +76,7 @@ class DotsServerApp implements ServerApp {
       NetworkState.getClientSockets(),
       serializeMessage(
         MessageType.playerAdded,
-        new PlayerAdd(false, addedPlayer.position, nid),
+        new PlayerAdd(addedPlayer.position, false, nid),
       ),
       client,
     );
@@ -79,7 +89,7 @@ class DotsServerApp implements ServerApp {
           client,
           serializeMessage(
             MessageType.playerAdded,
-            new PlayerAdd(false, player.position, NetworkState.getId(eid)!),
+            new PlayerAdd(player.position, false, NetworkState.getId(eid)!),
           ),
         );
       }
