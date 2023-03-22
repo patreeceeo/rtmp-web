@@ -51,8 +51,6 @@ function acceptMoveFromServer(to: Vec2, nid: NetworkId) {
   }
 }
 
-const playerSize = 5
-
 function fixieClient() {
   // loop thru local entities
   for (const eid of PlayerState.getPlayerEids()) {
