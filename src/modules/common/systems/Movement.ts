@@ -106,7 +106,7 @@ function reapplyPlayerMove(delta: Vec2, nid: NetworkId) {
 }
 
 function fixieServer() {
-  // TODO
+  // TODO(perf) pipeline handling moves
   // for(const move of serverBuffer.values(serverBuffer.readIndex, serverBuffer.writeIndex)) {
   //   handlePlayerMoveServer(move.delta, move.nid, move.sid)
   // }
