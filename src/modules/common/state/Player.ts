@@ -15,8 +15,10 @@ export enum ColorId {
 const webColors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
 
 export class Player {
+  readonly width = 5
+  readonly height = 5
   readonly position: Vec2;
-  readonly MAX_VELOCITY = 0.02;
+  readonly MAX_VELOCITY = 0.05;
   readonly MAX_VELOCITY_SQR = this.MAX_VELOCITY * this.MAX_VELOCITY
   constructor(readonly eid: EntityId) {
     this.position = Vec2.fromEntityComponent(eid, PositionStore);

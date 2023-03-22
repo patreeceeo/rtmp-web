@@ -1,3 +1,4 @@
+import { WORLD_DIMENSIONS } from "../../../examples/dots/mod.ts";
 import { isServer } from "../env.ts";
 import { clampLine, getDistanceSquared } from "../math.ts";
 import { ColorChange, MessageType, PlayerMove, PlayerMoveWritable } from "../Message.ts";
@@ -50,6 +51,8 @@ function acceptMoveFromServer(to: Vec2, nid: NetworkId) {
   }
 }
 
+const playerSize = 5
+
 function fixieClient() {
   // loop thru local entities
   for (const eid of PlayerState.getPlayerEids()) {
@@ -58,18 +61,19 @@ function fixieClient() {
       const player = PlayerState.getPlayer(eid);
       const nid = NetworkState.getId(eid);
       const velocity = player.MAX_VELOCITY;
+      const {x, y} = player.position;
       let dx = 0,
         dy = 0;
-      if (InputState.isKeyPressed("KeyA")) {
+      if (InputState.isKeyPressed("KeyA") && x > player.width) {
         dx = -1 * velocity * Time.delta;
       }
-      if (InputState.isKeyPressed("KeyW")) {
+      if (InputState.isKeyPressed("KeyW") && y > player.height) {
         dy = -1 * velocity * Time.delta;
       }
-      if (InputState.isKeyPressed("KeyS")) {
+      if (InputState.isKeyPressed("KeyS") && y < WORLD_DIMENSIONS.HEIGHT - player.height) {
         dy = velocity * Time.delta;
       }
-      if (InputState.isKeyPressed("KeyD")) {
+      if (InputState.isKeyPressed("KeyD") && x < WORLD_DIMENSIONS.WIDTH - player.width) {
         dx = velocity * Time.delta;
       }
       player.position.x += dx
