@@ -55,7 +55,6 @@ function fixieClient() {
   for (const eid of PlayerState.getPlayerEids()) {
     // TODO the server should determine whether a client is allowed to control an entity
     if (NetworkState.isLocalEntity(eid)) {
-      console.log("moving", eid)
       const player = PlayerState.getPlayer(eid);
       const nid = NetworkState.getId(eid);
       const velocity = player.MAX_VELOCITY;
