@@ -20,7 +20,7 @@ import { broadcastMessage, ServerApp, startServer } from "~/server/mod.ts";
 import { WORLD_DIMENSIONS } from "../mod.ts";
 import { Client, ServerNetworkState } from "../../../modules/server/state/Network.ts";
 
-const idleTimeout = 6
+const idleTimeout = 20
 const systems = [TimeSystem(), NetworkSystem({idleTimeout})] as Array<
   SystemPartial
 >;
