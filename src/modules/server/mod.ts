@@ -91,6 +91,6 @@ async function isFilePath(path: string) {
   }
 }
 
-export function broadcastMessage (type: MessageType, payload: AnyMessagePayload, excludeClient: WebSocket) {
+export function broadcastMessage (type: MessageType, payload: AnyMessagePayload, excludeClient?: WebSocket) {
   broadcast(ServerNetworkState.getClientSockets(), serializeMessage(type, payload), excludeClient)
 }
