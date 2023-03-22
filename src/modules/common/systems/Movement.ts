@@ -123,12 +123,12 @@ const to = new Vec2()
 const clientBuffer = new RingBuffer<PlayerMove, PlayerMoveWritable>(() => new PlayerMoveWritable(), 10)
 
 /** moves received by server but yet to be processed */
-// TODO
+// TODO(perf) pipeline handling moves
 // const serverBuffer = new RingBuffer<PlayerMove, PlayerMoveWritable>(() => new PlayerMoveWritable(), 10)
 
 export function addPlayerMoveFromClient(move: PlayerMove) {
   handlePlayerMoveServer(move.delta, move.nid, move.sid)
-  // TODO
+// TODO(perf) pipeline handling moves
   // serverBuffer.writeIndex = move.sid
   // serverBuffer.put().copy(move)
 }
