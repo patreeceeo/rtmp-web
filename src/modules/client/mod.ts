@@ -8,6 +8,7 @@ export abstract class ClientApp {
   abstract handleLoad(): void;
   abstract handleKeyDown(e: KeyboardEvent): void;
   abstract handleKeyUp(e: KeyboardEvent): void;
+  abstract handleIdle(): void;
 }
 
 export function startClient(app: ClientApp) {
@@ -43,4 +44,5 @@ export function startClient(app: ClientApp) {
 
   window.onkeydown = (e) => app.handleKeyDown(e);
   window.onkeyup = (e) => app.handleKeyUp(e);
+  window.onblur = () => app.handleIdle();
 }

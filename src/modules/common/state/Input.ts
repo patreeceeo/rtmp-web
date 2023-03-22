@@ -39,6 +39,9 @@ class InputStateApi {
     }
     this.#state.get(id)!.releaseTime = performance.now();
   }
+  reset() {
+    this.#state.clear()
+  }
 }
 
 export const InputState = new InputStateApi();

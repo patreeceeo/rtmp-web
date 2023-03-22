@@ -66,6 +66,9 @@ export class DotsClientApp extends ClientApp {
   handleKeyUp(e: KeyboardEvent): void {
     InputState.setKeyReleased(e.code);
   }
+  handleIdle(): void {
+    InputState.reset();
+  }
 }
 
 type ClientMessagePlayloadByType = Pick<
