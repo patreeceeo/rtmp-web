@@ -5,7 +5,11 @@ import {
   dirname as getDirName,
   extname as getExtension,
 } from "path";
+import { AnyMessagePayload, MessageType, serializeMessage } from "../common/Message.ts";
 import { BadRequestResponse, NotFoundResponse } from "../common/Response.ts";
+import { broadcast } from "../common/socket.ts";
+import { NetworkId } from "../common/state/Network.ts";
+import { ServerNetworkState } from "./state/Network.ts";
 
 const rootDir = Deno.cwd();
 
@@ -85,4 +89,8 @@ async function isFilePath(path: string) {
   } catch {
     return false;
   }
+}
+
+export function broadcastMessage (type: MessageType, payload: AnyMessagePayload, exclude?: NetworkId) {
+  broadcast(ServerNetworkState.getClientSockets(), serializeMessage(type, payload), exclude ? ServerNetworkState.getClient(exclude)!.ws : undefined)
 }

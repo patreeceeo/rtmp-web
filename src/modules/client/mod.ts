@@ -1,4 +1,6 @@
-import { NetworkState } from "../common/state/Network.ts";
+import { AnyMessagePayload, MessageType, serializeMessage } from "../common/Message.ts";
+import { sendIfOpen } from "../common/socket.ts";
+import { ClientNetworkState } from "./state/Network.ts";
 
 export abstract class ClientApp {
   abstract handleOpen(server: WebSocket, event: Event): void;
@@ -28,7 +30,7 @@ export function startClient(app: ClientApp) {
       app.handleMessage(socket, e);
     };
 
-    NetworkState.socket = socket;
+    ClientNetworkState.socket = socket;
 
     app.handleLoad()
   };
@@ -37,7 +39,7 @@ export function startClient(app: ClientApp) {
 
   // In case load event already happened
   setTimeout(() => {
-    if (!NetworkState.isReady) {
+    if (!ClientNetworkState.isReady) {
       handleLoad();
     }
   });
@@ -45,4 +47,9 @@ export function startClient(app: ClientApp) {
   window.onkeydown = (e) => app.handleKeyDown(e);
   window.onkeyup = (e) => app.handleKeyUp(e);
   window.onblur = () => app.handleIdle();
+}
+
+export function sendMessageToServer (type: MessageType, payload: AnyMessagePayload) {
+  const socket = ClientNetworkState.maybeSocket!
+  sendIfOpen(socket, serializeMessage(type, payload))
 }

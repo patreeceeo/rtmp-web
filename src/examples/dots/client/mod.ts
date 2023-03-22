@@ -5,19 +5,20 @@ ColorChange,
   parseMessage,
   PlayerMove,
 } from "~/common/Message.ts";
-import { NetworkId, NetworkState } from "~/common/state/Network.ts";
+import { NetworkId } from "~/common/state/Network.ts";
 import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { drawCircle } from "~/client/canvas.ts";
 import { TimeSystem } from "~/common/systems/Time.ts";
 import {
   handleMoveFromServer,
-  MovementSystem,
-} from "~/common/systems/Movement.ts";
+  ClientMovementSystem,
+} from "~/client/systems/Movement.ts";
 import { startPipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { ClientApp, startClient } from "~/client/mod.ts";
 import { useClient } from "hot_mod/dist/client/mod.js";
 import { WORLD_DIMENSIONS } from "../mod.ts";
+import { ClientNetworkState } from "../../../modules/client/state/Network.ts";
 
 export class DotsClientApp extends ClientApp {
   handleLoad(): void {
@@ -91,7 +92,7 @@ const socketRouter: Record<
   // deno-lint-ignore no-explicit-any
   [MessageType.playerRemoved]: handlePlayerRemoved as any,
   [MessageType.colorChange]: (_server, cc) => {
-    const eid = NetworkState.getEntityId((cc as ColorChange).nid)
+    const eid = ClientNetworkState.getEntityId((cc as ColorChange).nid)
     const player = PlayerState.getPlayer(eid!)
     player.color = (cc as ColorChange).color
   }
@@ -103,13 +104,13 @@ function handlePlayerAdded(
 ) {
   const player = PlayerState.createPlayer();
   player.position.copy(position);
-  NetworkState.setNetworkEntity(nid, player.eid, isLocal);
+  ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
 }
 function handlePlayerMoved(_server: WebSocket, move: PlayerMove) {
   handleMoveFromServer(move);
 }
 function handlePlayerRemoved(_server: WebSocket, nid: NetworkId) {
-  const eid = NetworkState.getEntityId(nid);
+  const eid = ClientNetworkState.getEntityId(nid);
   PlayerState.deletePlayer(eid!);
 }
 
@@ -128,7 +129,7 @@ function drawPlayers(ctx: CanvasRenderingContext2D) {
 
 const systems = [
   TimeSystem(),
-  MovementSystem(),
+  ClientMovementSystem(),
 ] as Array<SystemPartial>;
 
 startPipeline(systems, 80);

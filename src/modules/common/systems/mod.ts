@@ -1,20 +1,6 @@
-import { NetworkId } from "../state/Network.ts"
-import { AnyMessagePayload, MessageType, serializeMessage } from "../Message.ts";
-import { broadcast, sendIfOpen } from "../socket.ts";
-import { NetworkState } from "../state/Network.ts";
-
-export function sendMessageToServer (type: MessageType, payload: AnyMessagePayload) {
-  const socket = NetworkState.maybeSocket!
-  sendIfOpen(socket, serializeMessage(type, payload))
-}
-
-
-export function broadcastMessage (type: MessageType, payload: AnyMessagePayload, exclude?: NetworkId) {
-  broadcast(NetworkState.getClientSockets(), serializeMessage(type, payload), exclude ? NetworkState.getClient(exclude)!.ws : undefined)
-}
-
 
 export interface System {
+  // TODO(naming) "fixie"? really?
   fixie?: () => void,
   events?: Partial<SystemEvents>
 }

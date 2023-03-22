@@ -1,8 +1,9 @@
 import { MessageType } from "~/common/Message.ts";
-import { NetworkState } from "~/common/state/Network.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { Time } from "~/common/state/Time.ts";
-import { broadcastMessage, SystemLoader } from "~/common/systems/mod.ts";
+import { SystemLoader } from "~/common/systems/mod.ts";
+import { broadcastMessage } from "../mod.ts";
+import { ServerNetworkState } from "../state/Network.ts";
 
 interface Options {
   /** amount of time an player can be idle before being removed, in seconds */
@@ -16,7 +17,7 @@ export const NetworkSystem: SystemLoader<Options> = (opts) => {
       const inactiveTime = Time.elapsed - player.lastActiveTime
       if(inactiveTime > idleTimeout * 1000) {
         PlayerState.deletePlayer(player.eid)
-        const nid = NetworkState.getId(player.eid)
+        const nid = ServerNetworkState.getId(player.eid)
         broadcastMessage(MessageType.playerRemoved, nid!)
       }
     }
