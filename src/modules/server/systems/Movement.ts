@@ -4,7 +4,7 @@ import { NetworkId } from "../../common/state/Network.ts";
 import { PlayerState } from "../../common/state/Player.ts";
 import { Time } from "../../common/state/Time.ts";
 import { Vec2 } from "../../common/Vec2.ts";
-import { ServerNetworkState } from "../../server/state/Network.ts";
+import { Client, ServerNetworkState } from "../../server/state/Network.ts";
 import { broadcastMessage } from "../mod.ts";
 
 const origin = Object.freeze(new Vec2(0, 0))
@@ -54,8 +54,11 @@ const to = new Vec2()
 // TODO(perf) pipeline handling moves
 // const serverBuffer = new RingBuffer<PlayerMove, PlayerMoveWritable>(() => new PlayerMoveWritable(), 10)
 
-export function addPlayerMoveFromClient(move: PlayerMove) {
-  handlePlayerMove(move.delta, move.nid, move.sid)
+export function addPlayerMoveFromClient(move: PlayerMove, ws: WebSocket) {
+  const client = ServerNetworkState.getClientForSocket(ws)!
+  if(client.hasNid(move.nid)) {
+    handlePlayerMove(move.delta, move.nid, move.sid)
+  }
 // TODO(perf) pipeline handling moves
   // serverBuffer.writeIndex = move.sid
   // serverBuffer.put().copy(move)

@@ -37,15 +37,15 @@ const socketRouter: Record<
     data: ServerMessagePlayloadByType[keyof ServerMessagePlayloadByType],
   ) => void
 > = {
-  [MessageType.playerMoved]: (_client, move) => {
-    addPlayerMoveFromClient(move as PlayerMove);
+  [MessageType.playerMoved]: (ws, move) => {
+    addPlayerMoveFromClient(move as PlayerMove, ws);
   },
-  [MessageType.colorChange]: (_client, cc) => {
+  [MessageType.colorChange]: (ws, cc) => {
     const eid = ServerNetworkState.getEntityId(cc.nid)
     const player = PlayerState.getPlayer(eid!)
     player.color = (cc as ColorChange).color
     player.lastActiveTime = Time.elapsed
-    broadcastMessage(MessageType.colorChange, cc, cc.nid)
+    broadcastMessage(MessageType.colorChange, cc, ws)
   },
 };
 
@@ -55,18 +55,24 @@ function getRandomInt(min: number, max: number) {
 
 class DotsServerApp implements ServerApp {
   idleTimeout = idleTimeout
-  handleOpen(client: WebSocket, _: Event) {
+  handleOpen(ws: WebSocket, _: Event) {
     const addedPlayer = PlayerState.createPlayer();
+    const clientNid = ServerNetworkState.createId();
+    const playerNid = ServerNetworkState.createId();
+    const client = new Client(clientNid, ws)
+
+    ServerNetworkState.setClient(client);
+    client.addNid(playerNid);
+
     addedPlayer.position.set(getRandomInt(0, WORLD_DIMENSIONS.WIDTH), getRandomInt(0, WORLD_DIMENSIONS.HEIGHT));
     addedPlayer.color = getRandomInt(0, 6)
-    const nid = ServerNetworkState.createId();
-    ServerNetworkState.setNetworkEntity(nid, addedPlayer.eid, false);
-    ServerNetworkState.setClient(new Client(nid, client, Time.elapsed));
+    ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
+
     sendIfOpen(
-      client,
+      ws,
       serializeMessage(
         MessageType.playerAdded,
-        new PlayerAdd(addedPlayer.position, true, nid),
+        new PlayerAdd(addedPlayer.position, true, playerNid),
       ),
     );
 
@@ -76,9 +82,9 @@ class DotsServerApp implements ServerApp {
       ServerNetworkState.getClientSockets(),
       serializeMessage(
         MessageType.playerAdded,
-        new PlayerAdd(addedPlayer.position, false, nid),
+        new PlayerAdd(addedPlayer.position, false, playerNid),
       ),
-      client,
+      ws,
     );
 
     // Catch up
@@ -86,7 +92,7 @@ class DotsServerApp implements ServerApp {
       const player = PlayerState.getPlayer(eid);
       if (eid !== addedPlayer.eid) {
         sendIfOpen(
-          client,
+          ws,
           serializeMessage(
             MessageType.playerAdded,
             new PlayerAdd(player.position, false, ServerNetworkState.getId(eid)!),

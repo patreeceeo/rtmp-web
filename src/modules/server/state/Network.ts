@@ -1,7 +1,14 @@
 import { INetworkState, NetworkId, NetworkStateApi } from "../../common/state/Network.ts";
 
 export class Client {
-  constructor(readonly nid: NetworkId, readonly ws: WebSocket, readonly connectTime: number) {}
+  #nids = new Set<NetworkId>()
+  constructor(readonly nid: NetworkId, readonly ws: WebSocket) {}
+  addNid(nid: NetworkId) {
+    this.#nids.add(nid)
+  }
+  hasNid(nid: NetworkId) {
+    return this.#nids.has(nid)
+  }
 }
 
 interface IServerNetworkState extends INetworkState {
