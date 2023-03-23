@@ -56,7 +56,7 @@ const to = new Vec2()
 
 export function addPlayerMoveFromClient(move: PlayerMove, ws: WebSocket) {
   const client = ServerNetworkState.getClientForSocket(ws)!
-  if(client.hasNid(move.nid)) {
+  if(client.hasNetworkId(move.nid)) {
     handlePlayerMove(move.delta, move.nid, move.sid)
   }
 // TODO(perf) pipeline handling moves

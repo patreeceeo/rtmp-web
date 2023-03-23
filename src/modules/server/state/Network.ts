@@ -2,12 +2,17 @@ import { INetworkState, NetworkId, NetworkStateApi } from "../../common/state/Ne
 
 export class Client {
   #nids = new Set<NetworkId>()
+  lastActiveTime = -Infinity
+  isBeingRemoved = false
   constructor(readonly nid: NetworkId, readonly ws: WebSocket) {}
-  addNid(nid: NetworkId) {
+  addNetworkId(nid: NetworkId) {
     this.#nids.add(nid)
   }
-  hasNid(nid: NetworkId) {
+  hasNetworkId(nid: NetworkId) {
     return this.#nids.has(nid)
+  }
+  getNetworkIds() {
+    return this.#nids.keys()
   }
 }
 
@@ -42,12 +47,18 @@ class ServerNetworkStateApi extends NetworkStateApi {
     return this.#state.connectedClients.get(nid)
   }
 
-  getClients(): IterableIterator<Client> {
-    return this.#state.connectedClients.values()
+  * getClients(includeBeingRemoved = false): IterableIterator<Client> {
+    for(const client of this.#state.connectedClients.values()) {
+      if(!client.isBeingRemoved || includeBeingRemoved) {
+        yield client
+      }
+    }
   }
 
-  getClientSockets(): IterableIterator<WebSocket> {
-    return this.#state.connectedClientsByWs.keys()
+  * getClientSockets(includeBeingRemoved = false): IterableIterator<WebSocket> {
+    for(const client of this.getClients(includeBeingRemoved)) {
+      yield client.ws
+    }
   }
 
   getClientForSocket(ws: WebSocket) {

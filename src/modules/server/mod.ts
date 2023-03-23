@@ -8,8 +8,7 @@ import {
 import { AnyMessagePayload, MessageType, serializeMessage } from "../common/Message.ts";
 import { BadRequestResponse, NotFoundResponse } from "../common/Response.ts";
 import { broadcast } from "../common/socket.ts";
-import { NetworkId } from "../common/state/Network.ts";
-import { ServerNetworkState } from "./state/Network.ts";
+import { Client, ServerNetworkState } from "./state/Network.ts";
 
 const rootDir = Deno.cwd();
 
@@ -40,11 +39,26 @@ export function startServer(app: ServerApp) {
     const url = new URL(request.url);
     if (url.pathname === "/start_web_socket") {
       const { socket, response } = Deno.upgradeWebSocket(request, {idleTimeout: app.idleTimeout});
-      socket.onopen = (socketEvent) => app.handleOpen(socket, socketEvent);
+
+      socket.onopen = (socketEvent) => {
+        const clientNid = ServerNetworkState.createId();
+        const client = new Client(clientNid, socket)
+
+        ServerNetworkState.setClient(client);
+        client.lastActiveTime = performance.now()
+        app.handleOpen(socket, socketEvent);
+      }
+
       socket.onclose = (socketEvent) => app.handleClose(socket, socketEvent);
-      socket.onmessage = (socketEvent) =>
+
+      socket.onmessage = (socketEvent) => {
+        const client = ServerNetworkState.getClientForSocket(socket)
+        client!.lastActiveTime = performance.now()
         app.handleMessage(socket, socketEvent);
+      }
+
       socket.onerror = (socketEvent) => app.handleError(socket, socketEvent);
+
       return response;
     } else if (url.pathname === "/") {
       const indexHtml = await Deno.readFile(`${rootDir}/public/index.html`);
@@ -91,6 +105,12 @@ async function isFilePath(path: string) {
   }
 }
 
-export function broadcastMessage (type: MessageType, payload: AnyMessagePayload, excludeClient?: WebSocket) {
-  broadcast(ServerNetworkState.getClientSockets(), serializeMessage(type, payload), excludeClient)
+interface AllBroacastOptions {
+  /** Don't send to this socket */
+  exclude: WebSocket
+  includeClientsBeingRemoved: boolean
+}
+export function broadcastMessage (type: MessageType, payload: AnyMessagePayload, options: Partial<AllBroacastOptions> = {}) {
+  const includeClientsBeingRemoved = options?.includeClientsBeingRemoved === true ? true : false
+  broadcast(ServerNetworkState.getClientSockets(includeClientsBeingRemoved), serializeMessage(type, payload), options.exclude)
 }

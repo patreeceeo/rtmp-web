@@ -20,7 +20,7 @@ import { broadcastMessage, ServerApp, startServer } from "~/server/mod.ts";
 import { WORLD_DIMENSIONS } from "../mod.ts";
 import { Client, ServerNetworkState } from "../../../modules/server/state/Network.ts";
 
-const idleTimeout = 20
+const idleTimeout = 6
 const systems = [TimeSystem(), NetworkSystem({idleTimeout})] as Array<
   SystemPartial
 >;
@@ -57,12 +57,9 @@ class DotsServerApp implements ServerApp {
   idleTimeout = idleTimeout
   handleOpen(ws: WebSocket, _: Event) {
     const addedPlayer = PlayerState.createPlayer();
-    const clientNid = ServerNetworkState.createId();
     const playerNid = ServerNetworkState.createId();
-    const client = new Client(clientNid, ws)
-
-    ServerNetworkState.setClient(client);
-    client.addNid(playerNid);
+    const client = ServerNetworkState.getClientForSocket(ws)!;
+    client.addNetworkId(playerNid);
 
     addedPlayer.position.set(getRandomInt(0, WORLD_DIMENSIONS.WIDTH), getRandomInt(0, WORLD_DIMENSIONS.HEIGHT));
     addedPlayer.color = getRandomInt(0, 6)

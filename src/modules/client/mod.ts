@@ -30,6 +30,13 @@ export function startClient(app: ClientApp) {
       app.handleMessage(socket, e);
     };
 
+    socket.onerror = (e) => {
+      app.handleError(socket, e)
+    }
+    socket.onclose = (e) => {
+      app.handleClose(socket, e)
+    }
+
     ClientNetworkState.socket = socket;
 
     app.handleLoad()
