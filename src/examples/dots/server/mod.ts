@@ -100,16 +100,12 @@ class DotsServerApp implements ServerApp {
   }
 
   handleClose(ws: WebSocket, _: Event) {
-    const client = ServerNetworkState.getClientForSocket(ws);
-    if (client) {
-      const eid = ServerNetworkState.getEntityId(client!.nid);
+    const client = ServerNetworkState.getClientForSocket(ws)!;
+    ServerNetworkState.removeClient(client.nid);
+    for(const nid of client.getNetworkIds()) {
+      const eid = ServerNetworkState.getEntityId(nid);
       PlayerState.deletePlayer(eid!);
-      ServerNetworkState.removeClient(client.nid);
-      // TODO use broadcastMessage
-      broadcast(
-        ServerNetworkState.getClientSockets(),
-        serializeMessage(MessageType.playerRemoved, client.nid),
-      );
+      broadcastMessage(MessageType.playerRemoved, nid)
     }
   }
 
