@@ -68,6 +68,7 @@ export class DotsClientApp extends ClientApp {
     InputState.setKeyReleased(e.code);
   }
   handleIdle(): void {
+    // TODO stop systems and send message to server
     InputState.reset();
   }
 }
