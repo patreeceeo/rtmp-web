@@ -1,8 +1,10 @@
 import { clampLine, getDistanceSquared } from "../../common/math.ts";
-import { MessageType, PlayerMove } from "../../common/Message.ts";
+import { MessageType, PlayerMove, PlayerMoveWritable } from "../../common/Message.ts";
+import { RingBuffer } from "../../common/RingBuffer.ts";
 import { NetworkId } from "../../common/state/Network.ts";
 import { PlayerState } from "../../common/state/Player.ts";
 import { Time } from "../../common/state/Time.ts";
+import { SystemLoader } from "../../common/systems/mod.ts";
 import { Vec2 } from "../../common/Vec2.ts";
 import { ServerNetworkState } from "../../server/state/Network.ts";
 import { broadcastMessage } from "../mod.ts";
@@ -36,30 +38,32 @@ function handlePlayerMove(delta: Vec2, nid: NetworkId, sid: number) {
   }
 }
 
-// function exec() {
+function exec() {
   // TODO(perf) pipeline handling moves
-  // for(const move of serverBuffer.values(serverBuffer.readIndex, serverBuffer.writeIndex)) {
-  //   handlePlayerMoveServer(move.delta, move.nid, move.sid)
-  // }
-  // serverBuffer.readIndex = serverBuffer.writeIndex
-// }
+  for(const move of serverBuffer.values(serverBuffer.readIndex, serverBuffer.writeIndex)) {
+    handlePlayerMove(move.delta, move.nid, move.sid)
+  }
+  serverBuffer.readIndex = serverBuffer.writeIndex
+}
 
-// export const MovementSystem: SystemLoader = () => {
-//   return { exec, events: {} };
-// };
+export const MovementSystem: SystemLoader = () => {
+  return { exec, events: {} };
+};
 
 const to = new Vec2()
 
 /** moves received by server but yet to be processed */
 // TODO(perf) pipeline handling moves
-// const serverBuffer = new RingBuffer<PlayerMove, PlayerMoveWritable>(() => new PlayerMoveWritable(), 10)
+const serverBuffer = new RingBuffer<PlayerMove, PlayerMoveWritable>(() => new PlayerMoveWritable(), 10)
 
 export function addPlayerMoveFromClient(move: PlayerMove, ws: WebSocket) {
   const client = ServerNetworkState.getClientForSocket(ws)!
-  if(client.hasNetworkId(move.nid)) {
-    handlePlayerMove(move.delta, move.nid, move.sid)
-  }
+  // if(client.hasNetworkId(move.nid)) {
+  //   handlePlayerMove(move.delta, move.nid, move.sid)
+  // }
 // TODO(perf) pipeline handling moves
-  // serverBuffer.writeIndex = move.sid
-  // serverBuffer.put().copy(move)
+  if(client.hasNetworkId(move.nid)) {
+    serverBuffer.writeIndex = move.sid
+    serverBuffer.put().copy(move)
+  }
 }

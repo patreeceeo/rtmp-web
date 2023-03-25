@@ -12,7 +12,7 @@ import { broadcast, sendIfOpen } from "~/common/socket.ts";
 import { Time } from "~/common/state/Time.ts";
 import { TimeSystem } from "~/common/systems/Time.ts";
 import {
-  addPlayerMoveFromClient,
+  addPlayerMoveFromClient, MovementSystem,
 } from "~/server/systems/Movement.ts";
 import { NetworkSystem } from "~/server/systems/Network.ts";
 import { startPipeline, SystemPartial } from "~/common/systems/mod.ts";
@@ -20,8 +20,8 @@ import { broadcastMessage, ServerApp, startServer } from "~/server/mod.ts";
 import { WORLD_DIMENSIONS } from "../mod.ts";
 import { Client, ServerNetworkState } from "../../../modules/server/state/Network.ts";
 
-const idleTimeout = 6
-const systems = [TimeSystem(), NetworkSystem({idleTimeout})] as Array<
+const idleTimeout = 60
+const systems = [TimeSystem(), MovementSystem(), NetworkSystem({idleTimeout})] as Array<
   SystemPartial
 >;
 
