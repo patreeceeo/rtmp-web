@@ -45,7 +45,7 @@ const socketRouter: Record<
     const player = PlayerState.getPlayer(eid!)
     player.color = (cc as ColorChange).color
     player.lastActiveTime = Time.elapsed
-    broadcastMessage(MessageType.colorChange, cc, ws)
+    broadcastMessage(MessageType.colorChange, cc, {exclude: ws})
   },
 };
 
