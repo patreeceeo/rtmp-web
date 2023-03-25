@@ -71,7 +71,7 @@ function exec() {
   }
 }
 
-function reapplyPlayerMove(delta: Vec2, nid: NetworkId) {
+function applyPlayerMove(delta: Vec2, nid: NetworkId) {
   const eid = ClientNetworkState.getEntityId(nid)
   const player = PlayerState.getPlayer(eid!)
   player.position.add(delta)
@@ -86,12 +86,17 @@ const to = new Vec2()
 /** moves awaiting server acknowlogement */
 const clientBuffer = new RingBuffer<PlayerMove, PlayerMoveWritable>(() => new PlayerMoveWritable(), 10)
 
+// TODO use a different type for server response because it's not a delta when
+// coming from the server, it's an absolute position. Also, might have multiple
+// types of messages for player moves being sent to the server (like duck, jump,
+// etc), but the server only needs 1 type of message.
 export function handleMoveFromServer(moveFromServer: PlayerMove) {
   acceptMoveFromServer(moveFromServer.delta, moveFromServer.nid)
   if(moveFromServer.sid < clientBuffer.writeIndex) {
     for(const move of clientBuffer.values(moveFromServer.sid + 1, clientBuffer.writeIndex)) {
       if(move.nid === moveFromServer.nid) {
-        reapplyPlayerMove(move.delta, move.nid)
+        // predict that the server will accept our moves
+        applyPlayerMove(move.delta, move.nid)
       }
     }
   }
