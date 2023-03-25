@@ -58,6 +58,7 @@ const serverBuffer = new RingBuffer<PlayerMove, PlayerMoveWritable>(() => new Pl
 
 export function addPlayerMoveFromClient(move: PlayerMove, ws: WebSocket) {
   const client = ServerNetworkState.getClientForSocket(ws)!
+  // TODO compare perf in production to this vs using the buffer
   // if(client.hasNetworkId(move.nid)) {
   //   handlePlayerMove(move.delta, move.nid, move.sid)
   // }
