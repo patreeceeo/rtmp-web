@@ -23,7 +23,7 @@ function acceptMoveFromServer(to: Vec2, nid: NetworkId) {
   }
 }
 
-function fixie() {
+function exec() {
   // loop thru local entities
   for (const eid of PlayerState.getPlayerEids()) {
     // TODO the server should determine whether a client is allowed to control an entity
@@ -78,7 +78,7 @@ function reapplyPlayerMove(delta: Vec2, nid: NetworkId) {
 }
 
 export const ClientMovementSystem: SystemLoader = () => {
-  return { fixie, events: {} };
+  return { exec, events: {} };
 };
 
 const to = new Vec2()

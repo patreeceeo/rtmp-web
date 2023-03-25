@@ -2,7 +2,6 @@ import { MessageType } from "~/common/Message.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { Time } from "~/common/state/Time.ts";
 import { SystemLoader } from "~/common/systems/mod.ts";
-import { closeWhenBufferEmpty } from "../../common/socket.ts";
 import { broadcastMessage } from "../mod.ts";
 import { ServerNetworkState } from "../state/Network.ts";
 
@@ -13,7 +12,7 @@ interface Options {
 
 export const NetworkSystem: SystemLoader<Options> = (opts) => {
   const idleTimeout = opts?.idleTimeout || 60;
-  function fixie() {
+  function exec() {
     for (const client of ServerNetworkState.getClients()) {
       const inactiveTime = Time.elapsed - client.lastActiveTime;
       if (inactiveTime > idleTimeout * 1000 && !client.isBeingRemoved) {
@@ -33,5 +32,5 @@ export const NetworkSystem: SystemLoader<Options> = (opts) => {
       }
     }
   }
-  return { fixie };
+  return { exec };
 };

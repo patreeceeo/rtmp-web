@@ -1,7 +1,6 @@
 
 export interface System {
-  // TODO(naming) "fixie"? really?
-  fixie?: () => void,
+  exec?: () => void,
   events?: Partial<SystemEvents>
 }
 export type SystemPartial = Partial<System>
@@ -17,10 +16,10 @@ export interface SystemLoader<Options = Record<string | number | symbol, never>>
 }
 
 export function startPipeline(systems: Array<SystemPartial>, stepMs: number) {
-  const fixieSystems = systems.filter((s) => s.fixie)
+  const execSystems = systems.filter((s) => s.exec)
   setInterval(() => {
-    for(const system of fixieSystems) {
-      system.fixie!()
+    for(const system of execSystems) {
+      system.exec!()
     }
   }, stepMs)
 }

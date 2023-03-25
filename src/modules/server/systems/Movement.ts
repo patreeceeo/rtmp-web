@@ -4,7 +4,7 @@ import { NetworkId } from "../../common/state/Network.ts";
 import { PlayerState } from "../../common/state/Player.ts";
 import { Time } from "../../common/state/Time.ts";
 import { Vec2 } from "../../common/Vec2.ts";
-import { Client, ServerNetworkState } from "../../server/state/Network.ts";
+import { ServerNetworkState } from "../../server/state/Network.ts";
 import { broadcastMessage } from "../mod.ts";
 
 const origin = Object.freeze(new Vec2(0, 0))
@@ -36,7 +36,7 @@ function handlePlayerMove(delta: Vec2, nid: NetworkId, sid: number) {
   }
 }
 
-// function fixie() {
+// function exec() {
   // TODO(perf) pipeline handling moves
   // for(const move of serverBuffer.values(serverBuffer.readIndex, serverBuffer.writeIndex)) {
   //   handlePlayerMoveServer(move.delta, move.nid, move.sid)
@@ -45,7 +45,7 @@ function handlePlayerMove(delta: Vec2, nid: NetworkId, sid: number) {
 // }
 
 // export const MovementSystem: SystemLoader = () => {
-//   return { fixie, events: {} };
+//   return { exec, events: {} };
 // };
 
 const to = new Vec2()
