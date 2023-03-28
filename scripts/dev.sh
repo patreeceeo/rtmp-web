@@ -26,17 +26,9 @@ function screen_session_quit_all_by_name() {
 }
 
 function cleanup() {
-  # quit sessions
-  for in_path in $client_sub_module_rel_paths; do
-    out_path=$(get_out_path_for_client_module "$in_path")
-    screen_session_name=$(get_screen_session_name_for_path build "$out_path")
-    if screen_session_quit_all_by_name "$screen_session_name"; then
-      echo "quit screen $screen_session_name session"
-    fi
-  done
-  if screen_session_quit_all_by_name "dev_server"; then
-    echo "quit screen dev_server session"
-  fi
+  # quit screen sessions
+  screen_session_quit_all_by_name dev_server
+  screen_session_quit_all_by_name esbuild
 }
 
 hook_install_location=".git/hooks/pre-commit"
@@ -57,13 +49,10 @@ server_mod="./src/examples/dots/server/mod.ts"
 
 assert_ok stat "$server_mod" 1>/dev/null 2>/dev/null
 
+assert_ok mkdir -p public
 assert_ok cp ./src/index.html ./public
 
-for in_path in $client_sub_module_rel_paths; do
-  out_path=$(get_out_path_for_client_module "$in_path")
-  screen_session_name=$(get_screen_session_name_for_path build "$out_path")
-  dev_client_module "$in_path" "$out_path" "$screen_session_name"
-done
+screen -S esbuild -d -m ./scripts/build_client.ts "public" "$(join_array , $client_sub_module_rel_paths)" --watch
 
 screen -S dev_server -d -m deno run --allow-net --allow-read --watch "src/modules/dev_server/mod.ts"
 
