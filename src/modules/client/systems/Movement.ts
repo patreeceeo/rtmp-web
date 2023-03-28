@@ -26,7 +26,6 @@ function acceptMoveFromServer(to: Vec2, nid: NetworkId) {
 function exec() {
   // loop thru local entities
   for (const eid of PlayerState.getPlayerEids()) {
-    // TODO the server should determine whether a client is allowed to control an entity
     if (ClientNetworkState.isLocalEntity(eid)) {
       const player = PlayerState.getPlayer(eid);
       const nid = ClientNetworkState.getId(eid);

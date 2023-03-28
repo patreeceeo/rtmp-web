@@ -39,7 +39,6 @@ function handlePlayerMove(delta: Vec2, nid: NetworkId, sid: number) {
 }
 
 function exec() {
-  // TODO(perf) pipeline handling moves
   for(const move of serverBuffer.values(serverBuffer.readIndex, serverBuffer.writeIndex)) {
     handlePlayerMove(move.delta, move.nid, move.sid)
   }
@@ -53,16 +52,10 @@ export const MovementSystem: SystemLoader = () => {
 const to = new Vec2()
 
 /** moves received by server but yet to be processed */
-// TODO(perf) pipeline handling moves
 const serverBuffer = new RingBuffer<PlayerMove, PlayerMoveWritable>(() => new PlayerMoveWritable(), 10)
 
 export function addPlayerMoveFromClient(move: PlayerMove, ws: WebSocket) {
   const client = ServerNetworkState.getClientForSocket(ws)!
-  // TODO compare perf in production to this vs using the buffer
-  // if(client.hasNetworkId(move.nid)) {
-  //   handlePlayerMove(move.delta, move.nid, move.sid)
-  // }
-// TODO(perf) pipeline handling moves
   if(client.hasNetworkId(move.nid)) {
     serverBuffer.writeIndex = move.sid
     serverBuffer.put().copy(move)
