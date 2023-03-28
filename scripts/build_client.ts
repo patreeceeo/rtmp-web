@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-write --allow-read --allow-run --allow-env
+#!/usr/bin/env -S deno run --allow-write --allow-read --allow-run --allow-env --allow-net
 
 import { buildModule, buildModules } from '~/dev_client/mod.ts'
 import { addModuleEventHandler, sleep } from '~/dev_common/mod.ts'
