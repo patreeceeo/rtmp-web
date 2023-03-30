@@ -54,6 +54,11 @@ if [ -n "$staged_ts_file_paths" ]; then
   if ! deno check $staged_ts_file_paths; then
     exit 1
   fi
+  # unit tests
+  # shellcheck disable=SC2086
+  if ! deno test src; then
+    exit 1
+  fi
   # shellcheck disable=SC2086
   git add $staged_ts_file_paths
 fi
