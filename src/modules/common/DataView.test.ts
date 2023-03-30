@@ -238,76 +238,6 @@ const entries: TestEntry<any>[] = [
     ],
   },
   {
-    type: "Int64",
-    getValue: function (buffer, entry) {
-      return buffer.getInt64(0, entry.littleEndian);
-    },
-    readValue: function (buffer, entry) {
-      return buffer.readInt64(entry.littleEndian);
-    },
-    setValue: function (buffer, entry) {
-      return buffer.setInt64(0, entry.value, entry.littleEndian);
-    },
-    writeValue: function (buffer, entry) {
-      return buffer.writeInt64(entry.value, entry.littleEndian);
-    },
-    values: [
-      {
-        value: 0,
-        bytes: new Uint8Array([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
-      },
-      {
-        value: -1,
-        bytes: new Uint8Array([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]),
-      },
-      {
-        value: 9007199254740991,
-        littleEndian: true,
-        bytes: new Uint8Array([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x1f, 0x00]),
-      },
-      {
-        value: -256,
-        littleEndian: true,
-        bytes: new Uint8Array([0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]),
-      },
-    ],
-  },
-  {
-    type: "Uint64",
-    getValue: function (buffer, entry) {
-      return buffer.getUint64(0, entry.littleEndian);
-    },
-    readValue: function (buffer, entry) {
-      return buffer.readUint64(entry.littleEndian);
-    },
-    setValue: function (buffer, entry) {
-      return buffer.setUint64(0, entry.value, entry.littleEndian);
-    },
-    writeValue: function (buffer, entry) {
-      return buffer.writeUint64(entry.value, entry.littleEndian);
-    },
-    values: [
-      {
-        value: 0,
-        littleEndian: true,
-        bytes: new Uint8Array([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
-      },
-      {
-        value: 65535,
-        littleEndian: true,
-        bytes: new Uint8Array([0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
-      },
-      {
-        value: 4294967296,
-        bytes: new Uint8Array([0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]),
-      },
-      {
-        value: 9007199254740991,
-        bytes: new Uint8Array([0x00, 0x1f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]),
-      },
-    ],
-  },
-  {
     type: "Float32",
     getValue: function (buffer, entry) {
       return buffer.getFloat32(0, entry.littleEndian);
@@ -377,312 +307,6 @@ const entries: TestEntry<any>[] = [
       },
     ],
   },
-  {
-    type: "VarInt",
-    getValue: function (buffer, entry) {
-      const { value, byteLength } = buffer.getVarInt(0, entry.byteLength);
-
-      if (entry.byteLength !== byteLength) {
-        throw new RangeError(
-          "Expected byteLength to be " +
-            entry.byteLength +
-            ", but received " +
-            byteLength
-        );
-      }
-
-      return value;
-    },
-    readValue: function (buffer, entry) {
-      return buffer.readVarInt(entry.byteLength);
-    },
-    setValue: function (buffer, entry) {
-      return buffer.setVarInt(0, entry.value, entry.byteLength);
-    },
-    writeValue: function (buffer, entry) {
-      return buffer.writeVarInt(entry.value, entry.byteLength);
-    },
-    values: [
-      {
-        value: 0,
-        byteLength: 1,
-        bytes: new Uint8Array([0x00]),
-      },
-      {
-        value: 127,
-        byteLength: 1,
-        bytes: new Uint8Array([0x7f]),
-      },
-      {
-        value: 255,
-        byteLength: 2,
-        bytes: new Uint8Array([0xff, 0x01]),
-      },
-      {
-        value: 2097151,
-        byteLength: 3,
-        bytes: new Uint8Array([0xff, 0xff, 0x7f]),
-      },
-      {
-        value: 2147483647,
-        byteLength: 5,
-        bytes: new Uint8Array([0xff, 0xff, 0xff, 0xff, 0x07]),
-      },
-      {
-        value: -1,
-        byteLength: 5,
-        bytes: new Uint8Array([0xff, 0xff, 0xff, 0xff, 0x0f]),
-      },
-      {
-        value: -2147483648,
-        byteLength: 5,
-        bytes: new Uint8Array([0x80, 0x80, 0x80, 0x80, 0x08]),
-      },
-    ],
-  },
-  {
-    type: "VarUint",
-    getValue: function (buffer, entry) {
-      const { value, byteLength } = buffer.getVarUint(0, entry.byteLength);
-
-      if (entry.byteLength !== byteLength) {
-        throw new RangeError(
-          "Expected byteLength to be " +
-            entry.byteLength +
-            ", but received " +
-            byteLength
-        );
-      }
-
-      return value;
-    },
-    readValue: function (buffer, entry) {
-      return buffer.readVarUint(entry.byteLength);
-    },
-    setValue: function (buffer, entry) {
-      return buffer.setVarUint(0, entry.value, entry.byteLength);
-    },
-    writeValue: function (buffer, entry) {
-      return buffer.writeVarUint(entry.value, entry.byteLength);
-    },
-    values: [
-      {
-        value: 0,
-        byteLength: 1,
-        bytes: new Uint8Array([0x00]),
-      },
-      {
-        value: 255,
-        byteLength: 2,
-        bytes: new Uint8Array([0xff, 0x01]),
-      },
-      {
-        value: 2147483647,
-        byteLength: 5,
-        bytes: new Uint8Array([0xff, 0xff, 0xff, 0xff, 0x07]),
-      },
-      {
-        value: 4294967295,
-        byteLength: 5,
-        bytes: new Uint8Array([0xff, 0xff, 0xff, 0xff, 0x0f]),
-      },
-    ],
-  },
-  {
-    type: "VarZint",
-    getValue: function (buffer, entry) {
-      const { value, byteLength } = buffer.getVarZint(0, entry.byteLength);
-
-      if (entry.byteLength !== byteLength) {
-        throw new RangeError(
-          "Expected byteLength to be " +
-            entry.byteLength +
-            ", but received " +
-            byteLength
-        );
-      }
-
-      return value;
-    },
-    readValue: function (buffer, entry) {
-      return buffer.readVarZint(entry.byteLength);
-    },
-    setValue: function (buffer, entry) {
-      return buffer.setVarZint(0, entry.value, entry.byteLength);
-    },
-    writeValue: function (buffer, entry) {
-      return buffer.writeVarZint(entry.value, entry.byteLength);
-    },
-    values: [
-      {
-        value: 0,
-        byteLength: 1,
-        bytes: new Uint8Array([0x00]),
-      },
-      {
-        value: 255,
-        byteLength: 2,
-        bytes: new Uint8Array([0xfe, 0x03]),
-      },
-      {
-        value: -1,
-        byteLength: 1,
-        bytes: new Uint8Array([0x01]),
-      },
-    ],
-  },
-  {
-    type: "Uint8Array",
-    getValue: function (buffer, entry) {
-      return buffer.getUint8Array(0, entry.byteLength);
-    },
-    readValue: function (buffer, entry) {
-      return buffer.readUint8Array(entry.byteLength);
-    },
-    setValue: function (buffer, entry) {
-      return buffer.setUint8Array(0, entry.value);
-    },
-    writeValue: function (buffer, entry) {
-      return buffer.writeUint8Array(entry.value);
-    },
-    values: [
-      {
-        value: new Uint8Array(0),
-        bytes: new Uint8Array(0),
-      },
-      {
-        value: new Uint8Array([0xff]),
-        bytes: new Uint8Array([0xff]),
-      },
-      {
-        value: new Uint8Array([0x00, 0x00, 0x00, 0xff]),
-        bytes: new Uint8Array([0x00, 0x00, 0x00, 0xff]),
-      },
-    ],
-  },
-  {
-    type: "Uint16Array",
-    getValue: function (buffer, entry) {
-      return buffer.getUint16Array(0, entry.byteLength);
-    },
-    readValue: function (buffer, entry) {
-      return buffer.readUint16Array(entry.byteLength);
-    },
-    setValue: function (buffer, entry) {
-      return buffer.setUint16Array(0, entry.value);
-    },
-    writeValue: function (buffer, entry) {
-      return buffer.writeUint16Array(entry.value);
-    },
-    values: [
-      {
-        value: new Uint16Array(0),
-        bytes: new Uint8Array(0),
-      },
-      {
-        value: new Uint16Array([0xff]),
-        bytes: new Uint8Array([0xff, 0x00]),
-      },
-      {
-        value: new Uint16Array([0x1234, 0x5678]),
-        bytes: new Uint8Array([0x34, 0x12, 0x78, 0x56]),
-      },
-    ],
-  },
-  {
-    type: "String",
-    getValue: function (buffer, entry) {
-      return buffer.getString(0, entry.byteLength, entry.byteEncoding);
-    },
-    readValue: function (buffer, entry) {
-      return buffer.readString(entry.byteLength, entry.byteEncoding);
-    },
-    setValue: function (buffer, entry) {
-      return buffer.setString(0, entry.value, entry.byteEncoding);
-    },
-    writeValue: function (buffer, entry) {
-      return buffer.writeString(entry.value, entry.byteEncoding);
-    },
-    values: [
-      {
-        value: "",
-        byteEncoding: "utf-8",
-        byteLength: 0,
-        bytes: new Uint8Array(0),
-      },
-      {
-        value: "Hello",
-        byteEncoding: "utf-8",
-        byteLength: 5,
-        bytes: new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]),
-      },
-      {
-        value: "𩸽",
-        byteEncoding: undefined, // utf-8
-        byteLength: 4,
-        bytes: new Uint8Array([0xf0, 0xa9, 0xb8, 0xbd]),
-      },
-      /*{
-        value: "localhost",
-        byteEncoding: "utf16-be",
-        byteLength: 18,
-        bytes: new Uint8Array([0x00, 0x6c, 0x00, 0x6f,
-                    0x00, 0x63, 0x00, 0x61,
-                    0x00, 0x6c, 0x00, 0x68,
-                    0x00, 0x6f, 0x00, 0x73,
-                    0x00, 0x74])
-      },
-      {
-        value: "π",
-        byteEncoding: "utf16-le",
-        byteLength: 2,
-        bytes: new Uint8Array([0xc0, 0x03])
-      }*/
-    ],
-  },
-  {
-    type: "VarString",
-    getValue: function (buffer, entry) {
-      const { value, byteLength } = buffer.getVarString(0, entry.byteLength);
-
-      if (entry.byteLength !== byteLength) {
-        throw new RangeError(
-          "Expected byteLength to be " +
-            entry.byteLength +
-            ", but received " +
-            byteLength
-        );
-      }
-
-      return value;
-    },
-    readValue: function (buffer, entry) {
-      return buffer.readVarString(entry.byteLength);
-    },
-    setValue: function (buffer, entry) {
-      return buffer.setVarString(0, entry.value);
-    },
-    writeValue: function (buffer, entry) {
-      return buffer.writeVarString(entry.value);
-    },
-    values: [
-      {
-        value: "",
-        byteLength: 1,
-        bytes: new Uint8Array([0x00]),
-      },
-      {
-        value: "Hello",
-        byteLength: 6,
-        bytes: new Uint8Array([0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f]),
-      },
-      {
-        value: "𩸽",
-        byteLength: 5,
-        bytes: new Uint8Array([0x04, 0xf0, 0xa9, 0xb8, 0xbd]),
-      },
-    ],
-  },
 ];
 
 Deno.test("DataViewMovable", () => {
@@ -691,25 +315,25 @@ Deno.test("DataViewMovable", () => {
 
     for (const entry of values) {
       const { value, bytes, byteLength } = entry;
-      const buffer = DataViewMovable.from(bytes);
+      const buffer = new DataViewMovable(bytes.buffer);
 
       const valueGet = getValue(buffer, entry);
       assertEquals(
         value,
         valueGet,
-        `expected get${type}() to return ${value}, but got ${valueGet} instead.`
+        `expected get${type}() to return ${value}, but got ${valueGet} instead.`,
       );
 
       const valueRead = readValue(buffer, entry);
       assertEquals(
         valueGet,
         valueRead,
-        `expected read${type}() to return ${value}, but got ${valueRead} instead.`
+        `expected read${type}() to return ${value}, but got ${valueRead} instead.`,
       );
       assertStrictEquals(
         buffer.byteOffset,
         buffer.byteLength,
-        `expected read${type}() to offset ${buffer.byteLength} bytes, but got ${buffer.byteOffset} instead.`
+        `expected read${type}() to offset ${buffer.byteLength} bytes, but got ${buffer.byteOffset} instead.`,
       );
 
       buffer.reset();
@@ -719,26 +343,62 @@ Deno.test("DataViewMovable", () => {
       assertStrictEquals(
         lengthSet,
         byteLength,
-        `expected set${type}(${value}) to return a byte length of ${byteLength}, but got ${lengthSet} instead.`
+        `expected set${type}(${value}) to return a byte length of ${byteLength}, but got ${lengthSet} instead.`,
       );
       const bytesSet = new Uint8Array(buffer.buffer);
       assertEquals(
         bytesSet,
         bytes,
-        `expected set${type}(${value}) to encode as ${bytes}, but got ${bytesSet} instead.`
+        `expected set${type}(${value}) to encode as ${bytes}, but got ${bytesSet} instead.`,
       );
 
       writeValue(buffer, entry);
       assertEquals(
         bytesSet,
         bytes,
-        `expected write${type}(${value}) to encode as ${bytes}, but got ${bytesSet} instead.`
+        `expected write${type}(${value}) to encode as ${bytes}, but got ${bytesSet} instead.`,
       );
       assertStrictEquals(
         buffer.byteOffset,
         buffer.byteLength,
-        `expected write${type}(${value}) to offset ${buffer.byteLength} bytes, but got ${buffer.byteOffset} instead.`
+        `expected write${type}(${value}) to offset ${buffer.byteLength} bytes, but got ${buffer.byteOffset} instead.`,
       );
     }
+  }
+});
+
+Deno.test("DataViewMovable isCircular", () => {
+  // 16 bit
+  const buf3 = new ArrayBuffer(3);
+  const dv3 = new DataViewMovable(buf3, { isCircular: true });
+
+  dv3.setInt16(5, 33);
+  assertEquals(dv3.getInt16(5), 33);
+
+  dv3.setUint16(5, 33);
+  assertEquals(dv3.getUint16(5), 33);
+
+  // 32 bit
+  const buf5 = new ArrayBuffer(5);
+  const dv5 = new DataViewMovable(buf5, { isCircular: true });
+
+  for (let i = 0; i < 9; i++) {
+    dv5.setInt32(i, 33);
+    assertEquals(dv5.getInt32(i), 33);
+
+    dv5.setUint32(i, 33);
+    assertEquals(dv5.getUint32(i), 33);
+
+    dv5.setFloat32(i, 33);
+    assertEquals(dv5.getFloat32(i), 33);
+  }
+
+  // 64 bit
+  const buf9 = new ArrayBuffer(9);
+  const dv9 = new DataViewMovable(buf9, { isCircular: true });
+
+  for (let i = 0; i < 17; i++) {
+    dv9.setFloat64(i, 33);
+    assertEquals(dv9.getFloat64(i), 33);
   }
 });

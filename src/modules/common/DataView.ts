@@ -1,54 +1,73 @@
 // from https://github.com/Electroid/bytebuf
 // TODO adapt unit tests
 export { DataViewMovable };
-export type { IntResult, StringResult };
 
+const tempBuf = new ArrayBuffer(8);
+const tempView = new DataView(tempBuf);
+
+interface DataViewMovableOptions {
+  isCircular?: boolean;
+}
 /**
- * A byte buffer.
+ * A movable (and optionally circular) data view.
  *
  * Supports the following data types:
  * - Bool
  * - Int (8, 16, 32, 64)
  * - Uint (8, 16, 32, 64)
- * - BigInt (64)
- * - VarInt (unsigned, signed, and zigzag)
- * - String (utf8, utf16, and delimited)
- * - TypedArray
+ * - Float (32, 64)
  *
  * @extends DataView
  */
 class DataViewMovable extends DataView {
-  /**
-   * Creates a byte buffer.
-   * @param source The data source.
-   * @param byteOffset The byte offset.
-   * @param byteLength The byte length.
-   * @returns A byte buffer.
-   */
-  static from(
-    source: BufferSource,
-    byteOffset?: number,
-    byteLength?: number
-  ): DataViewMovable {
-    const buffer = source instanceof ArrayBuffer ? source : source.buffer;
-
-    if (ArrayBuffer.isView(source)) {
-      byteOffset = source.byteOffset + (byteOffset || 0);
+  isCircular = false;
+  constructor(source: ArrayBuffer, options: DataViewMovableOptions = {}) {
+    super(source);
+    if (options.isCircular) {
+      this.isCircular = true;
     }
-
-    return byteLength === undefined
-      ? new DataViewMovable(buffer, byteOffset)
-      : new DataViewMovable(
-          buffer,
-          byteOffset,
-          Math.min(source.byteLength, byteLength)
-        );
   }
-
   /**
    * The byte offset.
    */
   #byteOffset: number = super.byteOffset;
+
+  #maybeCircularGet(
+    fieldLength: number,
+    getter: (byteOffset: number, littleEndian?: boolean) => number,
+    fieldOffset: number,
+    littleEndian?: boolean,
+  ) {
+    const circularOffset = fieldOffset % this.byteLength;
+    if (this.isCircular && this.byteLength - circularOffset < fieldLength) {
+      for (let writeIndex = 0; writeIndex < fieldLength; writeIndex++) {
+        const readIndex = (writeIndex + fieldOffset) % this.byteLength;
+        tempView.setInt8(writeIndex, super.getInt8(readIndex));
+      }
+      return getter.call(tempView, 0, littleEndian);
+    } else {
+      return getter.call(this, circularOffset, littleEndian);
+    }
+  }
+
+  #maybeCircularSet(
+    fieldLength: number,
+    setter: (byteOffset: number, value: number, littleEndian?: boolean) => void,
+    fieldOffset: number,
+    value: number,
+    littleEndian?: boolean,
+  ) {
+    const circularOffset = fieldOffset % this.byteLength;
+    if (this.isCircular && this.byteLength - circularOffset < fieldLength) {
+      setter.call(tempView, 0, value, littleEndian);
+      for (let readIndex = 0; readIndex < fieldLength; readIndex++) {
+        const writeIndex = (readIndex + fieldOffset) % this.byteLength;
+        super.setInt8(writeIndex, tempView.getInt8(readIndex));
+      }
+    } else {
+      setter.call(this, circularOffset, value, littleEndian);
+    }
+  }
 
   /**
    * The byte offset.
@@ -63,7 +82,7 @@ class DataViewMovable extends DataView {
    * @returns The number of bytes remaining.
    */
   get bytesRemaining(): number {
-    return this.byteLength - this.#byteOffset;
+    return this.isCircular ? Infinity : this.byteLength - this.#byteOffset;
   }
 
   /**
@@ -85,7 +104,7 @@ class DataViewMovable extends DataView {
    * Clears the byte buffer.
    */
   clear(): void {
-    this.getUint8Array(0).fill(0);
+    new Uint8Array(this.buffer).fill(0);
   }
 
   /**
@@ -126,7 +145,9 @@ class DataViewMovable extends DataView {
    * @returns The value.
    */
   getInt8(byteOffset: number): number {
-    return super.getInt8(byteOffset);
+    return super.getInt8(
+      this.isCircular ? byteOffset % this.byteLength : byteOffset,
+    );
   }
 
   /**
@@ -143,7 +164,10 @@ class DataViewMovable extends DataView {
    * @param value The value.
    */
   setInt8(byteOffset: number, value: number): void {
-    super.setInt8(byteOffset, value);
+    super.setInt8(
+      this.isCircular ? byteOffset % this.byteLength : byteOffset,
+      value,
+    );
   }
 
   /**
@@ -160,7 +184,7 @@ class DataViewMovable extends DataView {
    * @returns The value.
    */
   getUint8(byteOffset: number): number {
-    return super.getUint8(byteOffset);
+    return super.getUint8(byteOffset % this.byteLength);
   }
 
   /**
@@ -177,7 +201,7 @@ class DataViewMovable extends DataView {
    * @param value The value.
    */
   setUint8(byteOffset: number, value: number): void {
-    super.setUint8(byteOffset, value);
+    super.setUint8(byteOffset % this.byteLength, value);
   }
 
   /**
@@ -195,7 +219,7 @@ class DataViewMovable extends DataView {
    * @returns The value.
    */
   getInt16(byteOffset: number, littleEndian?: boolean): number {
-    return super.getInt16(byteOffset, littleEndian);
+    return this.#maybeCircularGet(2, super.getInt16, byteOffset, littleEndian);
   }
 
   /**
@@ -216,7 +240,7 @@ class DataViewMovable extends DataView {
    * @param littleEndian If the value is little endian.
    */
   setInt16(byteOffset: number, value: number, littleEndian?: boolean): void {
-    super.setInt16(byteOffset, value, littleEndian);
+    this.#maybeCircularSet(2, super.setInt16, byteOffset, value, littleEndian);
   }
 
   /**
@@ -236,7 +260,7 @@ class DataViewMovable extends DataView {
    * @returns The value.
    */
   getUint16(byteOffset: number, littleEndian?: boolean): number {
-    return super.getUint16(byteOffset, littleEndian);
+    return this.#maybeCircularGet(2, super.getUint16, byteOffset, littleEndian);
   }
 
   /**
@@ -257,7 +281,7 @@ class DataViewMovable extends DataView {
    * @param littleEndian If the value is little endian.
    */
   setUint16(byteOffset: number, value: number, littleEndian?: boolean): void {
-    super.setUint16(byteOffset, value, littleEndian);
+    this.#maybeCircularSet(2, super.setUint16, byteOffset, value, littleEndian);
   }
 
   /**
@@ -277,7 +301,7 @@ class DataViewMovable extends DataView {
    * @returns The value.
    */
   getInt32(byteOffset: number, littleEndian?: boolean): number {
-    return super.getInt32(byteOffset, littleEndian);
+    return this.#maybeCircularGet(4, super.getInt32, byteOffset, littleEndian);
   }
 
   /**
@@ -298,7 +322,7 @@ class DataViewMovable extends DataView {
    * @param littleEndian If the value is little endian.
    */
   setInt32(byteOffset: number, value: number, littleEndian?: boolean): void {
-    super.setInt32(byteOffset, value, littleEndian);
+    this.#maybeCircularSet(4, super.setInt32, byteOffset, value, littleEndian);
   }
 
   /**
@@ -318,7 +342,7 @@ class DataViewMovable extends DataView {
    * @returns The value.
    */
   getUint32(byteOffset: number, littleEndian?: boolean): number {
-    return super.getUint32(byteOffset, littleEndian);
+    return this.#maybeCircularGet(4, super.getUint32, byteOffset, littleEndian);
   }
 
   /**
@@ -339,7 +363,7 @@ class DataViewMovable extends DataView {
    * @param littleEndian If the value is little endian.
    */
   setUint32(byteOffset: number, value: number, littleEndian?: boolean): void {
-    super.setUint32(byteOffset, value, littleEndian);
+    this.#maybeCircularSet(4, super.setUint32, byteOffset, value, littleEndian);
   }
 
   /**
@@ -359,7 +383,12 @@ class DataViewMovable extends DataView {
    * @returns The value.
    */
   getFloat32(byteOffset: number, littleEndian?: boolean): number {
-    return super.getFloat32(byteOffset, littleEndian);
+    return this.#maybeCircularGet(
+      4,
+      super.getFloat32,
+      byteOffset,
+      littleEndian,
+    );
   }
 
   /**
@@ -380,7 +409,13 @@ class DataViewMovable extends DataView {
    * @param littleEndian If the value is little endian.
    */
   setFloat32(byteOffset: number, value: number, littleEndian?: boolean): void {
-    super.setFloat32(byteOffset, value, littleEndian);
+    this.#maybeCircularSet(
+      4,
+      super.setFloat32,
+      byteOffset,
+      value,
+      littleEndian,
+    );
   }
 
   /**
@@ -400,7 +435,12 @@ class DataViewMovable extends DataView {
    * @returns The value.
    */
   getFloat64(byteOffset: number, littleEndian?: boolean): number {
-    return super.getFloat64(byteOffset, littleEndian);
+    return this.#maybeCircularGet(
+      8,
+      super.getFloat64,
+      byteOffset,
+      littleEndian,
+    );
   }
 
   /**
@@ -421,7 +461,13 @@ class DataViewMovable extends DataView {
    * @param littleEndian If the value is little endian.
    */
   setFloat64(byteOffset: number, value: number, littleEndian?: boolean): void {
-    super.setFloat64(byteOffset, value, littleEndian);
+    this.#maybeCircularSet(
+      8,
+      super.setFloat64,
+      byteOffset,
+      value,
+      littleEndian,
+    );
   }
 
   /**
@@ -441,7 +487,8 @@ class DataViewMovable extends DataView {
    * @returns The value.
    */
   getBigInt64(byteOffset: number, littleEndian?: boolean): bigint {
-    return super.getBigInt64(byteOffset, littleEndian);
+    if (this.isCircular) throw new Error("Not implemented");
+    return super.getBigInt64(byteOffset % this.byteLength, littleEndian);
   }
 
   /**
@@ -462,7 +509,8 @@ class DataViewMovable extends DataView {
    * @param littleEndian If the value is little endian.
    */
   setBigInt64(byteOffset: number, value: bigint, littleEndian?: boolean): void {
-    super.setBigInt64(byteOffset, value, littleEndian);
+    if (this.isCircular) throw new Error("Not implemented");
+    super.setBigInt64(byteOffset % this.byteLength, value, littleEndian);
   }
 
   /**
@@ -482,7 +530,8 @@ class DataViewMovable extends DataView {
    * @returns The value.
    */
   getBigUint64(byteOffset: number, littleEndian?: boolean): bigint {
-    return super.getBigUint64(byteOffset, littleEndian);
+    if (this.isCircular) throw new Error("Not implemented");
+    return super.getBigUint64(byteOffset % this.byteLength, littleEndian);
   }
 
   /**
@@ -505,551 +554,9 @@ class DataViewMovable extends DataView {
   setBigUint64(
     byteOffset: number,
     value: bigint,
-    littleEndian?: boolean
+    littleEndian?: boolean,
   ): void {
-    super.setBigUint64(byteOffset, value, littleEndian);
+    if (this.isCircular) throw new Error("Not implemented");
+    super.setBigUint64(byteOffset % this.byteLength, value, littleEndian);
   }
-
-  /**
-   * Writes the next unsigned long.
-   * @param value The value.
-   * @param littleEndian If the value is little endian.
-   */
-  writeBigUint64(value: bigint, littleEndian?: boolean): void {
-    this.setBigUint64(this.#byteOffset, value, littleEndian);
-    this.#byteOffset += 8;
-  }
-
-  /**
-   * Gets an signed long.
-   * @param byteOffset The byte offset.
-   * @param littleEndian If the value is little endian.
-   * @returns The value.
-   */
-  getInt64(byteOffset: number, littleEndian?: boolean): number {
-    return Number(this.getBigInt64(byteOffset, littleEndian));
-  }
-
-  /**
-   * Reads the next signed long.
-   * @param littleEndian If the value is little endian.
-   * @returns The value.
-   */
-  readInt64(littleEndian?: boolean): number {
-    const value = this.getInt64(this.#byteOffset, littleEndian);
-    this.#byteOffset += 8;
-    return value;
-  }
-
-  /**
-   * Sets a signed long.
-   * @param byteOffset The byte offset.
-   * @param value The value.
-   * @param littleEndian If the value is little endian.
-   */
-  setInt64(byteOffset: number, value: number, littleEndian?: boolean): void {
-    this.setBigInt64(byteOffset, BigInt(value), littleEndian);
-  }
-
-  /**
-   * Writes the next signed long.
-   * @param value The value.
-   * @param littleEndian If the value is little endian.
-   */
-  writeInt64(value: number, littleEndian?: boolean): void {
-    this.setInt64(this.#byteOffset, value, littleEndian);
-    this.#byteOffset += 8;
-  }
-
-  /**
-   * Gets an unsigned long.
-   * @param byteOffset The byte offset.
-   * @param littleEndian If the value is little endian.
-   * @returns The value.
-   */
-  getUint64(byteOffset: number, littleEndian?: boolean): number {
-    return Number(this.getBigUint64(byteOffset, littleEndian));
-  }
-
-  /**
-   * Reads the next unsigned long.
-   * @param littleEndian If the value is little endian.
-   * @returns The value.
-   */
-  readUint64(littleEndian?: boolean): number {
-    const value = this.getUint64(this.#byteOffset, littleEndian);
-    this.#byteOffset += 8;
-    return value;
-  }
-
-  /**
-   * Sets an unsigned long.
-   * @param byteOffset The byte offset.
-   * @param value The value.
-   * @param littleEndian If the value is little endian.
-   */
-  setUint64(byteOffset: number, value: number, littleEndian?: boolean): void {
-    this.setBigUint64(byteOffset, BigInt(value), littleEndian);
-  }
-
-  /**
-   * Writes the next signed long.
-   * @param value The value.
-   * @param littleEndian If the value is little endian.
-   */
-  writeUint64(value: number, littleEndian?: boolean): void {
-    this.setUint64(this.#byteOffset, value, littleEndian);
-    this.#byteOffset += 8;
-  }
-
-  /**
-   * Gets a signed, variable-length integer.
-   * @param byteOffset The byte offset.
-   * @param maxByteLength The maximum byte length.
-   * @returns The result.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#varints
-   */
-  getVarInt(byteOffset: number, maxByteLength: number = 10): IntResult {
-    let value = 0;
-    let byteLength = 0;
-    for (let bitShift = 0; byteLength < maxByteLength; bitShift += 7) {
-      const byte = this.getUint8(byteOffset + byteLength++);
-      value |= (byte & 0b0111_1111) << bitShift;
-      if ((byte & 0b1000_0000) === 0) {
-        return { value, byteLength };
-      }
-    }
-    throw new RangeError(
-      "VarInt must be between 1 and " + maxByteLength + " bytes."
-    );
-  }
-
-  /**
-   * Reads the next signed, variable-length integer.
-   * @param maxByteLength The maximum byte length.
-   * @returns The value.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#varints
-   */
-  readVarInt(maxByteLength?: number): number {
-    const { value, byteLength } = this.getVarInt(
-      this.#byteOffset,
-      maxByteLength
-    );
-    this.#byteOffset += byteLength;
-    return value;
-  }
-
-  /**
-   * Sets a signed, variable-length integer.
-   * @param byteOffset The byte offset.
-   * @param value The value.
-   * @param maxByteLength The maximum byte length.
-   * @returns The byte length.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#varints
-   */
-  setVarInt(
-    byteOffset: number,
-    value: number,
-    maxByteLength: number = 10
-  ): number {
-    for (let byteLength = 1; byteLength <= maxByteLength; byteLength++) {
-      let byte = value & 0b0111_1111;
-      value >>>= 7;
-      if (value !== 0) {
-        byte |= 0b1000_0000;
-      }
-      this.setUint8(byteOffset++, byte);
-      if (value === 0) {
-        return byteLength;
-      }
-    }
-    throw new RangeError(
-      "VarInt must be between 1 and " + maxByteLength + " bytes."
-    );
-  }
-
-  /**
-   * Writes the next signed, variable-length integer.
-   * @param value The value.
-   * @param maxByteLength The maximum byte length.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#varints
-   */
-  writeVarInt(value: number, maxByteLength?: number): void {
-    const byteLength = this.setVarInt(this.#byteOffset, value, maxByteLength);
-    this.#byteOffset += byteLength;
-  }
-
-  /**
-   * Gets an unsigned, variable-length integer.
-   * @param byteOffset The byte offset.
-   * @param maxByteLength The maximum byte length.
-   * @returns The result.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#varints
-   */
-  getVarUint(byteOffset: number, maxByteLength?: number): IntResult {
-    const { value, byteLength } = this.getVarInt(byteOffset, maxByteLength);
-    return { value: value >>> 0, byteLength };
-  }
-
-  /**
-   * Reads the next unsigned, variable-length integer.
-   * @param maxByteLength The maximum byte length.
-   * @returns The value.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#varints
-   */
-  readVarUint(maxByteLength?: number): number {
-    const { value, byteLength } = this.getVarUint(
-      this.#byteOffset,
-      maxByteLength
-    );
-    this.#byteOffset += byteLength;
-    return value;
-  }
-
-  /**
-   * Sets an unsigned, variable-length integer.
-   * @param byteOffset The byte offset.
-   * @param value The value.
-   * @param maxByteLength The maximum byte length.
-   * @returns The byte length.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#varints
-   */
-  setVarUint(
-    byteOffset: number,
-    value: number,
-    maxByteLength?: number
-  ): number {
-    return this.setVarInt(byteOffset, value >>> 0, maxByteLength);
-  }
-
-  /**
-   * Writes the next unsigned, variable-length integer.
-   * @param value The value.
-   * @param maxByteLength The maximum byte length.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#varints
-   */
-  writeVarUint(value: number, maxByteLength?: number): void {
-    const byteLength = this.setVarUint(this.#byteOffset, value, maxByteLength);
-    this.#byteOffset += byteLength;
-  }
-
-  /**
-   * Gets a signed, variable-length integer with zigzag encoding.
-   * @param byteOffset The byte offset.
-   * @param maxByteLength The maximum byte length.
-   * @returns The result.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#signed_integers
-   */
-  getVarZint(byteOffset: number, maxByteLength?: number): IntResult {
-    const { value, byteLength } = this.getVarInt(byteOffset, maxByteLength);
-    return { value: (value >> 1) ^ -(value & 1), byteLength };
-  }
-
-  /**
-   * Reads the next signed, variable-length integer with zigzag encoding.
-   * @param maxByteLength The maximum byte length.
-   * @returns The value.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#varints
-   */
-  readVarZint(maxByteLength?: number): number {
-    const { value, byteLength } = this.getVarZint(
-      this.#byteOffset,
-      maxByteLength
-    );
-    this.#byteOffset += byteLength;
-    return value;
-  }
-
-  /**
-   * Sets a signed, variable-length integer with zigzag encoding.
-   * @param byteOffset The byte offset.
-   * @param value The value.
-   * @param maxByteLength The maximum byte length.
-   * @returns The byte length.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#signed_integers
-   */
-  setVarZint(
-    byteOffset: number,
-    value: number,
-    maxByteLength?: number
-  ): number {
-    return this.setVarInt(
-      byteOffset,
-      (value >> 31) ^ (value << 1),
-      maxByteLength
-    );
-  }
-
-  /**
-   * Writes the next unsigned, variable-length integer with zigzag encoding.
-   * @param value The value.
-   * @param maxByteLength The maximum byte length.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#varints
-   */
-  writeVarZint(value: number, maxByteLength?: number): void {
-    const byteLength = this.setVarZint(this.#byteOffset, value, maxByteLength);
-    this.#byteOffset += byteLength;
-  }
-
-  /**
-   * Gets an array of unsigned bytes.
-   * @param byteOffset The byte offset.
-   * @param byteLength The byte length.
-   * @returns The value.
-   */
-  getUint8Array(byteOffset: number, byteLength?: number): Uint8Array {
-    return new Uint8Array(
-      this.buffer,
-      super.byteOffset + byteOffset,
-      byteLength
-    );
-  }
-
-  /**
-   * Reads the next array of unsigned bytes.
-   * @param byteLength The byte length.
-   * @returns The value.
-   */
-  readUint8Array(byteLength?: number): Uint8Array {
-    const value = this.getUint8Array(this.#byteOffset, byteLength);
-    this.#byteOffset += value.byteLength;
-    return value;
-  }
-
-  /**
-   * Sets an array of unsigned bytes.
-   * @param byteOffset The byte offset.
-   * @param value The value.
-   */
-  setUint8Array(byteOffset: number, value: Uint8Array): void {
-    const byteLength = value.byteLength;
-    this.getUint8Array(byteOffset, byteLength).set(value);
-  }
-
-  /**
-   * Writes the next array of unsigned bytes.
-   * @param value The value.
-   */
-  writeUint8Array(value: Uint8Array): void {
-    this.setUint8Array(this.#byteOffset, value);
-    this.#byteOffset += value.byteLength;
-  }
-
-  /**
-   * Gets an array of unsigned shorts.
-   * @param byteOffset The byte offset.
-   * @param byteLength The byte length.
-   * @returns The value.
-   */
-  getUint16Array(byteOffset: number, byteLength?: number): Uint16Array {
-    if (byteLength !== undefined) {
-      byteLength = Math.floor(byteLength / 2);
-    }
-    return new Uint16Array(
-      this.buffer,
-      super.byteOffset + byteOffset,
-      byteLength
-    );
-  }
-
-  /**
-   * Reads the next array of unsigned shorts.
-   * @param byteLength The byte length.
-   * @returns The value.
-   */
-  readUint16Array(byteLength?: number): Uint16Array {
-    const value = this.getUint16Array(this.#byteOffset, byteLength);
-    this.#byteOffset += value.byteLength;
-    return value;
-  }
-
-  /**
-   * Sets an array of unsigned bytes.
-   * @param byteOffset The byte offset.
-   * @param value The value.
-   */
-  setUint16Array(byteOffset: number, value: Uint16Array): void {
-    const byteLength = value.byteLength;
-    this.getUint16Array(byteOffset, byteLength).set(value);
-  }
-
-  /**
-   * Writes the next array of unsigned bytes.
-   * @param value The value.
-   */
-  writeUint16Array(value: Uint16Array): void {
-    this.setUint16Array(this.#byteOffset, value);
-    this.#byteOffset += value.byteLength;
-  }
-
-  /**
-   * Gets a string.
-   * @param byteOffset The byte offset.
-   * @param byteLength The byte length.
-   * @param byteEncoding The byte encoding.
-   * @returns The value.
-   */
-  getString(
-    byteOffset: number,
-    byteLength?: number,
-    byteEncoding?: string
-  ): string {
-    const decoder = new TextDecoder(byteEncoding || "utf-8");
-    const encoded = this.getUint8Array(byteOffset, byteLength);
-    return decoder.decode(encoded);
-  }
-
-  /**
-   * Reads the next string.
-   * @param byteLength The byte length.
-   * @param byteEncoding The byte encoding.
-   * @returns The value.
-   */
-  readString(byteLength?: number, byteEncoding?: string): string {
-    const value = this.getString(this.#byteOffset, byteLength, byteEncoding);
-    if (byteLength === undefined) {
-      this.#byteOffset = this.byteLength;
-    } else {
-      this.#byteOffset += byteLength;
-    }
-    return value;
-  }
-
-  /**
-   * Sets a string.
-   * @param byteOffset The byte offset.
-   * @param value The string.
-   * @param byteEncoding The byte encoding.
-   * @returns The byte length.
-   */
-  setString(byteOffset: number, value: string, byteEncoding?: string): number {
-    // TODO: add support for "utf-16-be" and "utf-16-le"
-    if (byteEncoding && byteEncoding !== "utf-8") {
-      throw new TypeError(
-        "String encoding '" + byteEncoding + "' is not supported"
-      );
-    }
-    const encoder = new TextEncoder();
-    const byteLength = Math.min(this.byteLength - byteOffset, value.length * 4);
-    const destination = this.getUint8Array(byteOffset, byteLength);
-    const { written } = encoder.encodeInto(value, destination);
-    return written || 0;
-  }
-
-  /**
-   * Writes the next a string.
-   * @param value The string.
-   * @param byteEncoding The byte encoding.
-   */
-  writeString(value: string, byteEncoding?: string): void {
-    const byteLength = this.setString(this.#byteOffset, value, byteEncoding);
-    this.#byteOffset += byteLength;
-  }
-
-  /**
-   * Gets a String with a variable-length delimeter.
-   * @param byteOffset The byte offset.
-   * @param maxByteLength The maximum byte length.
-   * @returns The result.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#strings
-   */
-  getVarString(byteOffset: number, maxByteLength?: number): StringResult {
-    const { value: byteLength, byteLength: delimeterOffset } =
-      this.getVarUint(byteOffset);
-    if (maxByteLength !== undefined && byteLength > maxByteLength) {
-      throw new RangeError(
-        "VarString must be less than or equal to " + maxByteLength + " bytes."
-      );
-    }
-    const value = this.getString(byteOffset + delimeterOffset, byteLength);
-    return { value, byteLength: byteLength + delimeterOffset };
-  }
-
-  /**
-   * Reads the next String with a variable-length delimeter.
-   * @param maxByteLength The maximum byte length.
-   * @returns The value.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#strings
-   */
-  readVarString(maxByteLength?: number): string {
-    const { value, byteLength } = this.getVarString(
-      this.#byteOffset,
-      maxByteLength
-    );
-    this.#byteOffset += byteLength;
-    return value;
-  }
-
-  /**
-   * Sets a String with a variable-length delimeter.
-   * @param byteOffset The byte offset.
-   * @param value The value.
-   * @returns The byte length.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#strings
-   */
-  setVarString(byteOffset: number, value: string): number {
-    const encoder = new TextEncoder();
-    const encoded = encoder.encode(value);
-    const byteLength = encoded.byteLength;
-    const delimeterOffset = this.setVarInt(byteOffset, byteLength);
-    this.setUint8Array(byteOffset + delimeterOffset, encoded);
-    return delimeterOffset + byteLength;
-  }
-
-  /**
-   * Writes the next String with a variable-length delimeter.
-   * @param value The value.
-   * @link https://developers.google.com/protocol-buffers/docs/encoding#strings
-   */
-  writeVarString(value: string): number {
-    const byteLength = this.setVarString(this.#byteOffset, value);
-    this.#byteOffset += byteLength;
-    return byteLength;
-  }
-
-  /**
-   * Formats to a string.
-   * @param format The string format.
-   * @returns The string.
-   */
-  toString(format?: string): string {
-    return Array.prototype.map
-      .call(this.getUint8Array(0), function (byte: number): string {
-        switch (format) {
-          case "hex":
-            return ("00" + byte.toString(16)).slice(-2);
-          default:
-            return byte.toString(10);
-        }
-      })
-      .join(" ");
-  }
-}
-
-/**
- * A number result.
- */
-interface IntResult {
-  /**
-   * The byte length.
-   */
-  readonly byteLength: number;
-  /**
-   * The value.
-   */
-  readonly value: number;
-}
-
-/**
- * A string result.
- */
-interface StringResult {
-  /**
-   * The byte length.
-   */
-  readonly byteLength: number;
-  /**
-   * The value.
-   */
-  readonly value: string;
 }
