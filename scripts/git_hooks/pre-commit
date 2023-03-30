@@ -49,6 +49,11 @@ staged_ts_file_paths=$(git diff --name-only --cached --diff-filter=ACM | grep ".
 if [ -n "$staged_ts_file_paths" ]; then
   # shellcheck disable=SC2086
   deno fmt $staged_ts_file_paths
+  # type check
+  # shellcheck disable=SC2086
+  if ! deno check $staged_ts_file_paths; then
+    exit 1
+  fi
   # shellcheck disable=SC2086
   git add $staged_ts_file_paths
 fi
