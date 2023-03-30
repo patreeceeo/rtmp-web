@@ -8,7 +8,7 @@ const inPaths = Deno.args[1].split(',')
 
 await buildModules(outDir, inPaths)
 
-if(Deno.args[1] === '--watch') {
+if(Deno.args[2] === '--watch') {
   addModuleEventHandler(["create", "modify"], (inPaths) => {
     for(const inPath of inPaths) {
       buildModule(outDir, inPath)
