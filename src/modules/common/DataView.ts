@@ -1,6 +1,6 @@
 // from https://github.com/Electroid/bytebuf
 // TODO adapt unit tests
-export { ByteBuffer };
+export { DataViewMovable };
 export type { IntResult, StringResult };
 
 /**
@@ -17,7 +17,7 @@ export type { IntResult, StringResult };
  *
  * @extends DataView
  */
-class ByteBuffer extends DataView {
+class DataViewMovable extends DataView {
   /**
    * Creates a byte buffer.
    * @param source The data source.
@@ -29,7 +29,7 @@ class ByteBuffer extends DataView {
     source: BufferSource,
     byteOffset?: number,
     byteLength?: number
-  ): ByteBuffer {
+  ): DataViewMovable {
     const buffer = source instanceof ArrayBuffer ? source : source.buffer;
 
     if (ArrayBuffer.isView(source)) {
@@ -37,8 +37,8 @@ class ByteBuffer extends DataView {
     }
 
     return byteLength === undefined
-      ? new ByteBuffer(buffer, byteOffset)
-      : new ByteBuffer(
+      ? new DataViewMovable(buffer, byteOffset)
+      : new DataViewMovable(
           buffer,
           byteOffset,
           Math.min(source.byteLength, byteLength)

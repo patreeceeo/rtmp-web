@@ -1,21 +1,21 @@
-import { ByteBuffer } from './ByteBuffer.ts'
+import { DataViewMovable } from './DataView.ts'
 import { BinaryObjectAdaptor, boolAdaptor, networkIdAdaptor, uint16Adaptor, vec2Adaptor } from './BinaryAdaptor.ts';
 import { NetworkId } from "./state/Network.ts";
 import { ColorId } from "./state/Player.ts";
 import { Vec2 } from "./Vec2.ts";
 
 export interface IPayload {
-  write(buf: ByteBuffer): void
+  write(buf: DataViewMovable): void
 }
 
 export interface IPayloadMutable extends IPayload {
-  read(buf: ByteBuffer): void
+  read(buf: DataViewMovable): void
 }
 
 export class NilPayloadMutable implements IPayloadMutable {
-  write(_buf: ByteBuffer): void {
+  write(_buf: DataViewMovable): void {
   }
-  read(_buf: ByteBuffer): void {
+  read(_buf: DataViewMovable): void {
   }
 }
 
@@ -27,7 +27,7 @@ const playerMoveAdaptor = new BinaryObjectAdaptor<PlayerMove>([
 
 export class PlayerMove implements IPayload {
   constructor(readonly delta: Vec2, readonly nid: NetworkId, readonly sid: number) {}
-  write(buf: ByteBuffer): void {
+  write(buf: DataViewMovable): void {
     playerMoveAdaptor.write(buf, this)
   }
 }
@@ -36,7 +36,7 @@ export class PlayerMoveMutable extends PlayerMove implements IPayloadMutable {
   constructor(public delta: Vec2, public nid: NetworkId, public sid: number) {
     super(delta, nid, sid)
   }
-  read(buf: ByteBuffer): void {
+  read(buf: DataViewMovable): void {
     playerMoveAdaptor.read(buf, this)
   }
   copy(move: PlayerMove) {
@@ -62,7 +62,7 @@ export class PlayerAdd implements IPayload {
     readonly isLocal: boolean,
     readonly nid: NetworkId,
   ) {}
-  write(buf: ByteBuffer): void {
+  write(buf: DataViewMovable): void {
     playerAddAdaptor.write(buf, this)
   }
 }
@@ -75,7 +75,7 @@ export class PlayerAddMutable extends PlayerAdd implements IPayloadMutable {
   ) {
     super(position, isLocal, nid)
   }
-  read(buf: ByteBuffer): void {
+  read(buf: DataViewMovable): void {
     playerAddAdaptor.read(buf, this)
   }
 }
@@ -84,7 +84,7 @@ export class PlayerRemove implements IPayload {
   constructor(
     readonly nid: NetworkId,
   ) {}
-  write(buf: ByteBuffer): void {
+  write(buf: DataViewMovable): void {
     networkIdAdaptor.write(buf, this.nid)
   }
 }
@@ -95,7 +95,7 @@ export class PlayerRemoveMutable extends PlayerRemove implements IPayloadMutable
   ) {
     super(nid)
   }
-  read(buf: ByteBuffer): void {
+  read(buf: DataViewMovable): void {
     this.nid = networkIdAdaptor.read(buf)
   }
 }
@@ -110,7 +110,7 @@ export class ColorChange implements IPayload {
     readonly color: ColorId,
     readonly nid: NetworkId
   ) {}
-  write(buf: ByteBuffer): void {
+  write(buf: DataViewMovable): void {
     colorChangeAdaptor.write(buf, this)
   }
 }
@@ -122,7 +122,7 @@ export class ColorChangeMutable extends ColorChange implements IPayloadMutable {
   ) {
     super(color, nid)
   }
-  read(buf: ByteBuffer): void {
+  read(buf: DataViewMovable): void {
     colorChangeAdaptor.read(buf, this)
   }
 }
@@ -152,14 +152,14 @@ export type MessageMutablePlayloadByType = {
 export interface IMessage<Type extends MessageType> {
   type: Type;
   payload: MessagePlayloadByType[Type];
-  write(buf: ByteBuffer): void;
+  write(buf: DataViewMovable): void;
 }
 
 
 export class Message<Type extends MessageType> implements IMessage<Type> {
   constructor(readonly type: Type, readonly payload: MessagePlayloadByType[Type]){
   }
-  write(buf: ByteBuffer): void {
+  write(buf: DataViewMovable): void {
     buf.writeUint8(this.type)
     this.payload.write(buf)
   }
@@ -167,7 +167,7 @@ export class Message<Type extends MessageType> implements IMessage<Type> {
 
 
 export interface IMessageMutable<Type extends MessageType> extends IMessage<Type> {
-  read(buf: ByteBuffer): void
+  read(buf: DataViewMovable): void
 }
 
 const payloadMap: MessageMutablePlayloadByType = {
@@ -182,7 +182,7 @@ export class MessageMutable<Type extends MessageType> extends Message<Type> impl
   constructor(public type: Type, public payload: MessageMutablePlayloadByType[Type]){
     super(type, payload)
   }
-  read(buf: ByteBuffer): void {
+  read(buf: DataViewMovable): void {
     this.type = buf.readUint8() as Type
     this.payload = payloadMap[this.type]
     this.payload.read(buf)
@@ -193,10 +193,10 @@ export type IAnyMessage = IMessage<MessageType>;
 export type IAnyMessageMutable = IMessageMutable<MessageType>;
 export type AnyMessagePayload = MessagePlayloadByType[MessageType];
 
-const resusedBuffer = new ByteBuffer(new ArrayBuffer(128))
+const resusedBuffer = new DataViewMovable(new ArrayBuffer(128))
 const reusedMessage = new MessageMutable(MessageType.nil, new NilPayloadMutable()) as IAnyMessageMutable
 export function parseMessage(serializedData: ArrayBuffer): IAnyMessage {
-  const buf = new ByteBuffer(serializedData)
+  const buf = new DataViewMovable(serializedData)
   reusedMessage.read(buf)
   return reusedMessage
 }

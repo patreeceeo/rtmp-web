@@ -3,7 +3,7 @@ import * as asserts from "asserts";
 import { Vec2 } from "./Vec2.ts";
 import { NetworkId } from "./state/Network.ts";
 import { ColorId } from "./state/Player.ts";
-import { ByteBuffer } from './ByteBuffer.ts'
+import { DataViewMovable } from './DataView.ts'
 
 
 Deno.test("parseMessage/serializeMessage", () => {
@@ -16,8 +16,8 @@ Deno.test("parseMessage/serializeMessage", () => {
   const serializedMsg = new ArrayBuffer(128)
   const parsedMessage = new MessageMutable(MessageType.nil, new NilPayloadMutable())
   for (const message of messages) {
-    message.write(new ByteBuffer(serializedMsg))
-    parsedMessage.read(new ByteBuffer(serializedMsg))
+    message.write(new DataViewMovable(serializedMsg))
+    parsedMessage.read(new DataViewMovable(serializedMsg))
     asserts.assertEquals(parsedMessage as IAnyMessage, message);
   }
 });

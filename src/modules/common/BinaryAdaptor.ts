@@ -1,42 +1,42 @@
-import { ByteBuffer } from './ByteBuffer.ts'
+import { DataViewMovable } from './DataView.ts'
 import { NetworkId } from './state/Network.ts'
 import { Vec2 } from './Vec2.ts'
 
 export interface IBinaryFieldAdaptor<Type> {
-  read(buf: ByteBuffer): Type
-  write(buf: ByteBuffer, value: Type): void
+  read(buf: DataViewMovable): Type
+  write(buf: DataViewMovable, value: Type): void
 }
 
 class BoolAdaptor implements IBinaryFieldAdaptor<boolean> {
-  read(buf: ByteBuffer): boolean {
+  read(buf: DataViewMovable): boolean {
     return buf.readBool()
   }
-  write(buf: ByteBuffer, value: boolean): void {
+  write(buf: DataViewMovable, value: boolean): void {
     buf.writeBool(value)
   }
 }
 
 class Uint16Adaptor implements IBinaryFieldAdaptor<number> {
-  read(buf: ByteBuffer): number {
+  read(buf: DataViewMovable): number {
     return buf.readUint16()
   }
-  write(buf: ByteBuffer, value: number): void {
+  write(buf: DataViewMovable, value: number): void {
     buf.writeUint16(value)
   }
 }
 class Float64Adaptor implements IBinaryFieldAdaptor<number> {
-  read(buf: ByteBuffer): number {
+  read(buf: DataViewMovable): number {
     return buf.readFloat64()
   }
-  write(buf: ByteBuffer, value: number): void {
+  write(buf: DataViewMovable, value: number): void {
     buf.writeFloat64(value)
   }
 }
 class NetworkIdAdaptor implements IBinaryFieldAdaptor<number> {
-  read(buf: ByteBuffer): NetworkId {
+  read(buf: DataViewMovable): NetworkId {
     return buf.readUint16() as NetworkId
   }
-  write(buf: ByteBuffer, value: NetworkId): void {
+  write(buf: DataViewMovable, value: NetworkId): void {
     buf.writeUint16(value)
   }
 }
@@ -60,7 +60,7 @@ export class BinaryObjectAdaptor<Type extends Record<string, any>> {
   constructor(readonly spec: Array<[keyof Type, IBinaryAdaptor<Type[keyof Type]>]>) {
     this.#specMap = Object.fromEntries(spec)
   }
-  read(buf: ByteBuffer, target: Type) {
+  read(buf: DataViewMovable, target: Type) {
     for(const [fieldName, adaptor] of this.spec) {
       if("isObject" in adaptor) {
         adaptor.read(buf, target[fieldName]) as Type[keyof Type]
@@ -70,7 +70,7 @@ export class BinaryObjectAdaptor<Type extends Record<string, any>> {
     }
     return target
   }
-  write(buf: ByteBuffer, source: Type) {
+  write(buf: DataViewMovable, source: Type) {
     for(const [fieldName, fieldValue] of Object.entries(source)) {
       const adaptor = this.#specMap[fieldName] as IBinaryFieldAdaptor<Type[keyof Type]>
       adaptor.write(buf, fieldValue as Type[keyof Type])
