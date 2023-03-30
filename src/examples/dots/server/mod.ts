@@ -5,6 +5,7 @@ ColorChange,
   parseMessage,
   PlayerAdd,
   PlayerMove,
+  PlayerRemove,
   serializeMessage,
 } from "~/common/Message.ts";
 import { PlayerState } from "~/common/state/Player.ts";
@@ -105,7 +106,7 @@ class DotsServerApp implements ServerApp {
     for(const nid of client.getNetworkIds()) {
       const eid = ServerNetworkState.getEntityId(nid);
       PlayerState.deletePlayer(eid!);
-      broadcastMessage(MessageType.playerRemoved, nid)
+      broadcastMessage(MessageType.playerRemoved, new PlayerRemove(nid))
     }
   }
 

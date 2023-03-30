@@ -4,6 +4,7 @@ ColorChange,
   MessageType,
   parseMessage,
   PlayerMove,
+PlayerRemove,
 } from "~/common/Message.ts";
 import { NetworkId } from "~/common/state/Network.ts";
 import { InputState } from "~/common/state/Input.ts";
@@ -109,8 +110,8 @@ function handlePlayerAdded(
 function handlePlayerMoved(_server: WebSocket, move: PlayerMove) {
   handleMoveFromServer(move);
 }
-function handlePlayerRemoved(_server: WebSocket, nid: NetworkId) {
-  const eid = ClientNetworkState.getEntityId(nid);
+function handlePlayerRemoved(_server: WebSocket, playerRemove: PlayerRemove) {
+  const eid = ClientNetworkState.getEntityId(playerRemove.nid);
   PlayerState.deletePlayer(eid!);
 }
 

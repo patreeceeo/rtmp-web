@@ -21,6 +21,7 @@ export function startClient(app: ClientApp) {
     const socket = new WebSocket(
       `${wsProtocol}://${location.host}/start_web_socket`,
     );
+    socket.binaryType = 'arraybuffer'
 
     socket.onopen = (e) => {
       app.handleOpen(socket, e);

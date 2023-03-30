@@ -1,7 +1,7 @@
 // TODO make this an option arg
 import { WORLD_DIMENSIONS } from "../../../examples/dots/mod.ts";
 import { ClientNetworkState } from "../../client/state/Network.ts";
-import { ColorChange, MessageType, PlayerMove, PlayerMoveWritable } from "~/common/Message.ts";
+import { ColorChange, MessageType, PlayerMove, PlayerMoveMutable } from "~/common/Message.ts";
 import { Vec2 } from "../../common/Vec2.ts";
 import { NetworkId } from "../../common/state/Network.ts";
 import { PlayerState } from "../../common/state/Player.ts";
@@ -83,7 +83,7 @@ export const ClientMovementSystem: SystemLoader = () => {
 const to = new Vec2()
 
 /** moves awaiting server acknowlogement */
-const clientBuffer = new RingBuffer<PlayerMove, PlayerMoveWritable>(() => new PlayerMoveWritable(), 10)
+const clientBuffer = new RingBuffer<PlayerMove, PlayerMoveMutable>(() => new PlayerMoveMutable(new Vec2(), 0 as NetworkId, 0), 10)
 
 // TODO use a different type for server response because it's not a delta when
 // coming from the server, it's an absolute position. Also, might have multiple

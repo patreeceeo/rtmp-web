@@ -39,6 +39,7 @@ export function startServer(app: ServerApp) {
     const url = new URL(request.url);
     if (url.pathname === "/start_web_socket") {
       const { socket, response } = Deno.upgradeWebSocket(request, {idleTimeout: app.idleTimeout});
+      socket.binaryType = 'arraybuffer'
 
       socket.onopen = (socketEvent) => {
         const clientNid = ServerNetworkState.createId();

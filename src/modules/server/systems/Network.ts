@@ -1,4 +1,4 @@
-import { MessageType } from "~/common/Message.ts";
+import { MessageType, PlayerRemove } from "~/common/Message.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { Time } from "~/common/state/Time.ts";
 import { SystemLoader } from "~/common/systems/mod.ts";
@@ -21,7 +21,7 @@ export const NetworkSystem: SystemLoader<Options> = (opts) => {
           const playerEid = ServerNetworkState.getEntityId(nid!)!;
 
           PlayerState.deletePlayer(playerEid);
-          broadcastMessage(MessageType.playerRemoved, nid!, {includeClientsBeingRemoved: true});
+          broadcastMessage(MessageType.playerRemoved, new PlayerRemove(nid!), {includeClientsBeingRemoved: true});
         }
       }
       // Paranoidly forcing closed websockets even if they are being created with an idleTimeout

@@ -1,5 +1,5 @@
 import { clampLine, getDistanceSquared } from "../../common/math.ts";
-import { MessageType, PlayerMove, PlayerMoveWritable } from "../../common/Message.ts";
+import { MessageType, PlayerMove, PlayerMoveMutable } from "../../common/Message.ts";
 import { RingBuffer } from "../../common/RingBuffer.ts";
 import { NetworkId } from "../../common/state/Network.ts";
 import { PlayerState } from "../../common/state/Player.ts";
@@ -52,7 +52,7 @@ export const MovementSystem: SystemLoader = () => {
 const to = new Vec2()
 
 /** moves received by server but yet to be processed */
-const serverBuffer = new RingBuffer<PlayerMove, PlayerMoveWritable>(() => new PlayerMoveWritable(), 10)
+const serverBuffer = new RingBuffer<PlayerMove, PlayerMoveMutable>(() => new PlayerMoveMutable(new Vec2(), 0 as NetworkId, 0), 10)
 
 export function addPlayerMoveFromClient(move: PlayerMove, ws: WebSocket) {
   const client = ServerNetworkState.getClientForSocket(ws)!
