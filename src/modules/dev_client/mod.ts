@@ -28,10 +28,10 @@ export async function buildModule(
   inPath: string,
   options: BuildOptions = {},
 ) {
-  const outPath = getOutPath(outDir, inPath);
-  Deno.mkdir(dirname(outPath), { recursive: true });
-  const ts = await Deno.readTextFile(inPath);
   try {
+    const outPath = getOutPath(outDir, inPath);
+    Deno.mkdir(dirname(outPath), { recursive: true });
+    const ts = await Deno.readTextFile(inPath);
     console.log(`building ${inPath} => ${outPath}`);
     const result = await esbuild.transform(ts, { loader: "ts" });
     Deno.writeTextFile(outPath, result.code);
