@@ -93,6 +93,10 @@ class DataViewMovable extends DataView {
     this.#byteOffset += byteLength;
   }
 
+  jump(byteOffset: number): void {
+    this.#byteOffset = byteOffset;
+  }
+
   /**
    * Resets the byte offset.
    */

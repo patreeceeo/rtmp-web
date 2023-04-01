@@ -1,5 +1,5 @@
 import {
-ColorChange,
+  ColorChange,
   MessagePlayloadByType,
   MessageType,
   parseMessage,
@@ -13,16 +13,24 @@ import { broadcast, sendIfOpen } from "~/common/socket.ts";
 import { Time } from "~/common/state/Time.ts";
 import { TimeSystem } from "~/common/systems/Time.ts";
 import {
-  addPlayerMoveFromClient, MovementSystem,
+  addPlayerMoveFromClient,
+  MovementSystem,
 } from "~/server/systems/Movement.ts";
 import { NetworkSystem } from "~/server/systems/Network.ts";
 import { startPipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { broadcastMessage, ServerApp, startServer } from "~/server/mod.ts";
 import { WORLD_DIMENSIONS } from "../mod.ts";
-import { Client, ServerNetworkState } from "../../../modules/server/state/Network.ts";
+import {
+  Client,
+  ServerNetworkState,
+} from "../../../modules/server/state/Network.ts";
 
-const idleTimeout = 60
-const systems = [TimeSystem(), MovementSystem(), NetworkSystem({idleTimeout})] as Array<
+const idleTimeout = 60;
+const systems = [
+  TimeSystem(),
+  MovementSystem(),
+  NetworkSystem({ idleTimeout }),
+] as Array<
   SystemPartial
 >;
 
@@ -42,28 +50,31 @@ const socketRouter: Record<
     addPlayerMoveFromClient(move as PlayerMove, ws);
   },
   [MessageType.colorChange]: (ws, cc) => {
-    const eid = ServerNetworkState.getEntityId(cc.nid)
-    const player = PlayerState.getPlayer(eid!)
-    player.color = (cc as ColorChange).color
-    player.lastActiveTime = Time.elapsed
-    broadcastMessage(MessageType.colorChange, cc, {exclude: ws})
+    const eid = ServerNetworkState.getEntityId(cc.nid);
+    const player = PlayerState.getPlayer(eid!);
+    player.color = (cc as ColorChange).color;
+    player.lastActiveTime = Time.elapsed;
+    broadcastMessage(MessageType.colorChange, cc, { exclude: ws });
   },
 };
 
 function getRandomInt(min: number, max: number) {
-  return Math.round(Math.random() * max) + min
+  return Math.round(Math.random() * max) + min;
 }
 
 class DotsServerApp implements ServerApp {
-  idleTimeout = idleTimeout
+  idleTimeout = idleTimeout;
   handleOpen(ws: WebSocket, _: Event) {
     const addedPlayer = PlayerState.createPlayer();
     const playerNid = ServerNetworkState.createId();
     const client = ServerNetworkState.getClientForSocket(ws)!;
     client.addNetworkId(playerNid);
 
-    addedPlayer.position.set(getRandomInt(0, WORLD_DIMENSIONS.WIDTH), getRandomInt(0, WORLD_DIMENSIONS.HEIGHT));
-    addedPlayer.color = getRandomInt(0, 6)
+    addedPlayer.position.set(
+      getRandomInt(0, WORLD_DIMENSIONS.WIDTH),
+      getRandomInt(0, WORLD_DIMENSIONS.HEIGHT),
+    );
+    addedPlayer.color = getRandomInt(0, 6);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
 
     sendIfOpen(
@@ -93,7 +104,11 @@ class DotsServerApp implements ServerApp {
           ws,
           serializeMessage(
             MessageType.playerAdded,
-            new PlayerAdd(player.position, false, ServerNetworkState.getId(eid)!),
+            new PlayerAdd(
+              player.position,
+              false,
+              ServerNetworkState.getId(eid)!,
+            ),
           ),
         );
       }
@@ -103,10 +118,10 @@ class DotsServerApp implements ServerApp {
   handleClose(ws: WebSocket, _: Event) {
     const client = ServerNetworkState.getClientForSocket(ws)!;
     ServerNetworkState.removeClient(client.nid);
-    for(const nid of client.getNetworkIds()) {
+    for (const nid of client.getNetworkIds()) {
       const eid = ServerNetworkState.getEntityId(nid);
       PlayerState.deletePlayer(eid!);
-      broadcastMessage(MessageType.playerRemoved, new PlayerRemove(nid))
+      broadcastMessage(MessageType.playerRemoved, new PlayerRemove(nid));
     }
   }
 
@@ -128,7 +143,7 @@ class DotsServerApp implements ServerApp {
           ],
       );
     } else {
-      console.warn("No handler for", parsedMessage.type);
+      console.warn("No handler for message type", parsedMessage.type);
     }
   }
 }

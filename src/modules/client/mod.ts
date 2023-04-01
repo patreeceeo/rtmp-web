@@ -1,4 +1,8 @@
-import { AnyMessagePayload, MessageType, serializeMessage } from "../common/Message.ts";
+import {
+  AnyMessagePayload,
+  MessageType,
+  serializeMessage,
+} from "../common/Message.ts";
 import { sendIfOpen } from "../common/socket.ts";
 import { ClientNetworkState } from "./state/Network.ts";
 
@@ -14,14 +18,13 @@ export abstract class ClientApp {
 }
 
 export function startClient(app: ClientApp) {
-
   const handleLoad = () => {
     const wsProtocol = location.origin.startsWith("https") ? "wss" : "ws";
 
     const socket = new WebSocket(
       `${wsProtocol}://${location.host}/start_web_socket`,
     );
-    socket.binaryType = 'arraybuffer'
+    socket.binaryType = "arraybuffer";
 
     socket.onopen = (e) => {
       app.handleOpen(socket, e);
@@ -32,15 +35,15 @@ export function startClient(app: ClientApp) {
     };
 
     socket.onerror = (e) => {
-      app.handleError(socket, e)
-    }
+      app.handleError(socket, e);
+    };
     socket.onclose = (e) => {
-      app.handleClose(socket, e)
-    }
+      app.handleClose(socket, e);
+    };
 
     ClientNetworkState.socket = socket;
 
-    app.handleLoad()
+    app.handleLoad();
   };
 
   window.onload = handleLoad;
@@ -57,7 +60,11 @@ export function startClient(app: ClientApp) {
   window.onblur = () => app.handleIdle();
 }
 
-export function sendMessageToServer (type: MessageType, payload: AnyMessagePayload) {
-  const socket = ClientNetworkState.maybeSocket!
-  sendIfOpen(socket, serializeMessage(type, payload))
+// TODO move to Network system and make unexported
+export function sendMessageToServer(
+  type: MessageType,
+  payload: AnyMessagePayload,
+) {
+  const socket = ClientNetworkState.maybeSocket!;
+  sendIfOpen(socket, serializeMessage(type, payload));
 }

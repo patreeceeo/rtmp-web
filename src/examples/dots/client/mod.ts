@@ -1,10 +1,10 @@
 import {
-ColorChange,
+  ColorChange,
   MessagePlayloadByType,
   MessageType,
   parseMessage,
   PlayerMove,
-PlayerRemove,
+  PlayerRemove,
 } from "~/common/Message.ts";
 import { NetworkId } from "~/common/state/Network.ts";
 import { InputState } from "~/common/state/Input.ts";
@@ -12,20 +12,22 @@ import { PlayerState } from "~/common/state/Player.ts";
 import { drawCircle } from "~/client/canvas.ts";
 import { TimeSystem } from "~/common/systems/Time.ts";
 import {
-  handleMoveFromServer,
   ClientMovementSystem,
+  handleMoveFromServer,
 } from "~/client/systems/Movement.ts";
 import { startPipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { ClientApp, startClient } from "~/client/mod.ts";
 import { useClient } from "hot_mod/dist/client/mod.js";
 import { WORLD_DIMENSIONS } from "../mod.ts";
 import { ClientNetworkState } from "../../../modules/client/state/Network.ts";
+import { ClientNetworkSystem } from "../../../modules/client/systems/Network.ts";
+import { ClientReconcileSystem } from "../../../modules/client/systems/Reconcile.ts";
 
 export class DotsClientApp extends ClientApp {
   handleLoad(): void {
     const el: HTMLCanvasElement = document.querySelector("#screen")!;
-    el.width = WORLD_DIMENSIONS.WIDTH
-    el.height = WORLD_DIMENSIONS.HEIGHT
+    el.width = WORLD_DIMENSIONS.WIDTH;
+    el.height = WORLD_DIMENSIONS.HEIGHT;
     const ctx = el.getContext("2d");
     if (ctx) {
       ctx.imageSmoothingEnabled = false;
@@ -75,7 +77,10 @@ export class DotsClientApp extends ClientApp {
 
 type ClientMessagePlayloadByType = Pick<
   MessagePlayloadByType,
-  MessageType.playerMoved | MessageType.playerAdded | MessageType.playerRemoved | MessageType.colorChange
+  | MessageType.playerMoved
+  | MessageType.playerAdded
+  | MessageType.playerRemoved
+  | MessageType.colorChange
 >;
 
 const socketRouter: Record<
@@ -93,10 +98,10 @@ const socketRouter: Record<
   // deno-lint-ignore no-explicit-any
   [MessageType.playerRemoved]: handlePlayerRemoved as any,
   [MessageType.colorChange]: (_server, cc) => {
-    const eid = ClientNetworkState.getEntityId((cc as ColorChange).nid)
-    const player = PlayerState.getPlayer(eid!)
-    player.color = (cc as ColorChange).color
-  }
+    const eid = ClientNetworkState.getEntityId((cc as ColorChange).nid);
+    const player = PlayerState.getPlayer(eid!);
+    player.color = (cc as ColorChange).color;
+  },
 };
 
 function handlePlayerAdded(
@@ -108,7 +113,7 @@ function handlePlayerAdded(
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
 }
 function handlePlayerMoved(_server: WebSocket, move: PlayerMove) {
-  handleMoveFromServer(move);
+  handleMoveFromServer(MessageType.playerMoved, move);
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: PlayerRemove) {
   const eid = ClientNetworkState.getEntityId(playerRemove.nid);
@@ -123,7 +128,7 @@ function updateScreen(ctx: CanvasRenderingContext2D) {
 function drawPlayers(ctx: CanvasRenderingContext2D) {
   ctx.clearRect(0, 0, 1000, 10000);
   for (const player of PlayerState.getPlayers()) {
-    ctx.fillStyle = player.webColor
+    ctx.fillStyle = player.webColor;
     drawCircle(ctx, player.position.x, player.position.y, 4);
   }
 }
@@ -131,6 +136,8 @@ function drawPlayers(ctx: CanvasRenderingContext2D) {
 const systems = [
   TimeSystem(),
   ClientMovementSystem(),
+  ClientNetworkSystem(),
+  ClientReconcileSystem(),
 ] as Array<SystemPartial>;
 
 startPipeline(systems, 80);
