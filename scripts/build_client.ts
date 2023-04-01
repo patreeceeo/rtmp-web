@@ -1,19 +1,19 @@
 #!/usr/bin/env -S deno run --allow-write --allow-read --allow-run --allow-env --allow-net
 
-import { buildModule, buildModules } from '~/dev_client/mod.ts'
-import { addModuleEventHandler, sleep } from '~/dev_common/mod.ts'
+import { buildModule, buildModules } from "~/dev_client/mod.ts";
+import { addModuleEventHandler, sleep } from "~/dev_common/mod.ts";
 
-const outDir = Deno.args[0]
-const inPaths = Deno.args[1].split(',')
+const outDir = Deno.args[0];
+const inPaths = Deno.args[1].split(",");
 
-await buildModules(outDir, inPaths)
+await buildModules(outDir, inPaths, { catchErrors: true });
 
-if(Deno.args[2] === '--watch') {
+if (Deno.args[2] === "--watch") {
   addModuleEventHandler(["create", "modify"], (inPaths) => {
-    for(const inPath of inPaths) {
-      buildModule(outDir, inPath)
+    for (const inPath of inPaths) {
+      buildModule(outDir, inPath, { catchErrors: true });
     }
-  }, ["src"])
-  console.log("Watching for changes")
-  sleep(Infinity)
+  }, ["src"]);
+  console.log("Watching for changes");
+  sleep(Infinity);
 }
