@@ -13,12 +13,11 @@ export class NetworkStateApi {
     return {
       entityMap: new Map(),
       reverseMap: new Map(),
-      localEntities: new Set()
+      localEntities: new Set(),
     };
   }
 
-  #state = NetworkStateApi.init()
-
+  #state = NetworkStateApi.init();
 
   getEntityId(nid: NetworkId): EntityId | undefined {
     return this.#state.entityMap.get(nid);
@@ -37,5 +36,10 @@ export class NetworkStateApi {
 
   isLocalEntity(eid: EntityId) {
     return this.#state.localEntities.has(eid);
+  }
+
+  isLocal(nid: NetworkId) {
+    const eid = this.getEntityId(nid);
+    return this.isLocalEntity(eid!);
   }
 }

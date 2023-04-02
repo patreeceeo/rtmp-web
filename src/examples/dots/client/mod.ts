@@ -109,6 +109,7 @@ function handlePlayerAdded(
   { isLocal, nid, position }: MessagePlayloadByType[MessageType.playerAdded],
 ) {
   const player = PlayerState.createPlayer();
+  console.log("player nid:", nid);
   player.position.copy(position);
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
 }

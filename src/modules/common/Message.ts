@@ -12,6 +12,7 @@ import { Vec2 } from "./Vec2.ts";
 
 export interface IPayload {
   sid: number;
+  nid: number;
   write(buf: DataViewMovable): void;
 }
 
@@ -21,14 +22,14 @@ export interface IPayloadMutable extends IPayload {
 }
 
 class NilPayload implements IPayload {
-  constructor(readonly sid: number) {}
+  constructor(readonly nid: NetworkId, readonly sid: number) {}
   write(_buf: DataViewMovable): void {
   }
 }
 
 export class NilPayloadMutable extends NilPayload implements IPayloadMutable {
-  constructor(public sid: number) {
-    super(sid);
+  constructor(public nid: NetworkId, public sid: number) {
+    super(nid, sid);
   }
   read(_buf: DataViewMovable): void {
   }
@@ -220,7 +221,7 @@ export interface IMessageMutable<Type extends MessageType>
 }
 
 const payloadMap: MessageMutablePlayloadByType = {
-  [MessageType.nil]: new NilPayloadMutable(0),
+  [MessageType.nil]: new NilPayloadMutable(0 as NetworkId, 0),
   [MessageType.playerAdded]: new PlayerAddMutable(
     new Vec2(),
     false,
@@ -250,8 +251,12 @@ export class MessageMutable<Type extends MessageType> extends Message<Type>
   }
   read(buf: DataViewMovable): void {
     this.type = buf.readUint8() as Type;
-    this.payload = payloadMap[this.type];
-    this.payload.read(buf);
+    if (this.type in payloadMap) {
+      this.payload = payloadMap[this.type];
+      this.payload.read(buf);
+    } else {
+      throw new Error("unrecognized message type " + this.type);
+    }
   }
   set<NewType extends MessageType>(
     type: NewType,
@@ -274,7 +279,7 @@ export type AnyMessagePayload = MessagePlayloadByType[MessageType];
 const resusedBuffer = new DataViewMovable(new ArrayBuffer(128));
 const reusedMessage = new MessageMutable(
   MessageType.nil,
-  new NilPayloadMutable(0),
+  new NilPayloadMutable(0 as NetworkId, 0),
 ) as IAnyMessageMutable;
 export function parseMessage(serializedData: ArrayBuffer): IAnyMessage {
   const buf = new DataViewMovable(serializedData);

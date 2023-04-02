@@ -25,7 +25,7 @@ import { Vec2 } from "../../common/Vec2.ts";
  * Feels like there should be another level of abstractions that encapsulates some aspects of this, making this class simpler and/or this should be broken up into smaller classes.
  */
 export class MessageStateApi {
-  #commandBuffer = new ArrayBuffer(256);
+  #commandBuffer = new ArrayBuffer(1024);
   /** commands that have not yet been sent to the server */
   #unsentBufferView = new DataViewMovable(this.#commandBuffer, {
     isCircular: true,
@@ -41,9 +41,10 @@ export class MessageStateApi {
   });
   #sid = 0;
   #lastSentStepId = 0;
+  #lastReceivedStepId = 0;
   #recycledMessage = new MessageMutable(
     MessageType.nil,
-    new NilPayloadMutable(0),
+    new NilPayloadMutable(0 as NetworkId, 0),
   ) as IAnyMessageMutable;
   #reusedPlayerMove = new PlayerMoveMutable(new Vec2(), 0 as NetworkId, 0);
   #commandSidToBufferMap: Array<number> = [];
@@ -63,6 +64,12 @@ export class MessageStateApi {
     this.#sid++;
   }
 
+  prepareCommandBatch() {
+    const sidModulus = this.#sid % this.MAX_LAG;
+    const bufferOffset = this.#lastUnsentCommandBufferView.byteOffset;
+    this.#commandSidToBufferMap[sidModulus] = bufferOffset;
+  }
+
   get lastStepId() {
     return this.#sid;
   }
@@ -71,23 +78,27 @@ export class MessageStateApi {
     return this.#lastSentStepId;
   }
 
+  set lastSentStepId(sid: number) {
+    this.#lastSentStepId = sid;
+  }
+
+  get lastReceivedStepId() {
+    return this.#lastReceivedStepId;
+  }
+
   pushUnsentCommand(type: MessageType, payload: AnyMessagePayload) {
-    // TODO shouldn't all command payloads have sids?
-    if ("sid" in payload && payload.sid !== this.#sid) {
+    if (payload.sid !== this.#sid) {
       throw new Error(
         `Step ID of pushed message does not match current step ID. Offender: ${
           JSON.stringify(payload)
         }, current Step ID: ${this.#sid}`,
       );
     }
-    const bufferOffset = this.#lastUnsentCommandBufferView.byteOffset;
-    const sidModulus = this.#sid % this.MAX_LAG;
     const cmd = this.#recycledMessage;
     cmd.type = type;
     (cmd as IAnyMessage).payload = payload;
     cmd.write(this.#lastUnsentCommandBufferView);
     this.#unsentCommandCount++;
-    this.#commandSidToBufferMap[sidModulus] = bufferOffset;
   }
 
   *getUnsentCommands(): Generator<[MessageType, AnyMessagePayload]> {
@@ -105,25 +116,29 @@ export class MessageStateApi {
   markAllCommandsAsSent() {
     this.#unsentCommandCount = 0;
     this.#unsentBufferView.jump(this.#lastUnsentCommandBufferView.byteOffset);
-    this.#lastSentStepId = this.#sid;
   }
 
   /**
    * Get commands in buffer added after the given Step ID
    */
-  *getCommandsSentAfter(sid: number) {
+  *getCommandsSentAfter(
+    sid: number,
+  ): Generator<[MessageType, AnyMessagePayload]> {
     // Prevent infinite loop
     // TODO what causes the infinite loop?
     let count = 0;
-    const command = this.#reusedPlayerMove;
-    const sidModulus = sid + 1 % this.MAX_LAG;
+    const command = this.#recycledMessage;
+    const sidModulus = (sid + 1) % this.MAX_LAG;
     if (sidModulus in this.#commandSidToBufferMap) {
-      this.#serverBufferView.jump(this.#commandSidToBufferMap[sidModulus]);
+      const newByteOffset = this.#commandSidToBufferMap[sidModulus];
+      this.#serverBufferView.jump(newByteOffset);
       do {
         command.read(this.#serverBufferView);
-        yield command;
+        yield [command.type, command.payload];
         count++;
-      } while (command.sid < this.#lastSentStepId && count < this.MAX_LAG);
+      } while (
+        command.payload.sid < this.#lastSentStepId && count < this.MAX_LAG
+      );
     }
   }
 
@@ -137,6 +152,7 @@ export class MessageStateApi {
     (cmd as IAnyMessage).payload = payload;
     this.#snapshotBufferView.jump(0);
     cmd.write(this.#snapshotBufferView);
+    this.#lastReceivedStepId = payload.sid;
   }
 
   get lastSnapshot(): IAnyMessage {
