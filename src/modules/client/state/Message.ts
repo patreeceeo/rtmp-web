@@ -52,8 +52,6 @@ export class MessageStateApi {
   #snapshotBufferView = new DataViewMovable(this.#snapshotBuffer, {
     isCircular: true,
   });
-  #lastSnapshot = new MessageMutable(MessageType.nil, new NilPayloadMutable(0));
-  #lastPlayerMove = new PlayerMoveMutable(new Vec2(), 0 as NetworkId, 0);
 
   constructor(readonly MAX_LAG: number) {}
 
