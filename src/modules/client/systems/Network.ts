@@ -2,7 +2,7 @@ import { SystemLoader } from "../../common/systems/mod.ts";
 import { sendMessageToServer } from "../mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { MessageType, PlayerMove } from "../../common/Message.ts";
-import { applyPlayerMove, applySnapshot } from "./Movement.ts";
+import { applyCommand, applySnapshot } from "./Movement.ts";
 import { ClientNetworkState } from "../state/Network.ts";
 
 function exec() {
@@ -30,9 +30,7 @@ function exec() {
       ) {
         if (ClientNetworkState.isLocal(payload.nid)) {
           // predict that the server will accept our moves
-          if (type === MessageType.playerMoved) {
-            applyPlayerMove(payload as PlayerMove);
-          }
+          applyCommand(type, payload);
         }
       }
     }

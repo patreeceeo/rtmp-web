@@ -3,6 +3,8 @@ import { WORLD_DIMENSIONS } from "../../../examples/dots/mod.ts";
 import { ClientNetworkState } from "../../client/state/Network.ts";
 import {
   ColorChange,
+  IAnyMessage,
+  MessagePlayloadByType,
   MessageType,
   PlayerMove,
   PlayerMoveMutable,
@@ -84,10 +86,19 @@ function exec() {
   }
 }
 
-export function applyPlayerMove(cmd: PlayerMove) {
-  const eid = ClientNetworkState.getEntityId(cmd.nid);
-  const player = PlayerState.getPlayer(eid!);
-  player.position.add(cmd.delta);
+export function applyCommand<Type extends MessageType>(
+  type: Type,
+  payload: MessagePlayloadByType[Type],
+) {
+  const eid = ClientNetworkState.getEntityId(payload.nid);
+
+  switch (type) {
+    case MessageType.playerMoved: {
+      const player = PlayerState.getPlayer(eid!);
+      player.position.add((payload as PlayerMove).delta);
+      break;
+    }
+  }
 }
 
 export const ClientMovementSystem: SystemLoader = () => {
