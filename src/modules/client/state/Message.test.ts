@@ -21,15 +21,15 @@ Deno.test("Message unsent buffer", () => {
 
   state.pushUnsentCommand(
     MessageType.colorChange,
-    new ColorChange(ColorId.BLUE, nid),
+    new ColorChange(ColorId.BLUE, nid, 0),
   );
   state.pushUnsentCommand(
     MessageType.colorChange,
-    new ColorChange(ColorId.GREEN, nid),
+    new ColorChange(ColorId.GREEN, nid, 0),
   );
   state.pushUnsentCommand(
     MessageType.colorChange,
-    new ColorChange(ColorId.YELLOW, nid),
+    new ColorChange(ColorId.YELLOW, nid, 0),
   );
 
   for (const [_, payload] of state.getUnsentCommands()) {
@@ -59,7 +59,7 @@ Deno.test("Message unsent buffer", () => {
 
   state.pushUnsentCommand(
     MessageType.colorChange,
-    new ColorChange(ColorId.ORANGE, nid),
+    new ColorChange(ColorId.ORANGE, nid, 0),
   );
   for (const [_, payload] of state.getUnsentCommands()) {
     cmds.push((payload as ColorChange).color);

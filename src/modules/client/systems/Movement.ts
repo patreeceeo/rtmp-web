@@ -31,7 +31,6 @@ export function applySnapshot(to: Vec2, nid: NetworkId) {
 const to = new Vec2();
 
 function exec() {
-  MessageState.incrementStepId();
   // loop thru local entities
   for (const eid of PlayerState.getPlayerEids()) {
     if (ClientNetworkState.isLocalEntity(eid)) {
@@ -71,14 +70,14 @@ function exec() {
         player.color = player.color === 0 ? 6 : player.color - 1;
         sendMessageToServer(
           MessageType.colorChange,
-          new ColorChange(player.color, nid!),
+          new ColorChange(player.color, nid!, MessageState.lastStepId),
         );
       }
       if (InputState.isKeyPressed("KeyE")) {
         player.color = (player.color + 1) % 6;
         sendMessageToServer(
           MessageType.colorChange,
-          new ColorChange(player.color, nid!),
+          new ColorChange(player.color, nid!, MessageState.lastStepId),
         );
       }
     }

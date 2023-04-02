@@ -43,7 +43,7 @@ export class MessageStateApi {
   #lastSentStepId = 0;
   #recycledMessage = new MessageMutable(
     MessageType.nil,
-    new NilPayloadMutable(),
+    new NilPayloadMutable(0),
   ) as IAnyMessageMutable;
   #reusedPlayerMove = new PlayerMoveMutable(new Vec2(), 0 as NetworkId, 0);
   #commandSidToBufferMap: Array<number> = [];
@@ -52,7 +52,7 @@ export class MessageStateApi {
   #snapshotBufferView = new DataViewMovable(this.#snapshotBuffer, {
     isCircular: true,
   });
-  #lastSnapshot = new MessageMutable(MessageType.nil, new NilPayloadMutable());
+  #lastSnapshot = new MessageMutable(MessageType.nil, new NilPayloadMutable(0));
   #lastPlayerMove = new PlayerMoveMutable(new Vec2(), 0 as NetworkId, 0);
 
   constructor(readonly MAX_LAG: number) {}

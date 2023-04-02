@@ -21,13 +21,15 @@ export interface IPayloadMutable extends IPayload {
 }
 
 class NilPayload implements IPayload {
-  // TODO add sid parameter
-  sid = 0;
+  constructor(readonly sid: number) {}
   write(_buf: DataViewMovable): void {
   }
 }
 
 export class NilPayloadMutable extends NilPayload implements IPayloadMutable {
+  constructor(public sid: number) {
+    super(sid);
+  }
   read(_buf: DataViewMovable): void {
   }
   copy(_payload: NilPayloadMutable) {}
@@ -76,12 +78,11 @@ const playerAddAdaptor = new BinaryObjectAdaptor<PlayerAdd>([
 ]);
 
 export class PlayerAdd implements IPayload {
-  // TODO add sid parameter
-  sid = 0;
   constructor(
     readonly position: Vec2,
     readonly isLocal: boolean,
     readonly nid: NetworkId,
+    readonly sid: number,
   ) {}
   write(buf: DataViewMovable): void {
     playerAddAdaptor.write(buf, this);
@@ -93,8 +94,9 @@ export class PlayerAddMutable extends PlayerAdd implements IPayloadMutable {
     public position: Vec2,
     public isLocal: boolean,
     public nid: NetworkId,
+    public sid: number,
   ) {
-    super(position, isLocal, nid);
+    super(position, isLocal, nid, sid);
   }
   read(buf: DataViewMovable): void {
     playerAddAdaptor.read(buf, this);
@@ -106,14 +108,18 @@ export class PlayerAddMutable extends PlayerAdd implements IPayloadMutable {
   }
 }
 
+const playerRemoveAdaptor = new BinaryObjectAdaptor<PlayerRemove>([
+  ["sid", uint16Adaptor],
+  ["nid", networkIdAdaptor],
+]);
+
 export class PlayerRemove implements IPayload {
-  // TODO add sid parameter
-  sid = 0;
   constructor(
     readonly nid: NetworkId,
+    readonly sid: number,
   ) {}
   write(buf: DataViewMovable): void {
-    networkIdAdaptor.write(buf, this.nid);
+    playerRemoveAdaptor.write(buf, this);
   }
 }
 
@@ -121,11 +127,12 @@ export class PlayerRemoveMutable extends PlayerRemove
   implements IPayloadMutable {
   constructor(
     public nid: NetworkId,
+    public sid: number,
   ) {
-    super(nid);
+    super(nid, sid);
   }
   read(buf: DataViewMovable): void {
-    this.nid = networkIdAdaptor.read(buf);
+    playerRemoveAdaptor.read(buf, this);
   }
   copy(source: PlayerRemove) {
     this.nid = source.nid;
@@ -139,11 +146,10 @@ const colorChangeAdaptor = new BinaryObjectAdaptor<ColorChange>([
 ]);
 
 export class ColorChange implements IPayload {
-  // TODO add sid parameter
-  sid = 0;
   constructor(
     readonly color: ColorId,
     readonly nid: NetworkId,
+    readonly sid: number,
   ) {}
   write(buf: DataViewMovable): void {
     colorChangeAdaptor.write(buf, this);
@@ -154,8 +160,9 @@ export class ColorChangeMutable extends ColorChange implements IPayloadMutable {
   constructor(
     public color: ColorId,
     public nid: NetworkId,
+    public sid: number,
   ) {
-    super(color, nid);
+    super(color, nid, sid);
   }
   read(buf: DataViewMovable): void {
     colorChangeAdaptor.read(buf, this);
@@ -213,13 +220,14 @@ export interface IMessageMutable<Type extends MessageType>
 }
 
 const payloadMap: MessageMutablePlayloadByType = {
-  [MessageType.nil]: new NilPayloadMutable(),
+  [MessageType.nil]: new NilPayloadMutable(0),
   [MessageType.playerAdded]: new PlayerAddMutable(
     new Vec2(),
     false,
     0 as NetworkId,
+    0,
   ),
-  [MessageType.playerRemoved]: new PlayerRemoveMutable(0 as NetworkId),
+  [MessageType.playerRemoved]: new PlayerRemoveMutable(0 as NetworkId, 0),
   [MessageType.playerMoved]: new PlayerMoveMutable(
     new Vec2(),
     0 as NetworkId,
@@ -228,6 +236,7 @@ const payloadMap: MessageMutablePlayloadByType = {
   [MessageType.colorChange]: new ColorChangeMutable(
     ColorId.BLUE,
     0 as NetworkId,
+    0,
   ),
 };
 
@@ -265,7 +274,7 @@ export type AnyMessagePayload = MessagePlayloadByType[MessageType];
 const resusedBuffer = new DataViewMovable(new ArrayBuffer(128));
 const reusedMessage = new MessageMutable(
   MessageType.nil,
-  new NilPayloadMutable(),
+  new NilPayloadMutable(0),
 ) as IAnyMessageMutable;
 export function parseMessage(serializedData: ArrayBuffer): IAnyMessage {
   const buf = new DataViewMovable(serializedData);

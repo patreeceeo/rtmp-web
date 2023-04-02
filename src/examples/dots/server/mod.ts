@@ -24,6 +24,7 @@ import {
   Client,
   ServerNetworkState,
 } from "../../../modules/server/state/Network.ts";
+import { MessageState } from "../../../modules/client/state/Message.ts";
 
 const idleTimeout = 60;
 const systems = [
@@ -81,7 +82,12 @@ class DotsServerApp implements ServerApp {
       ws,
       serializeMessage(
         MessageType.playerAdded,
-        new PlayerAdd(addedPlayer.position, true, playerNid),
+        new PlayerAdd(
+          addedPlayer.position,
+          true,
+          playerNid,
+          MessageState.lastStepId,
+        ),
       ),
     );
 
@@ -91,7 +97,12 @@ class DotsServerApp implements ServerApp {
       ServerNetworkState.getClientSockets(),
       serializeMessage(
         MessageType.playerAdded,
-        new PlayerAdd(addedPlayer.position, false, playerNid),
+        new PlayerAdd(
+          addedPlayer.position,
+          false,
+          playerNid,
+          MessageState.lastStepId,
+        ),
       ),
       ws,
     );
@@ -108,6 +119,7 @@ class DotsServerApp implements ServerApp {
               player.position,
               false,
               ServerNetworkState.getId(eid)!,
+              MessageState.lastStepId,
             ),
           ),
         );
@@ -121,7 +133,10 @@ class DotsServerApp implements ServerApp {
     for (const nid of client.getNetworkIds()) {
       const eid = ServerNetworkState.getEntityId(nid);
       PlayerState.deletePlayer(eid!);
-      broadcastMessage(MessageType.playerRemoved, new PlayerRemove(nid));
+      broadcastMessage(
+        MessageType.playerRemoved,
+        new PlayerRemove(nid, MessageState.lastStepId),
+      );
     }
   }
 
