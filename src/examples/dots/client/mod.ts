@@ -21,7 +21,6 @@ import { useClient } from "hot_mod/dist/client/mod.js";
 import { WORLD_DIMENSIONS } from "../mod.ts";
 import { ClientNetworkState } from "../../../modules/client/state/Network.ts";
 import { ClientNetworkSystem } from "../../../modules/client/systems/Network.ts";
-import { ClientReconcileSystem } from "../../../modules/client/systems/Reconcile.ts";
 
 export class DotsClientApp extends ClientApp {
   handleLoad(): void {
@@ -138,7 +137,6 @@ const systems = [
   TimeSystem(),
   ClientMovementSystem(),
   ClientNetworkSystem(),
-  ClientReconcileSystem(),
 ] as Array<SystemPartial>;
 
 startPipeline(systems, 80);
