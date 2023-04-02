@@ -14,7 +14,7 @@ import { InputState } from "../../common/state/Input.ts";
 import { Time } from "../../common/state/Time.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { sendMessageToServer } from "../mod.ts";
-import { MessageState } from "../state/Message.ts";
+import { MessageState } from "~/common/state/Message.ts";
 
 /** authoritative */
 export function applySnapshot(to: Vec2, nid: NetworkId) {

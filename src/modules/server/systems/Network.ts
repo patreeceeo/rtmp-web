@@ -2,7 +2,7 @@ import { MessageType, PlayerRemove } from "~/common/Message.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { Time } from "~/common/state/Time.ts";
 import { SystemLoader } from "~/common/systems/mod.ts";
-import { MessageState } from "../../client/state/Message.ts";
+import { MessageState } from "~/common/state/Message.ts";
 import { broadcastMessage } from "../mod.ts";
 import { ServerNetworkState } from "../state/Network.ts";
 

@@ -1,6 +1,6 @@
 import { MessageType, PlayerMove } from "../../common/Message.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
-import { MessageState } from "../state/Message.ts";
+import { MessageState } from "~/common/state/Message.ts";
 import { ClientNetworkState } from "../state/Network.ts";
 import { applyPlayerMove, applySnapshot } from "./Movement.ts";
 

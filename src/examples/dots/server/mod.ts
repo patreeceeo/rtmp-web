@@ -24,7 +24,7 @@ import {
   Client,
   ServerNetworkState,
 } from "../../../modules/server/state/Network.ts";
-import { MessageState } from "../../../modules/client/state/Message.ts";
+import { MessageState } from "~/common/state/Message.ts";
 
 const idleTimeout = 60;
 const systems = [
