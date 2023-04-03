@@ -2,19 +2,11 @@ import { DataViewMovable } from "../../common/DataView.ts";
 import {
   AnyMessagePayload,
   createPayloadMap,
-  IAnyMessage,
-  IAnyMessageMutable,
-  MessageMutable,
   MessageType,
-  NilPayloadMutable,
-  PlayerMove,
-  PlayerMoveMutable,
   readMessage,
   readMessages,
   writeMessage,
 } from "../../common/Message.ts";
-import { NetworkId } from "../../common/state/Network.ts";
-import { Vec2 } from "../../common/Vec2.ts";
 
 const payloadMap = createPayloadMap();
 /**
@@ -47,11 +39,6 @@ export class MessageStateApi {
   #sid = 0;
   #lastSentStepId = 0;
   #lastReceivedStepId = 0;
-  #recycledMessage = new MessageMutable(
-    MessageType.nil,
-    new NilPayloadMutable(0 as NetworkId, 0),
-  ) as IAnyMessageMutable;
-  #reusedPlayerMove = new PlayerMoveMutable(new Vec2(), 0 as NetworkId, 0);
   #commandSidToBufferMap: Array<number> = [];
 
   #snapshotBuffer = new ArrayBuffer(256);
