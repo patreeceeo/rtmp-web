@@ -1,8 +1,7 @@
 import { MessageStateApi } from "./Message.ts";
 import { assertEquals } from "asserts";
-import { ColorChange, MessageType } from "../../common/Message.ts";
-import { ColorId } from "../../common/state/Player.ts";
-import { NetworkId } from "../../common/state/Network.ts";
+import { MessageType, NilPayload } from "../../common/Message.ts";
+import { NetworkId, networkId } from "../../common/state/Network.ts";
 
 Deno.test("Message sid", () => {
   const state = new MessageStateApi(5);
@@ -16,116 +15,103 @@ Deno.test("Message sid", () => {
 
 Deno.test("Message unsent buffer", () => {
   const state = new MessageStateApi(5);
-  const nid = 0 as NetworkId;
-  const cmds: Array<ColorId> = [];
+  const cmds: Array<number> = [];
 
   state.pushUnsentCommand(
-    MessageType.colorChange,
-    new ColorChange(ColorId.BLUE, nid, 0),
+    MessageType.nil,
+    new NilPayload(networkId(0), 0),
   );
   state.pushUnsentCommand(
-    MessageType.colorChange,
-    new ColorChange(ColorId.GREEN, nid, 0),
+    MessageType.nil,
+    new NilPayload(networkId(1), 0),
   );
   state.pushUnsentCommand(
-    MessageType.colorChange,
-    new ColorChange(ColorId.YELLOW, nid, 0),
+    MessageType.nil,
+    new NilPayload(networkId(2), 0),
   );
 
   for (const [_, payload] of state.getUnsentCommands()) {
-    cmds.push((payload as ColorChange).color);
+    cmds.push(payload.nid);
   }
 
-  assertEquals(cmds.length, 3);
-  assertEquals(cmds, [ColorId.BLUE, ColorId.GREEN, ColorId.YELLOW]);
-
+  assertEquals(cmds, [0, 1, 2]);
   cmds.length = 0;
 
   for (const [_, payload] of state.getUnsentCommands()) {
-    cmds.push((payload as ColorChange).color);
+    cmds.push(payload.nid);
   }
 
-  assertEquals(cmds.length, 3);
-  assertEquals(cmds, [ColorId.BLUE, ColorId.GREEN, ColorId.YELLOW]);
-
+  assertEquals(cmds, [0, 1, 2]);
   cmds.length = 0;
 
-  state.markAllCommandsAsSent();
-
+  state.incrementStepId();
   for (const [_, payload] of state.getUnsentCommands()) {
-    cmds.push((payload as ColorChange).color);
+    cmds.push(payload.nid);
   }
   assertEquals(cmds.length, 0);
 
   state.pushUnsentCommand(
-    MessageType.colorChange,
-    new ColorChange(ColorId.ORANGE, nid, 0),
+    MessageType.nil,
+    new NilPayload(networkId(3), 1),
   );
   for (const [_, payload] of state.getUnsentCommands()) {
-    cmds.push((payload as ColorChange).color);
+    cmds.push(payload.nid);
   }
-  assertEquals(cmds.length, 1);
-  assertEquals(cmds, [ColorId.ORANGE]);
+  assertEquals(cmds, [3]);
 });
 
 Deno.test("Message get commands sent after sid", () => {
   const state = new MessageStateApi(5);
-  const nid = 0 as NetworkId;
-  const cmds: Array<ColorId> = [];
+  const cmds: Array<number> = [];
 
-  state.prepareCommandBatch();
   state.pushUnsentCommand(
-    MessageType.colorChange,
-    new ColorChange(ColorId.BLUE, nid, 0),
+    MessageType.nil,
+    new NilPayload(networkId(0), 0),
   );
 
   state.incrementStepId();
-  state.prepareCommandBatch();
   state.pushUnsentCommand(
-    MessageType.colorChange,
-    new ColorChange(ColorId.GREEN, nid, 1),
+    MessageType.nil,
+    new NilPayload(networkId(1), 1),
   );
 
   state.incrementStepId();
-  state.prepareCommandBatch();
   state.pushUnsentCommand(
-    MessageType.colorChange,
-    new ColorChange(ColorId.YELLOW, nid, 2),
+    MessageType.nil,
+    new NilPayload(networkId(2), 2),
   );
   state.pushUnsentCommand(
-    MessageType.colorChange,
-    new ColorChange(ColorId.ORANGE, nid, 2),
+    MessageType.nil,
+    new NilPayload(networkId(3), 2),
   );
 
   state.incrementStepId();
-  state.prepareCommandBatch();
   state.pushUnsentCommand(
-    MessageType.colorChange,
-    new ColorChange(ColorId.RED, nid, 3),
+    MessageType.nil,
+    new NilPayload(networkId(4), 3),
   );
-  state.markAllCommandsAsSent();
   state.lastSentStepId = state.lastStepId;
 
-  for (const [_, payload] of state.getCommandsSentAfter(0)) {
-    cmds.push((payload as ColorChange).color);
+  for (const [_, payload] of state.getCommandSlice(1, 3)) {
+    cmds.push(payload.nid);
   }
   assertEquals(cmds, [
-    ColorId.GREEN,
-    ColorId.YELLOW,
-    ColorId.ORANGE,
-    ColorId.RED,
+    1,
+    2,
+    3,
+    4,
   ]);
   cmds.length = 0;
 
-  for (const [_, payload] of state.getCommandsSentAfter(1)) {
-    cmds.push((payload as ColorChange).color);
+  for (const [_, payload] of state.getCommandSlice(2, 3)) {
+    cmds.push(payload.nid);
   }
-  assertEquals(cmds, [ColorId.YELLOW, ColorId.ORANGE, ColorId.RED]);
+  assertEquals(cmds, [2, 3, 4]);
   cmds.length = 0;
 
-  for (const [_, payload] of state.getCommandsSentAfter(2)) {
-    cmds.push((payload as ColorChange).color);
+  for (const [_, payload] of state.getCommandSlice(3, 3)) {
+    cmds.push(payload.nid);
   }
-  assertEquals(cmds, [ColorId.RED]);
+  assertEquals(cmds, [4]);
   cmds.length = 0;
 });

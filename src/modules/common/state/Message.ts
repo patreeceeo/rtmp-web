@@ -4,11 +4,10 @@ import {
   createPayloadMap,
   MessageType,
   readMessage,
-  readMessages,
   writeMessage,
 } from "../../common/Message.ts";
+import { MessagePriorityQueue } from "../MessagePriorityQueue.ts";
 
-const payloadMap = createPayloadMap();
 /**
  * What is this ugly monster? It's covering multiple seperate but intimately related
  * concerns:
@@ -22,24 +21,12 @@ const payloadMap = createPayloadMap();
  * Feels like there should be another level of abstractions that encapsulates some aspects of this, making this class simpler and/or this should be broken up into smaller classes.
  */
 export class MessageStateApi {
+  #payloadMap = createPayloadMap();
   #commandBuffer = new ArrayBuffer(1024);
-  /** commands that have not yet been sent to the server */
-  #unsentBufferView = new DataViewMovable(this.#commandBuffer, {
-    isCircular: true,
-  });
-  #unsentCommandCount = 0;
-  /** commands awaiting server acknowlogement */
-  #lastUnsentCommandBufferView = new DataViewMovable(this.#commandBuffer, {
-    isCircular: true,
-  });
-  /** commands that have server acknowlogement */
-  #serverBufferView = new DataViewMovable(this.#commandBuffer, {
-    isCircular: true,
-  });
+  #commands = new MessagePriorityQueue(this.#commandBuffer, this.#payloadMap);
   #sid = 0;
   #lastSentStepId = 0;
   #lastReceivedStepId = 0;
-  #commandSidToBufferMap: Array<number> = [];
 
   #snapshotBuffer = new ArrayBuffer(256);
   #snapshotBufferView = new DataViewMovable(this.#snapshotBuffer, {
@@ -54,12 +41,6 @@ export class MessageStateApi {
    */
   incrementStepId() {
     this.#sid++;
-  }
-
-  prepareCommandBatch() {
-    const sidModulus = this.#sid % this.MAX_LAG;
-    const bufferOffset = this.#lastUnsentCommandBufferView.byteOffset;
-    this.#commandSidToBufferMap[sidModulus] = bufferOffset;
   }
 
   get lastStepId() {
@@ -80,54 +61,28 @@ export class MessageStateApi {
 
   pushUnsentCommand(type: MessageType, payload: AnyMessagePayload) {
     if (payload.sid !== this.#sid) {
+      // TODO should sid become parameter to writeMessage?
       throw new Error(
         `Step ID of pushed message does not match current step ID. Offender: ${
           JSON.stringify(payload)
         }, current Step ID: ${this.#sid}`,
       );
     }
-    writeMessage(this.#lastUnsentCommandBufferView, type, payload);
-    this.#unsentCommandCount++;
+    this.#commands.insert(payload.sid, type, payload);
   }
 
   getUnsentCommands(): Generator<[MessageType, AnyMessagePayload]> {
-    return readMessages(
-      this.#unsentCommandCount,
-      this.#unsentBufferView,
-      payloadMap,
-      { rewind: true },
-    );
-  }
-
-  markAllCommandsAsSent() {
-    this.#unsentCommandCount = 0;
-    this.#unsentBufferView.jump(this.#lastUnsentCommandBufferView.byteOffset);
+    return this.#commands.at(this.#sid);
   }
 
   /**
    * Get commands in buffer added after the given Step ID
    */
-  *getCommandsSentAfter(
-    sid: number,
+  getCommandSlice(
+    startSid: number,
+    endSid: number,
   ): Generator<[MessageType, AnyMessagePayload]> {
-    // Prevent infinite loop
-    // TODO what causes the infinite loop?
-    let count = 0;
-    const sidModulus = (sid + 1) % this.MAX_LAG;
-    if (sidModulus in this.#commandSidToBufferMap) {
-      const newByteOffset = this.#commandSidToBufferMap[sidModulus];
-      this.#serverBufferView.jump(newByteOffset);
-      while (true) {
-        const [type, payload] = readMessage(this.#serverBufferView, payloadMap);
-        yield [type, payload];
-        count++;
-        if (
-          payload.sid >= this.#lastSentStepId || count > this.MAX_LAG
-        ) {
-          break;
-        }
-      }
-    }
+    return this.#commands.slice(startSid, endSid);
   }
 
   // TODO use a different type for server response because it's not a delta when
@@ -142,7 +97,7 @@ export class MessageStateApi {
 
   get lastSnapshot(): [MessageType, AnyMessagePayload] {
     this.#snapshotBufferView.jump(0);
-    return readMessage(this.#snapshotBufferView, payloadMap);
+    return readMessage(this.#snapshotBufferView, this.#payloadMap);
   }
 }
 

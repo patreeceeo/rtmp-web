@@ -21,9 +21,15 @@ export interface IPayloadMutable extends IPayload {
   copy(payload: this): void;
 }
 
-class NilPayload implements IPayload {
+const nilAdaptor = new BinaryObjectAdaptor<NilPayload>([
+  ["sid", uint16Adaptor],
+  ["nid", networkIdAdaptor],
+]);
+
+export class NilPayload implements IPayload {
   constructor(readonly nid: NetworkId, readonly sid: number) {}
-  write(_buf: DataViewMovable): void {
+  write(buf: DataViewMovable): void {
+    nilAdaptor.write(buf, this);
   }
 }
 
@@ -31,9 +37,13 @@ export class NilPayloadMutable extends NilPayload implements IPayloadMutable {
   constructor(public nid: NetworkId, public sid: number) {
     super(nid, sid);
   }
-  read(_buf: DataViewMovable): void {
+  read(buf: DataViewMovable): void {
+    nilAdaptor.read(buf, this);
   }
-  copy(_payload: NilPayloadMutable) {}
+  copy(source: NilPayloadMutable) {
+    this.nid = source.nid;
+    this.sid = source.sid;
+  }
 }
 
 const playerMoveAdaptor = new BinaryObjectAdaptor<PlayerMove>([
@@ -287,11 +297,13 @@ export function readMessage<Type extends MessageType>(
   payloadMap: MessageMutablePlayloadByType,
 ): [Type, MessagePlayloadByType[Type]] {
   const type = buf.readUint8() as Type;
+  const initialOffset = buf.byteOffset;
   if (type in payloadMap) {
     const payload = payloadMap[type];
     payload.read(buf);
     return [type, payload];
   }
+  buf.jump(initialOffset);
   throw new Error("Did not find a payload for type " + type);
 }
 

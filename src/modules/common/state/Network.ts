@@ -2,6 +2,10 @@ import { EntityId, OpaqueType } from "./mod.ts";
 
 export type NetworkId = number & OpaqueType<"networkId">;
 
+export function networkId(nid: number) {
+  return nid as NetworkId;
+}
+
 export interface INetworkState {
   entityMap: Map<NetworkId, EntityId>;
   reverseMap: Map<EntityId, NetworkId>;

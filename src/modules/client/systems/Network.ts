@@ -7,8 +7,6 @@ import { ClientNetworkState } from "../state/Network.ts";
 
 function exec() {
   // TODO if there are no commands to send, maybe we don't need to increment step ID?
-  MessageState.incrementStepId();
-  MessageState.prepareCommandBatch();
   for (const [type, payload] of MessageState.getUnsentCommands()) {
     sendMessageToServer(
       type,
@@ -16,7 +14,7 @@ function exec() {
     );
     MessageState.lastSentStepId = payload.sid;
   }
-  MessageState.markAllCommandsAsSent();
+  MessageState.incrementStepId();
 
   const [snapType, snapPayload] = MessageState.lastSnapshot;
   if (snapType === MessageType.playerMoved) {
@@ -24,8 +22,9 @@ function exec() {
     applySnapshot(move.delta, move.nid);
     if (MessageState.lastReceivedStepId < MessageState.lastSentStepId) {
       for (
-        const [type, payload] of MessageState.getCommandsSentAfter(
-          MessageState.lastReceivedStepId,
+        const [type, payload] of MessageState.getCommandSlice(
+          MessageState.lastReceivedStepId + 1,
+          MessageState.lastSentStepId,
         )
       ) {
         if (ClientNetworkState.isLocal(payload.nid)) {
