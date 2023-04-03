@@ -287,9 +287,12 @@ export function readMessage<Type extends MessageType>(
   payloadMap: MessageMutablePlayloadByType,
 ): [Type, MessagePlayloadByType[Type]] {
   const type = buf.readUint8() as Type;
-  const payload = payloadMap[type];
-  payload.read(buf);
-  return [type, payload];
+  if (type in payloadMap) {
+    const payload = payloadMap[type];
+    payload.read(buf);
+    return [type, payload];
+  }
+  throw new Error("Did not find a payload for type " + type);
 }
 
 export function* readMessages(
