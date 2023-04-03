@@ -198,9 +198,9 @@ export type MessageMutablePlayloadByType = {
 export interface IMessage<Type extends MessageType> {
   type: Type;
   payload: MessagePlayloadByType[Type];
-  write(buf: DataViewMovable): void;
 }
 
+/** TODO deprecate? */
 export class Message<Type extends MessageType> implements IMessage<Type> {
   constructor(
     readonly type: Type,
@@ -208,9 +208,17 @@ export class Message<Type extends MessageType> implements IMessage<Type> {
   ) {
   }
   write(buf: DataViewMovable): void {
-    buf.writeUint8(this.type);
-    this.payload.write(buf);
+    writeMessage(buf, this.type, this.payload);
   }
+}
+
+export function writeMessage<Type extends MessageType>(
+  buf: DataViewMovable,
+  type: Type,
+  payload: MessagePlayloadByType[Type],
+) {
+  buf.writeUint8(type);
+  payload.write(buf);
 }
 
 export interface IMessageMutable<Type extends MessageType>
@@ -220,27 +228,32 @@ export interface IMessageMutable<Type extends MessageType>
   set(type: MessageType, payload: AnyMessagePayload): void;
 }
 
-const payloadMap: MessageMutablePlayloadByType = {
-  [MessageType.nil]: new NilPayloadMutable(0 as NetworkId, 0),
-  [MessageType.playerAdded]: new PlayerAddMutable(
-    new Vec2(),
-    false,
-    0 as NetworkId,
-    0,
-  ),
-  [MessageType.playerRemoved]: new PlayerRemoveMutable(0 as NetworkId, 0),
-  [MessageType.playerMoved]: new PlayerMoveMutable(
-    new Vec2(),
-    0 as NetworkId,
-    0,
-  ),
-  [MessageType.colorChange]: new ColorChangeMutable(
-    ColorId.BLUE,
-    0 as NetworkId,
-    0,
-  ),
-};
+export function createPayloadMap(): MessageMutablePlayloadByType {
+  return {
+    [MessageType.nil]: new NilPayloadMutable(0 as NetworkId, 0),
+    [MessageType.playerAdded]: new PlayerAddMutable(
+      new Vec2(),
+      false,
+      0 as NetworkId,
+      0,
+    ),
+    [MessageType.playerRemoved]: new PlayerRemoveMutable(0 as NetworkId, 0),
+    [MessageType.playerMoved]: new PlayerMoveMutable(
+      new Vec2(),
+      0 as NetworkId,
+      0,
+    ),
+    [MessageType.colorChange]: new ColorChangeMutable(
+      ColorId.BLUE,
+      0 as NetworkId,
+      0,
+    ),
+  };
+}
 
+const payloadMap = createPayloadMap();
+
+/** TODO deprecate */
 export class MessageMutable<Type extends MessageType> extends Message<Type>
   implements IMessageMutable<Type> {
   constructor(
@@ -250,13 +263,10 @@ export class MessageMutable<Type extends MessageType> extends Message<Type>
     super(type, payload);
   }
   read(buf: DataViewMovable): void {
-    this.type = buf.readUint8() as Type;
-    if (this.type in payloadMap) {
-      this.payload = payloadMap[this.type];
-      this.payload.read(buf);
-    } else {
-      throw new Error("unrecognized message type " + this.type);
-    }
+    const [type, payload] = readMessage(buf, payloadMap);
+    this.type = type as Type;
+    // deno-lint-ignore no-explicit-any
+    this.payload = payload as any;
   }
   set<NewType extends MessageType>(
     type: NewType,
@@ -272,30 +282,34 @@ export class MessageMutable<Type extends MessageType> extends Message<Type>
   }
 }
 
+export function readMessage<Type extends MessageType>(
+  buf: DataViewMovable,
+  payloadMap: MessageMutablePlayloadByType,
+): [Type, MessagePlayloadByType[Type]] {
+  const type = buf.readUint8() as Type;
+  const payload = payloadMap[type];
+  payload.read(buf);
+  return [type, payload];
+}
+
 export type IAnyMessage = IMessage<MessageType>;
 export type IAnyMessageMutable = IMessageMutable<MessageType>;
 export type AnyMessagePayload = MessagePlayloadByType[MessageType];
 
 const resusedBuffer = new DataViewMovable(new ArrayBuffer(128));
-const reusedMessage = new MessageMutable(
-  MessageType.nil,
-  new NilPayloadMutable(0 as NetworkId, 0),
-) as IAnyMessageMutable;
-export function parseMessage(serializedData: ArrayBuffer): IAnyMessage {
+export function parseMessage<Type extends MessageType>(
+  serializedData: ArrayBuffer,
+  payloadMap: MessageMutablePlayloadByType,
+): [Type, MessagePlayloadByType[Type]] {
   const buf = new DataViewMovable(serializedData);
-  reusedMessage.read(buf);
-  return reusedMessage;
+  return readMessage(buf, payloadMap);
 }
 
 export function serializeMessage<Type extends MessageType>(
   type: Type,
   payload: MessagePlayloadByType[Type],
 ): ArrayBufferLike {
-  reusedMessage.type = type;
-  // TODO
-  // deno-lint-ignore no-explicit-any
-  reusedMessage.payload = payload as any;
-  reusedMessage.write(resusedBuffer);
+  writeMessage(resusedBuffer, type, payload);
   resusedBuffer.reset();
   return resusedBuffer.buffer;
 }

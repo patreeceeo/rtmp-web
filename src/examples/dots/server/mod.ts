@@ -1,5 +1,6 @@
 import {
   ColorChange,
+  createPayloadMap,
   MessagePlayloadByType,
   MessageType,
   parseMessage,
@@ -25,6 +26,8 @@ import {
   ServerNetworkState,
 } from "../../../modules/server/state/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
+
+const payloadMap = createPayloadMap();
 
 const idleTimeout = 60;
 const systems = [
@@ -145,20 +148,18 @@ class DotsServerApp implements ServerApp {
   }
 
   handleMessage(client: WebSocket, message: MessageEvent) {
-    const parsedMessage = parseMessage(message.data);
+    const [type, payload] = parseMessage(message.data, payloadMap);
 
-    if (parsedMessage.type in socketRouter) {
-      const handler =
-        socketRouter[parsedMessage.type as keyof typeof socketRouter];
+    if (type in socketRouter) {
+      const handler = socketRouter[type as keyof typeof socketRouter];
       handler(
         client,
-        parsedMessage
-          .payload as ServerMessagePlayloadByType[
-            keyof ServerMessagePlayloadByType
-          ],
+        payload as ServerMessagePlayloadByType[
+          keyof ServerMessagePlayloadByType
+        ],
       );
     } else {
-      console.warn("No handler for message type", parsedMessage.type);
+      console.warn("No handler for message type", type);
     }
   }
 }

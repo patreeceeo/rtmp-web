@@ -1,5 +1,6 @@
 import {
   ColorChange,
+  createPayloadMap,
   MessagePlayloadByType,
   MessageType,
   parseMessage,
@@ -21,6 +22,8 @@ import { useClient } from "hot_mod/dist/client/mod.js";
 import { WORLD_DIMENSIONS } from "../mod.ts";
 import { ClientNetworkState } from "../../../modules/client/state/Network.ts";
 import { ClientNetworkSystem } from "../../../modules/client/systems/Network.ts";
+
+const payloadMap = createPayloadMap();
 
 export class DotsClientApp extends ClientApp {
   handleLoad(): void {
@@ -46,21 +49,20 @@ export class DotsClientApp extends ClientApp {
   }
   // deno-lint-ignore no-explicit-any
   handleMessage(server: WebSocket, event: MessageEvent<any>): void {
-    const parsedMessage = parseMessage(event.data);
+    const [type, payload] = parseMessage(event.data, payloadMap);
 
-    if (parsedMessage.type in socketRouter) {
+    if (type in socketRouter) {
       const handler = socketRouter[
-        parsedMessage.type as keyof typeof socketRouter
+        type as keyof typeof socketRouter
       ];
       handler(
         server,
-        parsedMessage
-          .payload as ClientMessagePlayloadByType[
-            keyof ClientMessagePlayloadByType
-          ],
+        payload as ClientMessagePlayloadByType[
+          keyof ClientMessagePlayloadByType
+        ],
       );
     } else {
-      console.warn("No handler for", parsedMessage.type);
+      console.warn("No handler for", type);
     }
   }
   handleKeyDown(e: KeyboardEvent): void {

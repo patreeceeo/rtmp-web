@@ -18,9 +18,9 @@ function exec() {
   }
   MessageState.markAllCommandsAsSent();
 
-  const snapshot = MessageState.lastSnapshot;
-  if (snapshot.type === MessageType.playerMoved) {
-    const move = snapshot.payload as PlayerMove;
+  const [snapType, snapPayload] = MessageState.lastSnapshot;
+  if (snapType === MessageType.playerMoved) {
+    const move = snapPayload as PlayerMove;
     applySnapshot(move.delta, move.nid);
     if (MessageState.lastReceivedStepId < MessageState.lastSentStepId) {
       for (

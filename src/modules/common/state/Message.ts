@@ -1,6 +1,7 @@
 import { DataViewMovable } from "../../common/DataView.ts";
 import {
   AnyMessagePayload,
+  createPayloadMap,
   IAnyMessage,
   IAnyMessageMutable,
   MessageMutable,
@@ -8,10 +9,13 @@ import {
   NilPayloadMutable,
   PlayerMove,
   PlayerMoveMutable,
+  readMessage,
+  writeMessage,
 } from "../../common/Message.ts";
 import { NetworkId } from "../../common/state/Network.ts";
 import { Vec2 } from "../../common/Vec2.ts";
 
+const payloadMap = createPayloadMap();
 /**
  * What is this ugly monster? It's covering multiple seperate but intimately related
  * concerns:
@@ -94,10 +98,7 @@ export class MessageStateApi {
         }, current Step ID: ${this.#sid}`,
       );
     }
-    const cmd = this.#recycledMessage;
-    cmd.type = type;
-    (cmd as IAnyMessage).payload = payload;
-    cmd.write(this.#lastUnsentCommandBufferView);
+    writeMessage(this.#lastUnsentCommandBufferView, type, payload);
     this.#unsentCommandCount++;
   }
 
@@ -105,9 +106,7 @@ export class MessageStateApi {
     let count = this.#unsentCommandCount;
     const originalOffset = this.#unsentBufferView.byteOffset;
     while (count > 0) {
-      const cmd = this.#recycledMessage;
-      cmd.read(this.#unsentBufferView);
-      yield [cmd.type, cmd.payload];
+      yield readMessage(this.#unsentBufferView, payloadMap);
       count--;
     }
     this.#unsentBufferView.jump(originalOffset);
@@ -127,18 +126,20 @@ export class MessageStateApi {
     // Prevent infinite loop
     // TODO what causes the infinite loop?
     let count = 0;
-    const command = this.#recycledMessage;
     const sidModulus = (sid + 1) % this.MAX_LAG;
     if (sidModulus in this.#commandSidToBufferMap) {
       const newByteOffset = this.#commandSidToBufferMap[sidModulus];
       this.#serverBufferView.jump(newByteOffset);
-      do {
-        command.read(this.#serverBufferView);
-        yield [command.type, command.payload];
+      while (true) {
+        const [type, payload] = readMessage(this.#serverBufferView, payloadMap);
+        yield [type, payload];
         count++;
-      } while (
-        command.payload.sid < this.#lastSentStepId && count < this.MAX_LAG
-      );
+        if (
+          payload.sid >= this.#lastSentStepId || count > this.MAX_LAG
+        ) {
+          break;
+        }
+      }
     }
   }
 
@@ -146,20 +147,15 @@ export class MessageStateApi {
   // coming from the server, it's an absolute position. Also, might have multiple
   // types of messages for player moves being sent to the server (like duck, jump,
   // etc), but the server only needs 1 type of message.
-  pushSnapshot(type: MessageType, payload: PlayerMove) {
-    const cmd = this.#recycledMessage;
-    cmd.type = type;
-    (cmd as IAnyMessage).payload = payload;
+  pushSnapshot(type: MessageType, payload: AnyMessagePayload) {
     this.#snapshotBufferView.jump(0);
-    cmd.write(this.#snapshotBufferView);
+    writeMessage(this.#snapshotBufferView, type, payload);
     this.#lastReceivedStepId = payload.sid;
   }
 
-  get lastSnapshot(): IAnyMessage {
-    const snapshot = this.#recycledMessage;
+  get lastSnapshot(): [MessageType, AnyMessagePayload] {
     this.#snapshotBufferView.jump(0);
-    snapshot.read(this.#snapshotBufferView);
-    return snapshot;
+    return readMessage(this.#snapshotBufferView, payloadMap);
   }
 }
 
