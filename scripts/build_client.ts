@@ -8,10 +8,16 @@ const inPaths = Deno.args[1].split(",");
 
 await buildModules(outDir, inPaths, { catchErrors: true });
 
+function getTimeString() {
+  const d = new Date();
+  return d.toLocaleTimeString();
+}
+
 if (Deno.args[2] === "--watch") {
   addModuleEventHandler(["create", "modify"], (inPaths) => {
     for (const inPath of inPaths) {
       buildModule(outDir, inPath, { catchErrors: true });
+      console.log(`[${getTimeString()}] built ${inPath}`);
     }
   }, ["src"]);
   console.log("Watching for changes");
