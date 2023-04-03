@@ -292,6 +292,23 @@ export function readMessage<Type extends MessageType>(
   return [type, payload];
 }
 
+export function* readMessages(
+  n: number,
+  buf: DataViewMovable,
+  payloadMap: MessageMutablePlayloadByType,
+  options: { rewind?: boolean } = {},
+): Generator<[MessageType, AnyMessagePayload]> {
+  let remaining = n;
+  const initialByteOffset = buf.byteOffset;
+  while (remaining > 0) {
+    yield readMessage(buf, payloadMap);
+    remaining--;
+  }
+  if (options.rewind) {
+    buf.jump(initialByteOffset);
+  }
+}
+
 export type IAnyMessage = IMessage<MessageType>;
 export type IAnyMessageMutable = IMessageMutable<MessageType>;
 export type AnyMessagePayload = MessagePlayloadByType[MessageType];

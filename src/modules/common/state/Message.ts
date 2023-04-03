@@ -10,6 +10,7 @@ import {
   PlayerMove,
   PlayerMoveMutable,
   readMessage,
+  readMessages,
   writeMessage,
 } from "../../common/Message.ts";
 import { NetworkId } from "../../common/state/Network.ts";
@@ -102,14 +103,13 @@ export class MessageStateApi {
     this.#unsentCommandCount++;
   }
 
-  *getUnsentCommands(): Generator<[MessageType, AnyMessagePayload]> {
-    let count = this.#unsentCommandCount;
-    const originalOffset = this.#unsentBufferView.byteOffset;
-    while (count > 0) {
-      yield readMessage(this.#unsentBufferView, payloadMap);
-      count--;
-    }
-    this.#unsentBufferView.jump(originalOffset);
+  getUnsentCommands(): Generator<[MessageType, AnyMessagePayload]> {
+    return readMessages(
+      this.#unsentCommandCount,
+      this.#unsentBufferView,
+      payloadMap,
+      { rewind: true },
+    );
   }
 
   markAllCommandsAsSent() {
