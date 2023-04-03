@@ -16,20 +16,27 @@ function exec() {
   }
   MessageState.incrementStepId();
 
-  const [snapType, snapPayload] = MessageState.lastSnapshot;
-  if (snapType === MessageType.playerMoved) {
-    const move = snapPayload as PlayerMove;
-    applySnapshot(move.delta, move.nid);
-    if (MessageState.lastReceivedStepId < MessageState.lastSentStepId) {
-      for (
-        const [type, payload] of MessageState.getCommandSlice(
-          MessageState.lastReceivedStepId + 1,
-          MessageState.lastSentStepId,
-        )
-      ) {
-        if (ClientNetworkState.isLocal(payload.nid)) {
-          // predict that the server will accept our moves
-          applyCommand(type, payload);
+  const lastReceivedSid = MessageState.lastReceivedStepId;
+  for (
+    const [snapType, snapPayload] of MessageState.getSnapshotSlice(
+      lastReceivedSid,
+      lastReceivedSid,
+    )
+  ) {
+    if (snapType === MessageType.playerMoved) {
+      const move = snapPayload as PlayerMove;
+      applySnapshot(move.delta, move.nid);
+      if (lastReceivedSid < MessageState.lastSentStepId) {
+        for (
+          const [type, payload] of MessageState.getCommandSlice(
+            MessageState.lastReceivedStepId + 1,
+            MessageState.lastSentStepId,
+          )
+        ) {
+          if (ClientNetworkState.isLocal(payload.nid)) {
+            // predict that the server will accept our moves
+            applyCommand(type, payload);
+          }
         }
       }
     }

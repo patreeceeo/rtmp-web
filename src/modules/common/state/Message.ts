@@ -26,12 +26,6 @@ export class MessageStateApi {
   #commands = new MessagePriorityQueue(this.#commandBuffer, this.#payloadMap);
   #sid = 0;
   #lastSentStepId = 0;
-  #lastReceivedStepId = 0;
-
-  #snapshotBuffer = new ArrayBuffer(256);
-  #snapshotBufferView = new DataViewMovable(this.#snapshotBuffer, {
-    isCircular: true,
-  });
 
   constructor(readonly MAX_LAG: number) {}
 
@@ -85,19 +79,19 @@ export class MessageStateApi {
     return this.#commands.slice(startSid, endSid);
   }
 
-  // TODO use a different type for server response because it's not a delta when
-  // coming from the server, it's an absolute position. Also, might have multiple
-  // types of messages for player moves being sent to the server (like duck, jump,
-  // etc), but the server only needs 1 type of message.
+  #lastReceivedStepId = 0;
+  #snapshotBuffer = new ArrayBuffer(1024);
+  #snapshots = new MessagePriorityQueue(this.#snapshotBuffer, this.#payloadMap);
   pushSnapshot(type: MessageType, payload: AnyMessagePayload) {
-    this.#snapshotBufferView.jump(0);
-    writeMessage(this.#snapshotBufferView, type, payload);
+    this.#snapshots.insert(payload.sid, type, payload);
     this.#lastReceivedStepId = payload.sid;
   }
 
-  get lastSnapshot(): [MessageType, AnyMessagePayload] {
-    this.#snapshotBufferView.jump(0);
-    return readMessage(this.#snapshotBufferView, this.#payloadMap);
+  getSnapshotSlice(
+    startSid: number,
+    endSid: number,
+  ) {
+    return this.#snapshots.slice(startSid, endSid);
   }
 }
 
