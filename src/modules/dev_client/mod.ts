@@ -36,7 +36,7 @@ export async function buildModule(
     Deno.writeTextFile(outPath, result.code);
   } catch (e) {
     if (options.catchErrors) {
-      console.error(e);
+      console.error("while building", inPath, e);
     } else {
       throw e;
     }
