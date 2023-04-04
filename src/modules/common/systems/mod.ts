@@ -1,25 +1,30 @@
-
 export interface System {
-  exec?: () => void,
-  events?: Partial<SystemEvents>
+  exec: () => void;
+  create: () => void;
+  dispose: () => void;
 }
-export type SystemPartial = Partial<System>
+export type SystemPartial = Partial<System>;
 
-// TODO merge with system interface
-interface SystemEvents {
-  create: () => void
-  dispose: () => void
-}
-
-export interface SystemLoader<Options = Record<string | number | symbol, never>> {
-  (opts?: Partial<Options>): Promise<SystemPartial> | SystemPartial
+export interface SystemLoader<
+  Options = Record<string | number | symbol, never>,
+> {
+  (opts?: Partial<Options>): Promise<SystemPartial> | SystemPartial;
 }
 
-export function startPipeline(systems: Array<SystemPartial>, stepMs: number) {
-  const execSystems = systems.filter((s) => s.exec)
-  setInterval(() => {
-    for(const system of execSystems) {
-      system.exec!()
-    }
-  }, stepMs)
+export class Pipeline {
+  #execFns: Array<SystemPartial["exec"]>;
+  #execInterval?: number;
+  constructor(systems: Array<SystemPartial>) {
+    this.#execFns = systems.filter((s) => s.exec).map((s) => s.exec);
+  }
+  start(intervalMs: number) {
+    this.#execInterval = setInterval(() => {
+      for (const exec of this.#execFns) {
+        exec!();
+      }
+    }, intervalMs);
+  }
+  stop() {
+    clearInterval(this.#execInterval);
+  }
 }

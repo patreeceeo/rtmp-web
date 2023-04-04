@@ -18,25 +18,15 @@ import {
   MovementSystem,
 } from "~/server/systems/Movement.ts";
 import { NetworkSystem } from "~/server/systems/Network.ts";
-import { startPipeline, SystemPartial } from "~/common/systems/mod.ts";
+import { Pipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { broadcastMessage, ServerApp, startServer } from "~/server/mod.ts";
 import { WORLD_DIMENSIONS } from "../mod.ts";
-import {
-  Client,
-  ServerNetworkState,
-} from "../../../modules/server/state/Network.ts";
+import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
 
 const payloadMap = createPayloadMap();
 
 const idleTimeout = 60;
-const systems = [
-  TimeSystem(),
-  MovementSystem(),
-  NetworkSystem({ idleTimeout }),
-] as Array<
-  SystemPartial
->;
 
 type ServerMessagePlayloadByType = Pick<
   MessagePlayloadByType,
@@ -164,5 +154,12 @@ class DotsServerApp implements ServerApp {
   }
 }
 
-startPipeline(systems, 80);
+const pipeline = new Pipeline([
+  TimeSystem(),
+  MovementSystem(),
+  NetworkSystem({ idleTimeout }),
+] as Array<
+  SystemPartial
+>);
+pipeline.start(80);
 startServer(new DotsServerApp());

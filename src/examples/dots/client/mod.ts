@@ -7,7 +7,6 @@ import {
   PlayerMove,
   PlayerRemove,
 } from "~/common/Message.ts";
-import { NetworkId } from "~/common/state/Network.ts";
 import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { drawCircle } from "~/client/canvas.ts";
@@ -16,7 +15,7 @@ import {
   ClientMovementSystem,
   handleMoveFromServer,
 } from "~/client/systems/Movement.ts";
-import { startPipeline, SystemPartial } from "~/common/systems/mod.ts";
+import { Pipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { ClientApp, startClient } from "~/client/mod.ts";
 import { useClient } from "hot_mod/dist/client/mod.js";
 import { WORLD_DIMENSIONS } from "../mod.ts";
@@ -135,13 +134,12 @@ function drawPlayers(ctx: CanvasRenderingContext2D) {
   }
 }
 
-const systems = [
+const pipeline = new Pipeline([
   TimeSystem(),
   ClientMovementSystem(),
   ClientNetworkSystem(),
-] as Array<SystemPartial>;
-
-startPipeline(systems, 80);
+] as Array<SystemPartial>);
+pipeline.start(80);
 startClient(new DotsClientApp());
 
 export const hotExports = {
