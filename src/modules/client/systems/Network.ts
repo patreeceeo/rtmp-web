@@ -1,31 +1,42 @@
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { sendMessageToServer } from "../mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { MessageType, PlayerMove } from "../../common/Message.ts";
-import { applyCommand, applySnapshot } from "./Movement.ts";
+import { MessagePlayloadByType, MessageType } from "../../common/Message.ts";
 import { ClientNetworkState } from "../state/Network.ts";
 
-function exec() {
-  // TODO if there are no commands to send, maybe we don't need to increment step ID?
-  for (const [type, payload] of MessageState.getUnsentCommands()) {
-    sendMessageToServer(
-      type,
-      payload,
-    );
-    MessageState.lastSentStepId = payload.sid;
-  }
-  MessageState.incrementStepId();
+interface Config {
+  applyCommand: <Type extends MessageType>(
+    type: Type,
+    payload: MessagePlayloadByType[Type],
+  ) => void;
+  applySnapshot: <Type extends MessageType>(
+    type: Type,
+    payload: MessagePlayloadByType[Type],
+  ) => void;
+}
 
-  const lastReceivedSid = MessageState.lastReceivedStepId;
-  for (
-    const [snapType, snapPayload] of MessageState.getSnapshotSlice(
-      lastReceivedSid,
-      lastReceivedSid,
-    )
-  ) {
-    if (snapType === MessageType.playerMoved) {
-      const move = snapPayload as PlayerMove;
-      applySnapshot(move.delta, move.nid);
+export const ClientNetworkSystem: SystemLoader<[Config]> = (
+  { applyCommand, applySnapshot }: Config,
+) => {
+  function exec() {
+    // TODO if there are no commands to send, maybe we don't need to increment step ID?
+    for (const [type, payload] of MessageState.getUnsentCommands()) {
+      sendMessageToServer(
+        type,
+        payload,
+      );
+      MessageState.lastSentStepId = payload.sid;
+    }
+    MessageState.incrementStepId();
+
+    const lastReceivedSid = MessageState.lastReceivedStepId;
+    for (
+      const [snapshotType, snapshotPayload] of MessageState.getSnapshotSlice(
+        lastReceivedSid,
+        lastReceivedSid,
+      )
+    ) {
+      applySnapshot(snapshotType, snapshotPayload);
       if (lastReceivedSid < MessageState.lastSentStepId) {
         for (
           const [type, payload] of MessageState.getCommandSlice(
@@ -41,7 +52,5 @@ function exec() {
       }
     }
   }
-}
-export const ClientNetworkSystem: SystemLoader = () => {
   return { exec };
 };

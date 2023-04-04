@@ -19,8 +19,8 @@ import { Pipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { ClientApp, startClient } from "~/client/mod.ts";
 import { useClient } from "hot_mod/dist/client/mod.js";
 import { WORLD_DIMENSIONS } from "../mod.ts";
-import { ClientNetworkState } from "../../../modules/client/state/Network.ts";
-import { ClientNetworkSystem } from "../../../modules/client/systems/Network.ts";
+import { ClientNetworkState } from "~/client/state/Network.ts";
+import { ClientNetworkSystem } from "~/client/systems/Network.ts";
 
 const payloadMap = createPayloadMap();
 
@@ -134,11 +134,50 @@ function drawPlayers(ctx: CanvasRenderingContext2D) {
   }
 }
 
+function applyCommand<Type extends MessageType>(
+  type: Type,
+  payload: MessagePlayloadByType[Type],
+) {
+  const eid = ClientNetworkState.getEntityId(payload.nid);
+
+  switch (type) {
+    case MessageType.playerMoved: {
+      if (PlayerState.hasPlayer(eid!)) {
+        const player = PlayerState.getPlayer(eid!);
+        player.position.add((payload as PlayerMove).delta);
+      }
+      break;
+    }
+  }
+}
+
+/** authoritative */
+function applySnapshot<Type extends MessageType>(
+  type: Type,
+  payload: MessagePlayloadByType[Type],
+) {
+  const eid = ClientNetworkState.getEntityId(payload.nid);
+
+  switch (type) {
+    case MessageType.playerMoved: {
+      if (PlayerState.hasPlayer(eid!)) {
+        const player = PlayerState.getPlayer(eid!);
+        // Server sends back correct position
+        player.position.copy((payload as PlayerMove).delta);
+      } else {
+        console.warn(`Requested moving unknown player with nid ${payload.nid}`);
+      }
+      break;
+    }
+  }
+}
+
 const pipeline = new Pipeline([
   TimeSystem(),
   ClientMovementSystem(),
-  ClientNetworkSystem(),
+  ClientNetworkSystem({ applyCommand, applySnapshot }),
 ] as Array<SystemPartial>);
+
 pipeline.start(80);
 startClient(new DotsClientApp());
 

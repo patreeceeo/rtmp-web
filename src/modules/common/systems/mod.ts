@@ -5,10 +5,9 @@ export interface System {
 }
 export type SystemPartial = Partial<System>;
 
-export interface SystemLoader<
-  Options = Record<string | number | symbol, never>,
-> {
-  (opts?: Partial<Options>): Promise<SystemPartial> | SystemPartial;
+// deno-lint-ignore no-explicit-any
+export interface SystemLoader<TArgs extends Array<any> = []> {
+  (...args: TArgs): Promise<SystemPartial> | SystemPartial;
 }
 
 export class Pipeline {

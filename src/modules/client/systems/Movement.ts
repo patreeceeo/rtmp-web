@@ -1,14 +1,7 @@
 // TODO make this an option arg
 import { WORLD_DIMENSIONS } from "../../../examples/dots/mod.ts";
 import { ClientNetworkState } from "../../client/state/Network.ts";
-import {
-  ColorChange,
-  IAnyMessage,
-  MessagePlayloadByType,
-  MessageType,
-  PlayerMove,
-  PlayerMoveMutable,
-} from "~/common/Message.ts";
+import { ColorChange, MessageType, PlayerMove } from "~/common/Message.ts";
 import { Vec2 } from "../../common/Vec2.ts";
 import { NetworkId } from "../../common/state/Network.ts";
 import { PlayerState } from "../../common/state/Player.ts";
@@ -17,18 +10,6 @@ import { Time } from "../../common/state/Time.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { sendMessageToServer } from "../mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
-
-/** authoritative */
-export function applySnapshot(to: Vec2, nid: NetworkId) {
-  const eid = ClientNetworkState.getEntityId(nid);
-  if (PlayerState.hasPlayer(eid!)) {
-    const player = PlayerState.getPlayer(eid!);
-    // Server sends back correct position
-    player.position.copy(to);
-  } else {
-    console.warn(`Requested moving unknown player with nid ${nid}`);
-  }
-}
 
 const to = new Vec2();
 
@@ -82,21 +63,6 @@ function exec() {
           new ColorChange(player.color, nid!, MessageState.lastStepId),
         );
       }
-    }
-  }
-}
-
-export function applyCommand<Type extends MessageType>(
-  type: Type,
-  payload: MessagePlayloadByType[Type],
-) {
-  const eid = ClientNetworkState.getEntityId(payload.nid);
-
-  switch (type) {
-    case MessageType.playerMoved: {
-      const player = PlayerState.getPlayer(eid!);
-      player.position.add((payload as PlayerMove).delta);
-      break;
     }
   }
 }

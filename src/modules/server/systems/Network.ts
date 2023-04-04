@@ -11,7 +11,7 @@ interface Options {
   idleTimeout: number;
 }
 
-export const NetworkSystem: SystemLoader<Options> = (opts) => {
+export const NetworkSystem: SystemLoader<[Options]> = (opts) => {
   const idleTimeout = opts?.idleTimeout || 60;
   function exec() {
     MessageState.incrementStepId();
