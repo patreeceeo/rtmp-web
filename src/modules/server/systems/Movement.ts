@@ -63,7 +63,7 @@ function exec() {
 }
 
 export const MovementSystem: SystemLoader = () => {
-  return { exec, events: {} };
+  return { exec };
 };
 
 const to = new Vec2();

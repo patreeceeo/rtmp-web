@@ -129,7 +129,7 @@ function updateScreen(ctx: CanvasRenderingContext2D) {
 }
 
 function drawPlayers(ctx: CanvasRenderingContext2D) {
-  ctx.clearRect(0, 0, 1000, 10000);
+  ctx.clearRect(0, 0, 1000, 1000);
   for (const player of PlayerState.getPlayers()) {
     ctx.fillStyle = player.webColor;
     drawCircle(ctx, player.position.x, player.position.y, 4);

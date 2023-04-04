@@ -68,5 +68,5 @@ function exec() {
 }
 
 export const ClientMovementSystem: SystemLoader = () => {
-  return { exec, events: {} };
+  return { exec };
 };
