@@ -6,21 +6,20 @@ import {
   parseMessage,
   PlayerMove,
   PlayerRemove,
+  PlayerSnapshot,
 } from "~/common/Message.ts";
 import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { drawCircle } from "~/client/canvas.ts";
 import { TimeSystem } from "~/common/systems/Time.ts";
-import {
-  ClientMovementSystem,
-  handleMoveFromServer,
-} from "~/client/systems/Movement.ts";
+import { ClientMovementSystem } from "~/client/systems/Movement.ts";
 import { Pipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { ClientApp, startClient } from "~/client/mod.ts";
 import { useClient } from "hot_mod/dist/client/mod.js";
 import { WORLD_DIMENSIONS } from "../mod.ts";
 import { ClientNetworkState } from "~/client/state/Network.ts";
 import { ClientNetworkSystem } from "~/client/systems/Network.ts";
+import { MessageState } from "../../../modules/common/state/Message.ts";
 
 const payloadMap = createPayloadMap();
 
@@ -77,7 +76,7 @@ export class DotsClientApp extends ClientApp {
 
 type ClientMessagePlayloadByType = Pick<
   MessagePlayloadByType,
-  | MessageType.playerMoved
+  | MessageType.playerSnapshot
   | MessageType.playerAdded
   | MessageType.playerRemoved
   | MessageType.colorChange
@@ -94,7 +93,7 @@ const socketRouter: Record<
   // deno-lint-ignore no-explicit-any
   [MessageType.playerAdded]: handlePlayerAdded as any,
   // deno-lint-ignore no-explicit-any
-  [MessageType.playerMoved]: handlePlayerMoved as any,
+  [MessageType.playerSnapshot]: handlePlayerSnapshot as any,
   // deno-lint-ignore no-explicit-any
   [MessageType.playerRemoved]: handlePlayerRemoved as any,
   [MessageType.colorChange]: (_server, cc) => {
@@ -106,15 +105,18 @@ const socketRouter: Record<
 
 function handlePlayerAdded(
   _server: WebSocket,
-  { isLocal, nid, position }: MessagePlayloadByType[MessageType.playerAdded],
+  { isLocal, nid, position }: MessagePlayloadByType[MessageType.playerSnapshot],
 ) {
   const player = PlayerState.createPlayer();
   console.log("player nid:", nid);
   player.position.copy(position);
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
 }
-function handlePlayerMoved(_server: WebSocket, move: PlayerMove) {
-  handleMoveFromServer(MessageType.playerMoved, move);
+function handlePlayerSnapshot(
+  _server: WebSocket,
+  playerSnapshot: PlayerSnapshot,
+) {
+  MessageState.pushSnapshot(MessageType.playerSnapshot, playerSnapshot);
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: PlayerRemove) {
   const eid = ClientNetworkState.getEntityId(playerRemove.nid);
@@ -159,11 +161,11 @@ function applySnapshot<Type extends MessageType>(
   const eid = ClientNetworkState.getEntityId(payload.nid);
 
   switch (type) {
-    case MessageType.playerMoved: {
+    case MessageType.playerSnapshot: {
       if (PlayerState.hasPlayer(eid!)) {
         const player = PlayerState.getPlayer(eid!);
         // Server sends back correct position
-        player.position.copy((payload as PlayerMove).delta);
+        player.position.copy((payload as PlayerSnapshot).position);
       } else {
         console.warn(`Requested moving unknown player with nid ${payload.nid}`);
       }

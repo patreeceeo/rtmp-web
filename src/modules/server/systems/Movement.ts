@@ -3,6 +3,7 @@ import {
   MessageType,
   PlayerMove,
   PlayerMoveMutable,
+  PlayerSnapshot,
 } from "../../common/Message.ts";
 import { RingBuffer } from "../../common/RingBuffer.ts";
 import { NetworkId } from "../../common/state/Network.ts";
@@ -11,7 +12,7 @@ import { Time } from "../../common/state/Time.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { Vec2 } from "../../common/Vec2.ts";
 import { ServerNetworkState } from "../../server/state/Network.ts";
-import { broadcastMessage } from "../mod.ts";
+import { broadcastMessage, sendMessageToClient } from "../mod.ts";
 
 const origin = Object.freeze(new Vec2(0, 0));
 
@@ -32,10 +33,18 @@ function handlePlayerMove(delta: Vec2, nid: NetworkId, sid: number) {
 
     player.position.add(clamped);
     player.lastActiveTime = Time.elapsed;
-    broadcastMessage(
-      MessageType.playerMoved,
-      new PlayerMove(player.position, nid, sid),
-    );
+    for (const client of ServerNetworkState.getClients()) {
+      sendMessageToClient(
+        client.ws,
+        MessageType.playerSnapshot,
+        new PlayerSnapshot(
+          player.position,
+          client.hasNetworkId(nid),
+          nid,
+          sid,
+        ),
+      );
+    }
   } else {
     console.warn(`Requested moving unknown player with nid ${nid}`);
   }

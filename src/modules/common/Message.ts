@@ -77,7 +77,7 @@ export class PlayerMoveMutable extends PlayerMove implements IPayloadMutable {
   }
 }
 
-const playerAddAdaptor = new BinaryObjectAdaptor<PlayerAdd>([
+const playerSnapshotAdaptor = new BinaryObjectAdaptor<PlayerSnapshot>([
   ["sid", uint16Adaptor],
   ["position", vec2Adaptor],
   // TODO figure out why TSC complains about this
@@ -88,7 +88,7 @@ const playerAddAdaptor = new BinaryObjectAdaptor<PlayerAdd>([
   ["nid", networkIdAdaptor as any],
 ]);
 
-export class PlayerAdd implements IPayload {
+export class PlayerSnapshot implements IPayload {
   constructor(
     readonly position: Vec2,
     readonly isLocal: boolean,
@@ -96,11 +96,12 @@ export class PlayerAdd implements IPayload {
     readonly sid: number,
   ) {}
   write(buf: DataViewMovable): void {
-    playerAddAdaptor.write(buf, this);
+    playerSnapshotAdaptor.write(buf, this);
   }
 }
 
-export class PlayerAddMutable extends PlayerAdd implements IPayloadMutable {
+export class PlayerSnapshotMutable extends PlayerSnapshot
+  implements IPayloadMutable {
   constructor(
     public position: Vec2,
     public isLocal: boolean,
@@ -110,9 +111,9 @@ export class PlayerAddMutable extends PlayerAdd implements IPayloadMutable {
     super(position, isLocal, nid, sid);
   }
   read(buf: DataViewMovable): void {
-    playerAddAdaptor.read(buf, this);
+    playerSnapshotAdaptor.read(buf, this);
   }
-  copy(source: PlayerAdd) {
+  copy(source: PlayerSnapshot) {
     this.position.copy(source.position);
     this.isLocal = source.isLocal;
     this.nid = source.nid;
@@ -186,20 +187,23 @@ export class ColorChangeMutable extends ColorChange implements IPayloadMutable {
 export enum MessageType {
   nil,
   playerAdded,
+  playerSnapshot,
   playerRemoved,
   playerMoved,
   colorChange,
 }
 export type MessagePlayloadByType = {
   [MessageType.nil]: NilPayload;
-  [MessageType.playerAdded]: PlayerAdd;
+  [MessageType.playerAdded]: PlayerSnapshot;
+  [MessageType.playerSnapshot]: PlayerSnapshot;
   [MessageType.playerRemoved]: PlayerRemove;
   [MessageType.playerMoved]: PlayerMove;
   [MessageType.colorChange]: ColorChange;
 };
 export type MessageMutablePlayloadByType = {
   [MessageType.nil]: NilPayloadMutable;
-  [MessageType.playerAdded]: PlayerAddMutable;
+  [MessageType.playerAdded]: PlayerSnapshotMutable;
+  [MessageType.playerSnapshot]: PlayerSnapshotMutable;
   [MessageType.playerRemoved]: PlayerRemoveMutable;
   [MessageType.playerMoved]: PlayerMoveMutable;
   [MessageType.colorChange]: ColorChangeMutable;
@@ -241,7 +245,13 @@ export interface IMessageMutable<Type extends MessageType>
 export function createPayloadMap(): MessageMutablePlayloadByType {
   return {
     [MessageType.nil]: new NilPayloadMutable(0 as NetworkId, 0),
-    [MessageType.playerAdded]: new PlayerAddMutable(
+    [MessageType.playerAdded]: new PlayerSnapshotMutable(
+      new Vec2(),
+      false,
+      0 as NetworkId,
+      0,
+    ),
+    [MessageType.playerSnapshot]: new PlayerSnapshotMutable(
       new Vec2(),
       false,
       0 as NetworkId,

@@ -5,9 +5,14 @@ import {
   dirname as getDirName,
   extname as getExtension,
 } from "path";
-import { AnyMessagePayload, MessageType, serializeMessage } from "../common/Message.ts";
+import {
+  AnyMessagePayload,
+  MessagePlayloadByType,
+  MessageType,
+  serializeMessage,
+} from "../common/Message.ts";
 import { BadRequestResponse, NotFoundResponse } from "../common/Response.ts";
-import { broadcast } from "../common/socket.ts";
+import { broadcast, sendIfOpen } from "../common/socket.ts";
 import { Client, ServerNetworkState } from "./state/Network.ts";
 
 const rootDir = Deno.cwd();
@@ -27,7 +32,7 @@ const allowedFileExtensions = [
 
 export abstract class ServerApp {
   /** In seconds */
-  abstract idleTimeout: number
+  abstract idleTimeout: number;
   abstract handleOpen(client: WebSocket, event: Event): void;
   abstract handleClose(client: WebSocket, event: Event): void;
   abstract handleError(client: WebSocket, event: Event): void;
@@ -38,25 +43,27 @@ export function startServer(app: ServerApp) {
   async function handleHttp(request: Request) {
     const url = new URL(request.url);
     if (url.pathname === "/start_web_socket") {
-      const { socket, response } = Deno.upgradeWebSocket(request, {idleTimeout: app.idleTimeout});
-      socket.binaryType = 'arraybuffer'
+      const { socket, response } = Deno.upgradeWebSocket(request, {
+        idleTimeout: app.idleTimeout,
+      });
+      socket.binaryType = "arraybuffer";
 
       socket.onopen = (socketEvent) => {
         const clientNid = ServerNetworkState.createId();
-        const client = new Client(clientNid, socket)
+        const client = new Client(clientNid, socket);
 
         ServerNetworkState.setClient(client);
-        client.lastActiveTime = performance.now()
+        client.lastActiveTime = performance.now();
         app.handleOpen(socket, socketEvent);
-      }
+      };
 
       socket.onclose = (socketEvent) => app.handleClose(socket, socketEvent);
 
       socket.onmessage = (socketEvent) => {
-        const client = ServerNetworkState.getClientForSocket(socket)
-        client!.lastActiveTime = performance.now()
+        const client = ServerNetworkState.getClientForSocket(socket);
+        client!.lastActiveTime = performance.now();
         app.handleMessage(socket, socketEvent);
-      }
+      };
 
       socket.onerror = (socketEvent) => app.handleError(socket, socketEvent);
 
@@ -108,10 +115,27 @@ async function isFilePath(path: string) {
 
 interface AllBroacastOptions {
   /** Don't send to this socket */
-  exclude: WebSocket
-  includeClientsBeingRemoved: boolean
+  exclude: WebSocket;
+  includeClientsBeingRemoved: boolean;
 }
-export function broadcastMessage (type: MessageType, payload: AnyMessagePayload, options: Partial<AllBroacastOptions> = {}) {
-  const includeClientsBeingRemoved = options?.includeClientsBeingRemoved === true ? true : false
-  broadcast(ServerNetworkState.getClientSockets(includeClientsBeingRemoved), serializeMessage(type, payload), options.exclude)
+export function broadcastMessage(
+  type: MessageType,
+  payload: AnyMessagePayload,
+  options: Partial<AllBroacastOptions> = {},
+) {
+  const includeClientsBeingRemoved =
+    options?.includeClientsBeingRemoved === true ? true : false;
+  broadcast(
+    ServerNetworkState.getClientSockets(includeClientsBeingRemoved),
+    serializeMessage(type, payload),
+    options.exclude,
+  );
+}
+
+export function sendMessageToClient<Type extends MessageType>(
+  client: WebSocket,
+  type: Type,
+  payload: MessagePlayloadByType[Type],
+) {
+  sendIfOpen(client, serializeMessage(type, payload));
 }
