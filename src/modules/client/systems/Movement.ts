@@ -70,11 +70,3 @@ function exec() {
 export const ClientMovementSystem: SystemLoader = () => {
   return { exec, events: {} };
 };
-
-// TODO use a different type for server response because it's not a delta when
-// coming from the server, it's an absolute position. Also, might have multiple
-// types of messages for player moves being sent to the server (like duck, jump,
-// etc), but the server only needs 1 type of message.
-export function handleMoveFromServer(type: MessageType, payload: PlayerMove) {
-  MessageState.pushSnapshot(type, payload);
-}
