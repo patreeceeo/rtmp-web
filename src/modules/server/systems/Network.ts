@@ -3,7 +3,7 @@ import { PlayerState } from "~/common/state/Player.ts";
 import { Time } from "~/common/state/Time.ts";
 import { SystemLoader } from "~/common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { broadcastMessage, sendMessageToClient } from "../mod.ts";
+import { broadcastMessage } from "../mod.ts";
 import { ServerNetworkState } from "../state/Network.ts";
 
 interface Options {
