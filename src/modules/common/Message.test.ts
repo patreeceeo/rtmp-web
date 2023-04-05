@@ -4,6 +4,7 @@ import {
   createPayloadMap,
   MessageType,
   parseMessage,
+  PlayerAddMutable,
   PlayerMoveMutable,
   PlayerRemoveMutable,
   PlayerSnapshotMutable,
@@ -19,8 +20,12 @@ const payloadMap = createPayloadMap();
 Deno.test("parseMessage/serializeMessage", () => {
   const messages: Array<[MessageType, AnyMessagePayload]> = [
     [
+      MessageType.playerAdded,
+      new PlayerAddMutable(new Vec2(0, 0), true, 6 as NetworkId, 12),
+    ],
+    [
       MessageType.playerSnapshot,
-      new PlayerSnapshotMutable(new Vec2(0, 0), false, 6 as NetworkId, 12),
+      new PlayerSnapshotMutable(new Vec2(0, 0), 6 as NetworkId, 12),
     ],
     [
       MessageType.playerMoved,

@@ -77,21 +77,54 @@ export class PlayerMoveMutable extends PlayerMove implements IPayloadMutable {
   }
 }
 
-const playerSnapshotAdaptor = new BinaryObjectAdaptor<PlayerSnapshot>([
+const playerAddAdaptor = new BinaryObjectAdaptor<PlayerAdd>([
   ["sid", uint16Adaptor],
   ["position", vec2Adaptor],
-  // TODO figure out why TSC complains about this
+  // TODO why does Deno type checker take issue with this?
   // deno-lint-ignore no-explicit-any
   ["isLocal", boolAdaptor as any],
-  // TODO figure out why TSC complains about this
-  // deno-lint-ignore no-explicit-any
-  ["nid", networkIdAdaptor as any],
+  ["nid", networkIdAdaptor],
 ]);
 
-export class PlayerSnapshot implements IPayload {
+export class PlayerAdd implements IPayload {
   constructor(
     readonly position: Vec2,
     readonly isLocal: boolean,
+    readonly nid: NetworkId,
+    readonly sid: number,
+  ) {}
+  write(buf: DataViewMovable): void {
+    playerAddAdaptor.write(buf, this);
+  }
+}
+
+export class PlayerAddMutable extends PlayerAdd implements IPayloadMutable {
+  constructor(
+    public position: Vec2,
+    public isLocal: boolean,
+    public nid: NetworkId,
+    public sid: number,
+  ) {
+    super(position, isLocal, nid, sid);
+  }
+  read(buf: DataViewMovable): void {
+    playerAddAdaptor.read(buf, this);
+  }
+  copy(source: PlayerAdd) {
+    this.isLocal = source.isLocal;
+    this.nid = source.nid;
+    this.sid = source.sid;
+  }
+}
+
+const playerSnapshotAdaptor = new BinaryObjectAdaptor<PlayerSnapshot>([
+  ["sid", uint16Adaptor],
+  ["position", vec2Adaptor],
+  ["nid", networkIdAdaptor],
+]);
+export class PlayerSnapshot implements IPayload {
+  constructor(
+    readonly position: Vec2,
     readonly nid: NetworkId,
     readonly sid: number,
   ) {}
@@ -104,18 +137,16 @@ export class PlayerSnapshotMutable extends PlayerSnapshot
   implements IPayloadMutable {
   constructor(
     public position: Vec2,
-    public isLocal: boolean,
     public nid: NetworkId,
     public sid: number,
   ) {
-    super(position, isLocal, nid, sid);
+    super(position, nid, sid);
   }
   read(buf: DataViewMovable): void {
     playerSnapshotAdaptor.read(buf, this);
   }
   copy(source: PlayerSnapshot) {
     this.position.copy(source.position);
-    this.isLocal = source.isLocal;
     this.nid = source.nid;
   }
 }
@@ -194,7 +225,7 @@ export enum MessageType {
 }
 export type MessagePlayloadByType = {
   [MessageType.nil]: NilPayload;
-  [MessageType.playerAdded]: PlayerSnapshot;
+  [MessageType.playerAdded]: PlayerAdd;
   [MessageType.playerSnapshot]: PlayerSnapshot;
   [MessageType.playerRemoved]: PlayerRemove;
   [MessageType.playerMoved]: PlayerMove;
@@ -202,7 +233,7 @@ export type MessagePlayloadByType = {
 };
 export type MessageMutablePlayloadByType = {
   [MessageType.nil]: NilPayloadMutable;
-  [MessageType.playerAdded]: PlayerSnapshotMutable;
+  [MessageType.playerAdded]: PlayerAddMutable;
   [MessageType.playerSnapshot]: PlayerSnapshotMutable;
   [MessageType.playerRemoved]: PlayerRemoveMutable;
   [MessageType.playerMoved]: PlayerMoveMutable;
@@ -245,7 +276,7 @@ export interface IMessageMutable<Type extends MessageType>
 export function createPayloadMap(): MessageMutablePlayloadByType {
   return {
     [MessageType.nil]: new NilPayloadMutable(0 as NetworkId, 0),
-    [MessageType.playerAdded]: new PlayerSnapshotMutable(
+    [MessageType.playerAdded]: new PlayerAddMutable(
       new Vec2(),
       false,
       0 as NetworkId,
@@ -253,7 +284,6 @@ export function createPayloadMap(): MessageMutablePlayloadByType {
     ),
     [MessageType.playerSnapshot]: new PlayerSnapshotMutable(
       new Vec2(),
-      false,
       0 as NetworkId,
       0,
     ),

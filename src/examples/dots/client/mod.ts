@@ -5,6 +5,7 @@ import {
   MessageType,
   NilPayload,
   parseMessage,
+  PlayerAdd,
   PlayerMove,
   PlayerRemove,
   PlayerSnapshot,
@@ -106,7 +107,7 @@ const socketRouter: Record<
 
 function handlePlayerAdded(
   _server: WebSocket,
-  { isLocal, nid, position }: MessagePlayloadByType[MessageType.playerSnapshot],
+  { isLocal, nid, position }: PlayerAdd,
 ) {
   const player = PlayerState.createPlayer();
   console.log("player nid:", nid);

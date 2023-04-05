@@ -4,8 +4,8 @@ import {
   MessagePlayloadByType,
   MessageType,
   parseMessage,
+  PlayerAdd,
   PlayerRemove,
-  PlayerSnapshot,
   serializeMessage,
 } from "~/common/Message.ts";
 import { PlayerState } from "~/common/state/Player.ts";
@@ -71,7 +71,7 @@ class DotsServerApp implements ServerApp {
       ws,
       serializeMessage(
         MessageType.playerAdded,
-        new PlayerSnapshot(
+        new PlayerAdd(
           addedPlayer.position,
           true,
           playerNid,
@@ -86,7 +86,7 @@ class DotsServerApp implements ServerApp {
       ServerNetworkState.getClientSockets(),
       serializeMessage(
         MessageType.playerAdded,
-        new PlayerSnapshot(
+        new PlayerAdd(
           addedPlayer.position,
           false,
           playerNid,
@@ -104,7 +104,7 @@ class DotsServerApp implements ServerApp {
           ws,
           serializeMessage(
             MessageType.playerAdded,
-            new PlayerSnapshot(
+            new PlayerAdd(
               player.position,
               false,
               ServerNetworkState.getId(eid)!,

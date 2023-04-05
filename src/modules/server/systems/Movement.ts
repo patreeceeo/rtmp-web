@@ -10,7 +10,6 @@ import { Time } from "../../common/state/Time.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { Vec2 } from "../../common/Vec2.ts";
 import { ServerNetworkState } from "../../server/state/Network.ts";
-import { sendMessageToClient } from "../mod.ts";
 
 const origin = Object.freeze(new Vec2(0, 0));
 
@@ -31,18 +30,14 @@ function handlePlayerMove({ delta, nid, sid }: PlayerMove) {
 
     player.position.add(clamped);
     player.lastActiveTime = Time.elapsed;
-    for (const client of ServerNetworkState.getClients()) {
-      sendMessageToClient(
-        client.ws,
-        MessageType.playerSnapshot,
-        new PlayerSnapshot(
-          player.position,
-          client.hasNetworkId(nid),
-          nid,
-          sid,
-        ),
-      );
-    }
+    MessageState.addSnapshot(
+      MessageType.playerSnapshot,
+      new PlayerSnapshot(
+        player.position,
+        nid,
+        sid,
+      ),
+    );
   } else {
     console.warn(`Requested moving unknown player with nid ${nid}`);
   }
