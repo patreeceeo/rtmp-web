@@ -77,7 +77,6 @@ export class DotsClientApp extends ClientApp {
 
 type ClientMessagePlayloadByType = Pick<
   MessagePlayloadByType,
-  | MessageType.sync
   | MessageType.playerSnapshot
   | MessageType.playerAdded
   | MessageType.playerRemoved
@@ -91,9 +90,6 @@ const socketRouter: Record<
     data: ClientMessagePlayloadByType[keyof ClientMessagePlayloadByType],
   ) => void
 > = {
-  [MessageType.sync]: (_server, sync: NilPayload) => {
-    MessageState.sync(sync.sid);
-  },
   // TODO figure out how to get rid of these explicit anys
   // deno-lint-ignore no-explicit-any
   [MessageType.playerAdded]: handlePlayerAdded as any,

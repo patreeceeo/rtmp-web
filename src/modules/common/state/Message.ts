@@ -35,10 +35,6 @@ export class MessageStateApi {
     this.#sid++;
   }
 
-  sync(sid: number) {
-    this.#sid = sid;
-  }
-
   get lastStepId() {
     return this.#sid;
   }

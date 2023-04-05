@@ -16,12 +16,6 @@ export const NetworkSystem: SystemLoader<[Options]> = (opts) => {
   function exec() {
     MessageState.incrementStepId();
     for (const client of ServerNetworkState.getClients()) {
-      sendMessageToClient(
-        client.ws,
-        MessageType.sync,
-        new NilPayload(client.nid, MessageState.lastStepId),
-      );
-
       const inactiveTime = Time.elapsed - client.lastActiveTime;
       if (inactiveTime > idleTimeout * 1000 && !client.isBeingRemoved) {
         client.isBeingRemoved = true;

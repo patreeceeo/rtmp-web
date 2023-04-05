@@ -186,7 +186,6 @@ export class ColorChangeMutable extends ColorChange implements IPayloadMutable {
 
 export enum MessageType {
   nil,
-  sync,
   playerAdded,
   playerSnapshot,
   playerRemoved,
@@ -195,7 +194,6 @@ export enum MessageType {
 }
 export type MessagePlayloadByType = {
   [MessageType.nil]: NilPayload;
-  [MessageType.sync]: NilPayload;
   [MessageType.playerAdded]: PlayerSnapshot;
   [MessageType.playerSnapshot]: PlayerSnapshot;
   [MessageType.playerRemoved]: PlayerRemove;
@@ -204,7 +202,6 @@ export type MessagePlayloadByType = {
 };
 export type MessageMutablePlayloadByType = {
   [MessageType.nil]: NilPayloadMutable;
-  [MessageType.sync]: NilPayloadMutable;
   [MessageType.playerAdded]: PlayerSnapshotMutable;
   [MessageType.playerSnapshot]: PlayerSnapshotMutable;
   [MessageType.playerRemoved]: PlayerRemoveMutable;
@@ -248,7 +245,6 @@ export interface IMessageMutable<Type extends MessageType>
 export function createPayloadMap(): MessageMutablePlayloadByType {
   return {
     [MessageType.nil]: new NilPayloadMutable(0 as NetworkId, 0),
-    [MessageType.sync]: new NilPayloadMutable(0 as NetworkId, 0),
     [MessageType.playerAdded]: new PlayerSnapshotMutable(
       new Vec2(),
       false,
