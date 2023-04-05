@@ -6,16 +6,19 @@ import {
   parseMessage,
   PlayerAdd,
   PlayerRemove,
-  serializeMessage,
 } from "~/common/Message.ts";
 import { PlayerState } from "~/common/state/Player.ts";
-import { broadcast, sendIfOpen } from "~/common/socket.ts";
 import { Time } from "~/common/state/Time.ts";
 import { TimeSystem } from "~/common/systems/Time.ts";
 import { MovementSystem } from "~/server/systems/Movement.ts";
 import { NetworkSystem } from "~/server/systems/Network.ts";
 import { Pipeline, SystemPartial } from "~/common/systems/mod.ts";
-import { broadcastMessage, ServerApp, startServer } from "~/server/mod.ts";
+import {
+  broadcastMessage,
+  sendMessageToClient,
+  ServerApp,
+  startServer,
+} from "~/server/mod.ts";
 import { WORLD_DIMENSIONS } from "../mod.ts";
 import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
@@ -67,49 +70,42 @@ class DotsServerApp implements ServerApp {
     addedPlayer.color = getRandomInt(0, 6);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
 
-    sendIfOpen(
+    sendMessageToClient(
       ws,
-      serializeMessage(
-        MessageType.playerAdded,
-        new PlayerAdd(
-          addedPlayer.position,
-          true,
-          playerNid,
-          MessageState.lastStepId,
-        ),
+      MessageType.playerAdded,
+      new PlayerAdd(
+        addedPlayer.position,
+        true,
+        playerNid,
+        MessageState.lastStepId,
       ),
     );
 
     // Tell other clients about added player
     // TODO use broadcastMessage
-    broadcast(
-      ServerNetworkState.getClientSockets(),
-      serializeMessage(
-        MessageType.playerAdded,
-        new PlayerAdd(
-          addedPlayer.position,
-          false,
-          playerNid,
-          MessageState.lastStepId,
-        ),
+    broadcastMessage(
+      MessageType.playerAdded,
+      new PlayerAdd(
+        addedPlayer.position,
+        false,
+        playerNid,
+        MessageState.lastStepId,
       ),
-      ws,
+      { exclude: ws },
     );
 
     // Catch up
     for (const eid of PlayerState.getPlayerEids()) {
       const player = PlayerState.getPlayer(eid);
       if (eid !== addedPlayer.eid) {
-        sendIfOpen(
+        sendMessageToClient(
           ws,
-          serializeMessage(
-            MessageType.playerAdded,
-            new PlayerAdd(
-              player.position,
-              false,
-              ServerNetworkState.getId(eid)!,
-              MessageState.lastStepId,
-            ),
+          MessageType.playerAdded,
+          new PlayerAdd(
+            player.position,
+            false,
+            ServerNetworkState.getId(eid)!,
+            MessageState.lastStepId,
           ),
         );
       }
@@ -154,8 +150,6 @@ const pipeline = new Pipeline([
   TimeSystem(),
   MovementSystem(),
   NetworkSystem({ idleTimeout }),
-] as Array<
-  SystemPartial
->);
+] as Array<SystemPartial>);
 pipeline.start(80);
 startServer(new DotsServerApp());
