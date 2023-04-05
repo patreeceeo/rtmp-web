@@ -80,7 +80,7 @@ export class MessageStateApi {
   #lastReceivedStepId = 0;
   #snapshotBuffer = new ArrayBuffer(1024);
   #snapshots = new MessagePriorityQueue(this.#snapshotBuffer, this.#payloadMap);
-  pushSnapshot(type: MessageType, payload: AnyMessagePayload) {
+  insertSnapshot(type: MessageType, payload: AnyMessagePayload) {
     this.#snapshots.insert(payload.sid, type, payload);
     this.#lastReceivedStepId = payload.sid;
   }

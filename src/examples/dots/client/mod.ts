@@ -117,7 +117,7 @@ function handlePlayerSnapshot(
   _server: WebSocket,
   playerSnapshot: PlayerSnapshot,
 ) {
-  MessageState.pushSnapshot(MessageType.playerSnapshot, playerSnapshot);
+  MessageState.insertSnapshot(MessageType.playerSnapshot, playerSnapshot);
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: PlayerRemove) {
   const eid = ClientNetworkState.getEntityId(playerRemove.nid);
