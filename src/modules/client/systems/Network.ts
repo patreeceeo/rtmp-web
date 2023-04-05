@@ -23,8 +23,7 @@ export const ClientNetworkSystem: SystemLoader = () => {
   return { exec };
 };
 
-// TODO make unexported
-export function sendMessageToServer<Type extends MessageType>(
+function sendMessageToServer<Type extends MessageType>(
   type: Type,
   payload: MessagePlayloadByType[Type],
 ) {

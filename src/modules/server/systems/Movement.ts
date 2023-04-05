@@ -1,5 +1,6 @@
 import { clampLine, getDistanceSquared } from "../../common/math.ts";
 import {
+  ColorChange,
   MessageType,
   PlayerMove,
   PlayerSnapshot,
@@ -22,21 +23,13 @@ function handlePlayerMove({ delta, nid, sid }: PlayerMove) {
     const timeSinceLastMove = Time.elapsed * player.lastActiveTime;
     const clamped = getDistanceSquared(origin, delta) < player.MAX_VELOCITY_SQR
       ? to
-      : clampLine(
-        origin,
-        delta,
-        player.MAX_VELOCITY * timeSinceLastMove,
-      );
+      : clampLine(origin, delta, player.MAX_VELOCITY * timeSinceLastMove);
 
     player.position.add(clamped);
     player.lastActiveTime = Time.elapsed;
     MessageState.addSnapshot(
       MessageType.playerSnapshot,
-      new PlayerSnapshot(
-        player.position,
-        nid,
-        sid,
-      ),
+      new PlayerSnapshot(player.position, nid, sid),
     );
   } else {
     console.warn(`Requested moving unknown player with nid ${nid}`);
@@ -45,8 +38,19 @@ function handlePlayerMove({ delta, nid, sid }: PlayerMove) {
 
 function exec() {
   for (const [type, payload] of MessageState.getCommands()) {
-    if (type === MessageType.playerMoved) {
-      handlePlayerMove(payload as PlayerMove);
+    switch (type) {
+      case MessageType.playerMoved:
+        handlePlayerMove(payload as PlayerMove);
+        break;
+      case MessageType.colorChange:
+        {
+          const eid = ServerNetworkState.getEntityId(payload.nid);
+          const player = PlayerState.getPlayer(eid!);
+          player.color = (payload as ColorChange).color;
+          player.lastActiveTime = Time.elapsed;
+          MessageState.addSnapshot(MessageType.colorChange, payload);
+        }
+        break;
     }
   }
 }

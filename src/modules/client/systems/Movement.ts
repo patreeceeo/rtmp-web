@@ -14,7 +14,6 @@ import { InputState } from "../../common/state/Input.ts";
 import { Time } from "../../common/state/Time.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { sendMessageToServer } from "./Network.ts";
 
 const to = new Vec2();
 
@@ -56,14 +55,14 @@ function exec() {
 
       if (InputState.isKeyPressed("KeyQ")) {
         player.color = player.color === 0 ? 6 : player.color - 1;
-        sendMessageToServer(
+        MessageState.addCommand(
           MessageType.colorChange,
           new ColorChange(player.color, nid!, MessageState.lastStepId),
         );
       }
       if (InputState.isKeyPressed("KeyE")) {
         player.color = (player.color + 1) % 6;
-        sendMessageToServer(
+        MessageState.addCommand(
           MessageType.colorChange,
           new ColorChange(player.color, nid!, MessageState.lastStepId),
         );
@@ -118,16 +117,26 @@ function applySnapshot<Type extends MessageType>(
   const eid = ClientNetworkState.getEntityId(payload.nid);
 
   switch (type) {
-    case MessageType.playerSnapshot: {
-      if (PlayerState.hasPlayer(eid!)) {
-        const player = PlayerState.getPlayer(eid!);
-        // Server sends back correct position
-        player.position.copy((payload as PlayerSnapshot).position);
-      } else {
-        console.warn(`Requested moving unknown player with nid ${payload.nid}`);
+    case MessageType.playerSnapshot:
+      {
+        if (PlayerState.hasPlayer(eid!)) {
+          const player = PlayerState.getPlayer(eid!);
+          // Server sends back correct position
+          player.position.copy((payload as PlayerSnapshot).position);
+        } else {
+          console.warn(
+            `Requested moving unknown player with nid ${payload.nid}`,
+          );
+        }
       }
       break;
-    }
+    case MessageType.colorChange:
+      {
+        const eid = ClientNetworkState.getEntityId(payload.nid);
+        const player = PlayerState.getPlayer(eid!);
+        player.color = (payload as ColorChange).color;
+      }
+      break;
   }
 }
 

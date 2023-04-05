@@ -1,12 +1,9 @@
 import {
-  ColorChange,
   createPayloadMap,
-  MessagePlayloadByType,
   MessageType,
   parseMessage,
   PlayerAdd,
   PlayerRemove,
-  PlayerSnapshot,
 } from "~/common/Message.ts";
 import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
@@ -49,18 +46,15 @@ export class DotsClientApp extends ClientApp {
   handleMessage(server: WebSocket, event: MessageEvent<any>): void {
     const [type, payload] = parseMessage(event.data, payloadMap);
 
-    if (type in socketRouter) {
-      const handler = socketRouter[
-        type as keyof typeof socketRouter
-      ];
-      handler(
-        server,
-        payload as ClientMessagePlayloadByType[
-          keyof ClientMessagePlayloadByType
-        ],
-      );
-    } else {
-      console.warn("No handler for", type);
+    switch (type) {
+      case MessageType.playerAdded:
+        handlePlayerAdded(server, payload as PlayerAdd);
+        break;
+      case MessageType.playerRemoved:
+        handlePlayerRemoved(server, payload as PlayerRemove);
+        break;
+      default:
+        MessageState.insertSnapshot(type, payload);
     }
   }
   handleKeyDown(e: KeyboardEvent): void {
@@ -74,35 +68,6 @@ export class DotsClientApp extends ClientApp {
   }
 }
 
-type ClientMessagePlayloadByType = Pick<
-  MessagePlayloadByType,
-  | MessageType.playerSnapshot
-  | MessageType.playerAdded
-  | MessageType.playerRemoved
-  | MessageType.colorChange
->;
-
-const socketRouter: Record<
-  keyof ClientMessagePlayloadByType,
-  (
-    client: WebSocket,
-    data: ClientMessagePlayloadByType[keyof ClientMessagePlayloadByType],
-  ) => void
-> = {
-  // TODO figure out how to get rid of these explicit anys
-  // deno-lint-ignore no-explicit-any
-  [MessageType.playerAdded]: handlePlayerAdded as any,
-  // deno-lint-ignore no-explicit-any
-  [MessageType.playerSnapshot]: handlePlayerSnapshot as any,
-  // deno-lint-ignore no-explicit-any
-  [MessageType.playerRemoved]: handlePlayerRemoved as any,
-  [MessageType.colorChange]: (_server, cc) => {
-    const eid = ClientNetworkState.getEntityId((cc as ColorChange).nid);
-    const player = PlayerState.getPlayer(eid!);
-    player.color = (cc as ColorChange).color;
-  },
-};
-
 function handlePlayerAdded(
   _server: WebSocket,
   { isLocal, nid, position }: PlayerAdd,
@@ -111,12 +76,6 @@ function handlePlayerAdded(
   console.log("player nid:", nid);
   player.position.copy(position);
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
-}
-function handlePlayerSnapshot(
-  _server: WebSocket,
-  playerSnapshot: PlayerSnapshot,
-) {
-  MessageState.insertSnapshot(MessageType.playerSnapshot, playerSnapshot);
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: PlayerRemove) {
   const eid = ClientNetworkState.getEntityId(playerRemove.nid);

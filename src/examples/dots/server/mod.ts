@@ -1,14 +1,11 @@
 import {
-  ColorChange,
   createPayloadMap,
-  MessagePlayloadByType,
   MessageType,
   parseMessage,
   PlayerAdd,
   PlayerRemove,
 } from "~/common/Message.ts";
 import { PlayerState } from "~/common/state/Player.ts";
-import { Time } from "~/common/state/Time.ts";
 import { TimeSystem } from "~/common/systems/Time.ts";
 import { MovementSystem } from "~/server/systems/Movement.ts";
 import { NetworkSystem } from "~/server/systems/Network.ts";
@@ -26,30 +23,6 @@ import { MessageState } from "~/common/state/Message.ts";
 const payloadMap = createPayloadMap();
 
 const idleTimeout = 60;
-
-type ServerMessagePlayloadByType = Pick<
-  MessagePlayloadByType,
-  MessageType.playerMoved | MessageType.colorChange
->;
-
-const socketRouter: Record<
-  keyof ServerMessagePlayloadByType,
-  (
-    client: WebSocket,
-    data: ServerMessagePlayloadByType[keyof ServerMessagePlayloadByType],
-  ) => void
-> = {
-  [MessageType.playerMoved]: (_ws, move) => {
-    MessageState.addCommand(MessageType.playerMoved, move);
-  },
-  [MessageType.colorChange]: (ws, cc) => {
-    const eid = ServerNetworkState.getEntityId(cc.nid);
-    const player = PlayerState.getPlayer(eid!);
-    player.color = (cc as ColorChange).color;
-    player.lastActiveTime = Time.elapsed;
-    broadcastMessage(MessageType.colorChange, cc, { exclude: ws });
-  },
-};
 
 function getRandomInt(min: number, max: number) {
   return Math.round(Math.random() * max) + min;
@@ -129,20 +102,9 @@ class DotsServerApp implements ServerApp {
     console.error("Error!", message);
   }
 
-  handleMessage(client: WebSocket, message: MessageEvent) {
+  handleMessage(_client: WebSocket, message: MessageEvent) {
     const [type, payload] = parseMessage(message.data, payloadMap);
-
-    if (type in socketRouter) {
-      const handler = socketRouter[type as keyof typeof socketRouter];
-      handler(
-        client,
-        payload as ServerMessagePlayloadByType[
-          keyof ServerMessagePlayloadByType
-        ],
-      );
-    } else {
-      console.warn("No handler for message type", type);
-    }
+    MessageState.addCommand(type, payload);
   }
 }
 
