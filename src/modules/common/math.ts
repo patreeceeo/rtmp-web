@@ -4,6 +4,10 @@ export function getDistanceSquared(a: Vec2, b: Vec2) {
   return Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2);
 }
 
+function isAlmostZero(n: number) {
+  return Math.abs(n) <= Number.EPSILON;
+}
+
 export function clampLine(
   start: Vec2,
   end: Vec2,
@@ -15,17 +19,27 @@ export function clampLine(
   const dy = y2 - y1;
 
   // Special case: start and end points are the same
-  if (dx === 0 && dy === 0) {
+  if (isAlmostZero(dx) && isAlmostZero(dy)) {
     return new Vec2(x1, y1);
   }
 
   // Calculate the distance between start and end points
-  const length = Math.sqrt(dx * dx + dy * dy);
+  const lengthSquared = dx * dx + dy * dy;
 
   // Special case: start and end points are too close
-  if (length <= maxLength) {
+  if (lengthSquared <= maxLength * maxLength) {
     return new Vec2(x2, y2);
   }
+
+  if (isAlmostZero(dx)) {
+    return new Vec2(x1, y1 + Math.min(Math.abs(dy), maxLength) * Math.sign(dy));
+  }
+
+  if (isAlmostZero(dy)) {
+    return new Vec2(x1 + Math.min(Math.abs(dx), maxLength) * Math.sign(dx), dy);
+  }
+
+  const length = Math.sqrt(lengthSquared);
 
   // Calculate the new point that is maxLength away from start in the direction of end
   const newX = x1 + dx * maxLength / length;
