@@ -17,27 +17,27 @@ Deno.test("Message unsent buffer", () => {
   const state = new MessageStateApi(5);
   const cmds: Array<number> = [];
 
-  state.pushUnsentCommand(
+  state.addCommand(
     MessageType.nil,
     new NilPayload(networkId(0), 0),
   );
-  state.pushUnsentCommand(
+  state.addCommand(
     MessageType.nil,
     new NilPayload(networkId(1), 0),
   );
-  state.pushUnsentCommand(
+  state.addCommand(
     MessageType.nil,
     new NilPayload(networkId(2), 0),
   );
 
-  for (const [_, payload] of state.getUnsentCommands()) {
+  for (const [_, payload] of state.getCommands()) {
     cmds.push(payload.nid);
   }
 
   assertEquals(cmds, [0, 1, 2]);
   cmds.length = 0;
 
-  for (const [_, payload] of state.getUnsentCommands()) {
+  for (const [_, payload] of state.getCommands()) {
     cmds.push(payload.nid);
   }
 
@@ -45,16 +45,16 @@ Deno.test("Message unsent buffer", () => {
   cmds.length = 0;
 
   state.incrementStepId();
-  for (const [_, payload] of state.getUnsentCommands()) {
+  for (const [_, payload] of state.getCommands()) {
     cmds.push(payload.nid);
   }
   assertEquals(cmds.length, 0);
 
-  state.pushUnsentCommand(
+  state.addCommand(
     MessageType.nil,
     new NilPayload(networkId(3), 1),
   );
-  for (const [_, payload] of state.getUnsentCommands()) {
+  for (const [_, payload] of state.getCommands()) {
     cmds.push(payload.nid);
   }
   assertEquals(cmds, [3]);
@@ -64,29 +64,29 @@ Deno.test("Message get commands sent after sid", () => {
   const state = new MessageStateApi(5);
   const cmds: Array<number> = [];
 
-  state.pushUnsentCommand(
+  state.addCommand(
     MessageType.nil,
     new NilPayload(networkId(0), 0),
   );
 
   state.incrementStepId();
-  state.pushUnsentCommand(
+  state.addCommand(
     MessageType.nil,
     new NilPayload(networkId(1), 1),
   );
 
   state.incrementStepId();
-  state.pushUnsentCommand(
+  state.addCommand(
     MessageType.nil,
     new NilPayload(networkId(2), 2),
   );
-  state.pushUnsentCommand(
+  state.addCommand(
     MessageType.nil,
     new NilPayload(networkId(3), 2),
   );
 
   state.incrementStepId();
-  state.pushUnsentCommand(
+  state.addCommand(
     MessageType.nil,
     new NilPayload(networkId(4), 3),
   );

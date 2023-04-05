@@ -1,12 +1,10 @@
-import { DataViewMovable } from "../../common/DataView.ts";
 import {
   AnyMessagePayload,
   createPayloadMap,
   MessageType,
-  readMessage,
-  writeMessage,
 } from "../../common/Message.ts";
 import { MessagePriorityQueue } from "../MessagePriorityQueue.ts";
+import { isClient } from "~/common/env.ts";
 
 /**
  * What is this ugly monster? It's covering multiple seperate but intimately related
@@ -37,6 +35,10 @@ export class MessageStateApi {
     this.#sid++;
   }
 
+  sync(sid: number) {
+    this.#sid = sid;
+  }
+
   get lastStepId() {
     return this.#sid;
   }
@@ -53,8 +55,8 @@ export class MessageStateApi {
     return this.#lastReceivedStepId;
   }
 
-  pushUnsentCommand(type: MessageType, payload: AnyMessagePayload) {
-    if (payload.sid !== this.#sid) {
+  addCommand(type: MessageType, payload: AnyMessagePayload) {
+    if (payload.sid !== this.#sid && isClient) {
       // TODO should sid become parameter to writeMessage?
       throw new Error(
         `Step ID of pushed message does not match current step ID. Offender: ${
@@ -62,10 +64,10 @@ export class MessageStateApi {
         }, current Step ID: ${this.#sid}`,
       );
     }
-    this.#commands.insert(payload.sid, type, payload);
+    this.#commands.insert(this.#sid, type, payload);
   }
 
-  getUnsentCommands(): Generator<[MessageType, AnyMessagePayload]> {
+  getCommands(): Generator<[MessageType, AnyMessagePayload]> {
     return this.#commands.at(this.#sid);
   }
 

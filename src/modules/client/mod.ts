@@ -1,9 +1,3 @@
-import {
-  AnyMessagePayload,
-  MessageType,
-  serializeMessage,
-} from "../common/Message.ts";
-import { sendIfOpen } from "../common/socket.ts";
 import { ClientNetworkState } from "./state/Network.ts";
 
 export abstract class ClientApp {
@@ -58,13 +52,4 @@ export function startClient(app: ClientApp) {
   window.onkeydown = (e) => app.handleKeyDown(e);
   window.onkeyup = (e) => app.handleKeyUp(e);
   window.onblur = () => app.handleIdle();
-}
-
-// TODO move to Network system and make unexported
-export function sendMessageToServer(
-  type: MessageType,
-  payload: AnyMessagePayload,
-) {
-  const socket = ClientNetworkState.maybeSocket!;
-  sendIfOpen(socket, serializeMessage(type, payload));
 }

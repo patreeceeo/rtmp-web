@@ -4,7 +4,6 @@ import {
   MessagePlayloadByType,
   MessageType,
   parseMessage,
-  PlayerMove,
   PlayerRemove,
   PlayerSnapshot,
   serializeMessage,
@@ -13,10 +12,7 @@ import { PlayerState } from "~/common/state/Player.ts";
 import { broadcast, sendIfOpen } from "~/common/socket.ts";
 import { Time } from "~/common/state/Time.ts";
 import { TimeSystem } from "~/common/systems/Time.ts";
-import {
-  addPlayerMoveFromClient,
-  MovementSystem,
-} from "~/server/systems/Movement.ts";
+import { MovementSystem } from "~/server/systems/Movement.ts";
 import { NetworkSystem } from "~/server/systems/Network.ts";
 import { Pipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { broadcastMessage, ServerApp, startServer } from "~/server/mod.ts";
@@ -40,8 +36,8 @@ const socketRouter: Record<
     data: ServerMessagePlayloadByType[keyof ServerMessagePlayloadByType],
   ) => void
 > = {
-  [MessageType.playerMoved]: (ws, move) => {
-    addPlayerMoveFromClient(move as PlayerMove, ws);
+  [MessageType.playerMoved]: (_ws, move) => {
+    MessageState.addCommand(MessageType.playerMoved, move);
   },
   [MessageType.colorChange]: (ws, cc) => {
     const eid = ServerNetworkState.getEntityId(cc.nid);

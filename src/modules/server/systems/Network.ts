@@ -1,9 +1,9 @@
-import { MessageType, PlayerRemove } from "~/common/Message.ts";
+import { MessageType, NilPayload, PlayerRemove } from "~/common/Message.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { Time } from "~/common/state/Time.ts";
 import { SystemLoader } from "~/common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { broadcastMessage } from "../mod.ts";
+import { broadcastMessage, sendMessageToClient } from "../mod.ts";
 import { ServerNetworkState } from "../state/Network.ts";
 
 interface Options {
@@ -16,6 +16,12 @@ export const NetworkSystem: SystemLoader<[Options]> = (opts) => {
   function exec() {
     MessageState.incrementStepId();
     for (const client of ServerNetworkState.getClients()) {
+      sendMessageToClient(
+        client.ws,
+        MessageType.sync,
+        new NilPayload(client.nid, MessageState.lastStepId),
+      );
+
       const inactiveTime = Time.elapsed - client.lastActiveTime;
       if (inactiveTime > idleTimeout * 1000 && !client.isBeingRemoved) {
         client.isBeingRemoved = true;

@@ -1,8 +1,12 @@
 import { SystemLoader } from "../../common/systems/mod.ts";
-import { sendMessageToServer } from "../mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { MessagePlayloadByType, MessageType } from "../../common/Message.ts";
+import {
+  MessagePlayloadByType,
+  MessageType,
+  serializeMessage,
+} from "../../common/Message.ts";
 import { ClientNetworkState } from "../state/Network.ts";
+import { sendIfOpen } from "../../common/socket.ts";
 
 interface Config {
   applyCommand: <Type extends MessageType>(
@@ -20,7 +24,7 @@ export const ClientNetworkSystem: SystemLoader<[Config]> = (
 ) => {
   function exec() {
     // TODO if there are no commands to send, maybe we don't need to increment step ID?
-    for (const [type, payload] of MessageState.getUnsentCommands()) {
+    for (const [type, payload] of MessageState.getCommands()) {
       sendMessageToServer(
         type,
         payload,
@@ -54,3 +58,12 @@ export const ClientNetworkSystem: SystemLoader<[Config]> = (
   }
   return { exec };
 };
+
+// TODO make unexported
+export function sendMessageToServer<Type extends MessageType>(
+  type: Type,
+  payload: MessagePlayloadByType[Type],
+) {
+  const socket = ClientNetworkState.maybeSocket!;
+  sendIfOpen(socket, serializeMessage(type, payload));
+}

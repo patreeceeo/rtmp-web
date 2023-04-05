@@ -2,22 +2,20 @@ import { clampLine, getDistanceSquared } from "../../common/math.ts";
 import {
   MessageType,
   PlayerMove,
-  PlayerMoveMutable,
   PlayerSnapshot,
 } from "../../common/Message.ts";
-import { RingBuffer } from "../../common/RingBuffer.ts";
-import { NetworkId } from "../../common/state/Network.ts";
+import { MessageState } from "../../common/state/Message.ts";
 import { PlayerState } from "../../common/state/Player.ts";
 import { Time } from "../../common/state/Time.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { Vec2 } from "../../common/Vec2.ts";
 import { ServerNetworkState } from "../../server/state/Network.ts";
-import { broadcastMessage, sendMessageToClient } from "../mod.ts";
+import { sendMessageToClient } from "../mod.ts";
 
 const origin = Object.freeze(new Vec2(0, 0));
 
 /** authoritative */
-function handlePlayerMove(delta: Vec2, nid: NetworkId, sid: number) {
+function handlePlayerMove({ delta, nid, sid }: PlayerMove) {
   const eid = ServerNetworkState.getEntityId(nid);
   if (PlayerState.hasPlayer(eid!)) {
     const player = PlayerState.getPlayer(eid!);
@@ -51,15 +49,11 @@ function handlePlayerMove(delta: Vec2, nid: NetworkId, sid: number) {
 }
 
 function exec() {
-  for (
-    const move of serverBuffer.values(
-      serverBuffer.readIndex,
-      serverBuffer.writeIndex,
-    )
-  ) {
-    handlePlayerMove(move.delta, move.nid, move.sid);
+  for (const [type, payload] of MessageState.getCommands()) {
+    if (type === MessageType.playerMoved) {
+      handlePlayerMove(payload as PlayerMove);
+    }
   }
-  serverBuffer.readIndex = serverBuffer.writeIndex;
 }
 
 export const MovementSystem: SystemLoader = () => {
@@ -67,16 +61,3 @@ export const MovementSystem: SystemLoader = () => {
 };
 
 const to = new Vec2();
-
-/** moves received by server but yet to be processed */
-const serverBuffer = new RingBuffer<PlayerMove, PlayerMoveMutable>(
-  () => new PlayerMoveMutable(new Vec2(), 0 as NetworkId, 0),
-  10,
-);
-
-export function addPlayerMoveFromClient(move: PlayerMove, ws: WebSocket) {
-  const client = ServerNetworkState.getClientForSocket(ws)!;
-  if (client.hasNetworkId(move.nid)) {
-    serverBuffer.put().copy(move);
-  }
-}

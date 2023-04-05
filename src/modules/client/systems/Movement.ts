@@ -3,13 +3,12 @@ import { WORLD_DIMENSIONS } from "../../../examples/dots/mod.ts";
 import { ClientNetworkState } from "../../client/state/Network.ts";
 import { ColorChange, MessageType, PlayerMove } from "~/common/Message.ts";
 import { Vec2 } from "../../common/Vec2.ts";
-import { NetworkId } from "../../common/state/Network.ts";
 import { PlayerState } from "../../common/state/Player.ts";
 import { InputState } from "../../common/state/Input.ts";
 import { Time } from "../../common/state/Time.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
-import { sendMessageToServer } from "../mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
+import { sendMessageToServer } from "./Network.ts";
 
 const to = new Vec2();
 
@@ -46,7 +45,7 @@ function exec() {
       if (dx !== 0 || dy !== 0) {
         to.set(dx, dy);
         const move = new PlayerMove(to, nid!, MessageState.lastStepId);
-        MessageState.pushUnsentCommand(MessageType.playerMoved, move);
+        MessageState.addCommand(MessageType.playerMoved, move);
       }
 
       if (InputState.isKeyPressed("KeyQ")) {
