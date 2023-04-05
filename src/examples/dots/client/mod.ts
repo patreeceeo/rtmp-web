@@ -137,48 +137,10 @@ function drawPlayers(ctx: CanvasRenderingContext2D) {
   }
 }
 
-function applyCommand<Type extends MessageType>(
-  type: Type,
-  payload: MessagePlayloadByType[Type],
-) {
-  const eid = ClientNetworkState.getEntityId(payload.nid);
-
-  switch (type) {
-    case MessageType.playerMoved: {
-      if (PlayerState.hasPlayer(eid!)) {
-        const player = PlayerState.getPlayer(eid!);
-        player.position.add((payload as PlayerMove).delta);
-      }
-      break;
-    }
-  }
-}
-
-/** authoritative */
-function applySnapshot<Type extends MessageType>(
-  type: Type,
-  payload: MessagePlayloadByType[Type],
-) {
-  const eid = ClientNetworkState.getEntityId(payload.nid);
-
-  switch (type) {
-    case MessageType.playerSnapshot: {
-      if (PlayerState.hasPlayer(eid!)) {
-        const player = PlayerState.getPlayer(eid!);
-        // Server sends back correct position
-        player.position.copy((payload as PlayerSnapshot).position);
-      } else {
-        console.warn(`Requested moving unknown player with nid ${payload.nid}`);
-      }
-      break;
-    }
-  }
-}
-
 const pipeline = new Pipeline([
   TimeSystem(),
   ClientMovementSystem(),
-  ClientNetworkSystem({ applyCommand, applySnapshot }),
+  ClientNetworkSystem(),
 ] as Array<SystemPartial>);
 
 pipeline.start(80);

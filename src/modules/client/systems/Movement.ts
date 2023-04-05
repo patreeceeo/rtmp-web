@@ -1,7 +1,13 @@
 // TODO make this an option arg
 import { WORLD_DIMENSIONS } from "../../../examples/dots/mod.ts";
 import { ClientNetworkState } from "../../client/state/Network.ts";
-import { ColorChange, MessageType, PlayerMove } from "~/common/Message.ts";
+import {
+  ColorChange,
+  MessagePlayloadByType,
+  MessageType,
+  PlayerMove,
+  PlayerSnapshot,
+} from "~/common/Message.ts";
 import { Vec2 } from "../../common/Vec2.ts";
 import { PlayerState } from "../../common/state/Player.ts";
 import { InputState } from "../../common/state/Input.ts";
@@ -62,6 +68,67 @@ function exec() {
           new ColorChange(player.color, nid!, MessageState.lastStepId),
         );
       }
+    }
+  }
+
+  const lastReceivedSid = MessageState.lastReceivedStepId;
+  for (
+    const [snapshotType, snapshotPayload] of MessageState.getSnapshotSlice(
+      lastReceivedSid,
+      lastReceivedSid,
+    )
+  ) {
+    applySnapshot(snapshotType, snapshotPayload);
+    if (lastReceivedSid < MessageState.lastSentStepId) {
+      for (
+        const [type, payload] of MessageState.getCommandSlice(
+          MessageState.lastReceivedStepId + 1,
+          MessageState.lastSentStepId,
+        )
+      ) {
+        if (ClientNetworkState.isLocal(payload.nid)) {
+          // predict that the server will accept our moves
+          applyCommand(type, payload);
+        }
+      }
+    }
+  }
+}
+
+function applyCommand<Type extends MessageType>(
+  type: Type,
+  payload: MessagePlayloadByType[Type],
+) {
+  const eid = ClientNetworkState.getEntityId(payload.nid);
+
+  switch (type) {
+    case MessageType.playerMoved: {
+      if (PlayerState.hasPlayer(eid!)) {
+        const player = PlayerState.getPlayer(eid!);
+        player.position.add((payload as PlayerMove).delta);
+      }
+      break;
+    }
+  }
+}
+
+/** authoritative */
+function applySnapshot<Type extends MessageType>(
+  type: Type,
+  payload: MessagePlayloadByType[Type],
+) {
+  const eid = ClientNetworkState.getEntityId(payload.nid);
+
+  switch (type) {
+    case MessageType.playerSnapshot: {
+      if (PlayerState.hasPlayer(eid!)) {
+        const player = PlayerState.getPlayer(eid!);
+        // Server sends back correct position
+        player.position.copy((payload as PlayerSnapshot).position);
+      } else {
+        console.warn(`Requested moving unknown player with nid ${payload.nid}`);
+      }
+      break;
     }
   }
 }
