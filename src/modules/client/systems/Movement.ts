@@ -82,7 +82,7 @@ function exec() {
     if (lastReceivedSid < MessageState.lastSentStepId) {
       for (
         const [type, payload] of MessageState.getCommandSlice(
-          MessageState.lastReceivedStepId + 1,
+          lastReceivedSid + 1,
           MessageState.lastSentStepId,
         )
       ) {
