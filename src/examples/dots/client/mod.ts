@@ -3,10 +3,8 @@ import {
   createPayloadMap,
   MessagePlayloadByType,
   MessageType,
-  NilPayload,
   parseMessage,
   PlayerAdd,
-  PlayerMove,
   PlayerRemove,
   PlayerSnapshot,
 } from "~/common/Message.ts";
