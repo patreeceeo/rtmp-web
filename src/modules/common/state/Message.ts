@@ -91,6 +91,13 @@ export class MessageStateApi {
   ) {
     return this.#snapshots.slice(startSid, endSid);
   }
+
+  getLastSnapshots() {
+    return this.#snapshots.slice(
+      this.#lastReceivedStepId,
+      this.lastReceivedStepId,
+    );
+  }
 }
 
 export const MessageState = new MessageStateApi(100);

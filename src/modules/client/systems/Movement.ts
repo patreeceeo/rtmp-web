@@ -72,18 +72,16 @@ function exec() {
   }
 
   const lastReceivedSid = MessageState.lastReceivedStepId;
+  const lastSentSid = MessageState.lastSentStepId;
   for (
-    const [snapshotType, snapshotPayload] of MessageState.getSnapshotSlice(
-      lastReceivedSid,
-      lastReceivedSid,
-    )
+    const [snapshotType, snapshotPayload] of MessageState.getLastSnapshots()
   ) {
     applySnapshot(snapshotType, snapshotPayload);
-    if (lastReceivedSid < MessageState.lastSentStepId) {
+    if (lastReceivedSid < lastSentSid) {
       for (
         const [type, payload] of MessageState.getCommandSlice(
           lastReceivedSid + 1,
-          MessageState.lastSentStepId,
+          lastSentSid,
         )
       ) {
         if (ClientNetworkState.isLocal(payload.nid)) {
