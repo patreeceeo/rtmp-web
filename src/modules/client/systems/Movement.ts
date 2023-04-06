@@ -9,11 +9,14 @@ import {
   PlayerSnapshot,
 } from "~/common/Message.ts";
 import { Vec2 } from "../../common/Vec2.ts";
-import { PlayerState } from "../../common/state/Player.ts";
+import { ColorId, PlayerState } from "../../common/state/Player.ts";
 import { InputState } from "../../common/state/Input.ts";
 import { Time } from "../../common/state/Time.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
+import { clampLine } from "../../common/math.ts";
+import { Tween, TweenState, TweenType } from "../state/Tween.ts";
+import { EntityId } from "../../common/state/mod.ts";
 
 const to = new Vec2();
 
@@ -72,9 +75,12 @@ function exec() {
 
   const lastReceivedSid = MessageState.lastReceivedStepId;
   const lastSentSid = MessageState.lastSentStepId;
-  for (
-    const [snapshotType, snapshotPayload] of MessageState.getLastSnapshots()
-  ) {
+  const localEntitySnapshots = MessageState.getSnapshots(
+    lastReceivedSid,
+    lastReceivedSid,
+    (_type, payload) => ClientNetworkState.isLocal(payload.nid),
+  );
+  for (const [snapshotType, snapshotPayload] of localEntitySnapshots) {
     applySnapshot(snapshotType, snapshotPayload);
     if (lastReceivedSid < lastSentSid) {
       for (
@@ -83,11 +89,43 @@ function exec() {
           lastSentSid,
         )
       ) {
-        if (ClientNetworkState.isLocal(payload.nid)) {
-          // predict that the server will accept our moves
-          applyCommand(type, payload);
-        }
+        // predict that the server will accept our moves
+        applyCommand(type, payload);
       }
+    }
+  }
+
+  const remoteEntitySnapshots = MessageState.getSnapshots(
+    lastReceivedSid,
+    lastReceivedSid,
+    (_type, payload) => !ClientNetworkState.isLocal(payload.nid),
+  );
+
+  for (const [type, payload] of remoteEntitySnapshots) {
+    const eid = ClientNetworkState.getEntityId(payload.nid)!;
+    const tweenType = message2TweenType(type);
+    if (!TweenState.has(eid, TweenType.position)) {
+      TweenState.set(new Tween(eid, tweenType));
+    }
+    TweenState.get(eid, tweenType).setEnd(message2TweenData(type, payload));
+  }
+
+  for (const tween of TweenState.byType(TweenType.position)) {
+    if (tween.end) {
+      const player = PlayerState.getPlayer(tween.eid);
+      const mid = clampLine(
+        player.position,
+        tween.end,
+        player.MAX_VELOCITY * Time.delta,
+      );
+      if (player) {
+        player.position.copy(mid);
+      }
+    }
+  }
+  for (const tween of TweenState.byType(TweenType.color)) {
+    if (tween.end) {
+      applyColor(tween.eid, tween.end);
     }
   }
 }
@@ -114,13 +152,13 @@ function applySnapshot<Type extends MessageType>(
   type: Type,
   payload: MessagePlayloadByType[Type],
 ) {
-  const eid = ClientNetworkState.getEntityId(payload.nid);
+  const eid = ClientNetworkState.getEntityId(payload.nid)!;
 
   switch (type) {
     case MessageType.playerSnapshot:
       {
-        if (PlayerState.hasPlayer(eid!)) {
-          const player = PlayerState.getPlayer(eid!);
+        if (PlayerState.hasPlayer(eid)) {
+          const player = PlayerState.getPlayer(eid);
           // Server sends back correct position
           player.position.copy((payload as PlayerSnapshot).position);
         } else {
@@ -132,11 +170,38 @@ function applySnapshot<Type extends MessageType>(
       break;
     case MessageType.colorChange:
       {
-        const eid = ClientNetworkState.getEntityId(payload.nid);
-        const player = PlayerState.getPlayer(eid!);
-        player.color = (payload as ColorChange).color;
+        applyColor(eid, (payload as ColorChange).color);
       }
       break;
+  }
+}
+
+function applyColor(eid: EntityId, color: ColorId) {
+  const player = PlayerState.getPlayer(eid!);
+  player.color = color;
+}
+
+function message2TweenType<Type extends MessageType>(type: Type) {
+  switch (type) {
+    case MessageType.playerSnapshot:
+      return TweenType.position;
+    case MessageType.colorChange:
+      return TweenType.color;
+    default:
+      throw new Error("unhandled case");
+  }
+}
+function message2TweenData<Type extends MessageType>(
+  type: Type,
+  payload: MessagePlayloadByType[Type],
+) {
+  switch (type) {
+    case MessageType.playerSnapshot:
+      return (payload as PlayerSnapshot).position;
+    case MessageType.colorChange:
+      return (payload as ColorChange).color;
+    default:
+      throw new Error("unhandled case");
   }
 }
 
