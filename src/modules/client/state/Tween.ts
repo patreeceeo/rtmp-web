@@ -17,11 +17,12 @@ const IsActiveStore = ECS.defineComponent();
 
 interface TweenConstructor<Type extends TweenType> {
   new (eid: EntityId): Tween<Type>;
-  store: ECS.ComponentType<ECS.ISchema>;
+  readonly store: ECS.ComponentType<ECS.ISchema>;
 }
 interface Tween<Type extends TweenType> {
+  readonly eid: EntityId;
   setEnd(data: TweenDataByType[Type]): void;
-  end: TweenDataByType[Type];
+  readonly end: TweenDataByType[Type];
 }
 class ColorTween implements Tween<TweenType.color> {
   static readonly store = ECS.defineComponent({ value: ECS.Types.ui8 });
