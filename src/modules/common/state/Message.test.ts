@@ -1,7 +1,7 @@
 import { MessageStateApi } from "./Message.ts";
 import { assertEquals } from "asserts";
 import { MessageType, NilPayload } from "../../common/Message.ts";
-import { NetworkId, networkId } from "../../common/state/Network.ts";
+import { networkId } from "../../common/state/Network.ts";
 
 Deno.test("Message sid", () => {
   const state = new MessageStateApi();
