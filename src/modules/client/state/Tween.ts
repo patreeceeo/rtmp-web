@@ -13,49 +13,51 @@ export type TweenDataByType = {
   [TweenType.color]: ColorId;
 };
 
-const PositionStore = ECS.defineComponent(Vec2Type);
-const ColorStore = ECS.defineComponent({ value: ECS.Types.ui8 });
 const IsActiveStore = ECS.defineComponent();
 
-function getStore(type: TweenType) {
-  switch (type) {
-    case TweenType.position:
-      return PositionStore;
-    case TweenType.color:
-      return ColorStore;
+interface TweenConstructor<Type extends TweenType> {
+  new (eid: EntityId): Tween<Type>;
+  store: ECS.ComponentType<ECS.ISchema>;
+}
+interface Tween<Type extends TweenType> {
+  setEnd(data: TweenDataByType[Type]): void;
+  end: TweenDataByType[Type];
+}
+class ColorTween implements Tween<TweenType.color> {
+  static readonly store = ECS.defineComponent({ value: ECS.Types.ui8 });
+  readonly type = TweenType.color;
+  constructor(readonly eid: EntityId) {
+  }
+
+  setEnd(color: ColorId) {
+    ColorTween.store.value[this.eid] = color;
+  }
+
+  get end(): ColorId {
+    return ColorTween.store.value[this.eid];
   }
 }
 
-class Tween<Type extends TweenType> {
-  #endPosition: Vec2;
+class PositionTween implements Tween<TweenType.position> {
+  static readonly store = ECS.defineComponent(Vec2Type);
+  readonly type = TweenType.position;
+  #end: Vec2;
 
-  constructor(readonly eid: EntityId, readonly type: Type) {
-    this.#endPosition = Vec2.fromEntityComponent(eid, PositionStore);
+  constructor(readonly eid: EntityId) {
+    this.#end = Vec2.fromEntityComponent(eid, PositionTween.store);
   }
 
-  setEnd(data: TweenDataByType[Type] | undefined) {
-    switch (this.type) {
-      case TweenType.position:
-        this.#endPosition.copy(data as Vec2);
-        break;
-      case TweenType.color:
-        ColorStore.value[this.eid] = data as number;
-        break;
-    }
+  setEnd(data: Vec2) {
+    this.#end.copy(data as Vec2);
   }
-  get end(): TweenDataByType[Type] {
-    switch (this.type) {
-      case TweenType.position:
-        return this.#endPosition as TweenDataByType[Type];
-      case TweenType.color:
-        // TODO I just can't right now
-        // deno-lint-ignore no-explicit-any
-        return ColorStore.value[this.eid] as any;
-      default:
-        throw new Error("unhandled case");
-    }
+  get end(): Vec2 {
+    return this.#end;
   }
 }
+
+const klassMap: Map<TweenType, TweenConstructor<TweenType>> = new Map();
+klassMap.set(TweenType.color, ColorTween);
+klassMap.set(TweenType.position, PositionTween);
 
 class TweenStateApi {
   #world = defaultWorld;
@@ -64,12 +66,13 @@ class TweenStateApi {
     [TweenType.color]: {},
   };
   #queries = {
-    [TweenType.position]: ECS.defineQuery([IsActiveStore, PositionStore]),
-    [TweenType.color]: ECS.defineQuery([IsActiveStore, ColorStore]),
+    [TweenType.position]: ECS.defineQuery([IsActiveStore, PositionTween.store]),
+    [TweenType.color]: ECS.defineQuery([IsActiveStore, ColorTween.store]),
   };
   add(eid: EntityId, type: TweenType) {
-    ECS.addComponent(this.#world, getStore(type), eid);
-    this.#map[type][eid] = new Tween(eid, type);
+    const Klass = klassMap.get(type)!;
+    ECS.addComponent(this.#world, Klass.store, eid);
+    this.#map[type][eid] = new Klass(eid);
   }
   activate<Type extends TweenType>(
     eid: EntityId,
@@ -86,7 +89,7 @@ class TweenStateApi {
     return this.#map[type][eid] as Tween<Type>;
   }
   has(eid: EntityId, type: TweenType) {
-    return ECS.hasComponent(this.#world, getStore(type), eid);
+    return ECS.hasComponent(this.#world, klassMap.get(type)!.store, eid);
   }
   *getActive<Type extends TweenType>(type: Type): Generator<Tween<Type>> {
     const query = this.#queries[type];
