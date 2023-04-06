@@ -36,7 +36,7 @@ export function clampLine(
   }
 
   if (isAlmostZero(dy)) {
-    return new Vec2(x1 + Math.min(Math.abs(dx), maxLength) * Math.sign(dx), dy);
+    return new Vec2(x1 + Math.min(Math.abs(dx), maxLength) * Math.sign(dx), y1);
   }
 
   const length = Math.sqrt(lengthSquared);
