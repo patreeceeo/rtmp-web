@@ -13,8 +13,6 @@ export type TweenDataByType = {
   [TweenType.color]: ColorId;
 };
 
-const IsActiveStore = ECS.defineComponent();
-
 interface TweenConstructor<Type extends TweenType> {
   new (eid: EntityId): Tween<Type>;
   readonly store: ECS.ComponentType<ECS.ISchema>;
@@ -67,12 +65,11 @@ class TweenStateApi {
     [TweenType.color]: {},
   };
   #queries = {
-    [TweenType.position]: ECS.defineQuery([IsActiveStore, PositionTween.store]),
-    [TweenType.color]: ECS.defineQuery([IsActiveStore, ColorTween.store]),
+    [TweenType.position]: ECS.defineQuery([PositionTween.store]),
+    [TweenType.color]: ECS.defineQuery([ColorTween.store]),
   };
   add(eid: EntityId, type: TweenType) {
     const Klass = klassMap.get(type)!;
-    ECS.addComponent(this.#world, Klass.store, eid);
     this.#map[type][eid] = new Klass(eid);
   }
   activate<Type extends TweenType>(
@@ -80,17 +77,17 @@ class TweenStateApi {
     type: Type,
     end: TweenDataByType[Type],
   ) {
-    ECS.addComponent(this.#world, IsActiveStore, eid);
     this.#map[type][eid].setEnd(end);
+    ECS.addComponent(this.#world, klassMap.get(type)!.store, eid);
   }
-  deactivate(eid: EntityId) {
-    ECS.removeComponent(this.#world, IsActiveStore, eid);
+  deactivate(eid: EntityId, type: TweenType) {
+    ECS.removeComponent(this.#world, klassMap.get(type)!, eid);
   }
   get<Type extends TweenType>(eid: EntityId, type: Type): Tween<Type> {
     return this.#map[type][eid] as Tween<Type>;
   }
   has(eid: EntityId, type: TweenType) {
-    return ECS.hasComponent(this.#world, klassMap.get(type)!.store, eid);
+    return !!this.get(eid, type);
   }
   *getActive<Type extends TweenType>(type: Type): Generator<Tween<Type>> {
     const query = this.#queries[type];
