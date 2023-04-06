@@ -12,22 +12,26 @@ export class Vec2 {
     this.y = src.y;
   }
   clone() {
-    const clone = new Vec2()
-    clone.copy(this)
-    return clone
+    const clone = new Vec2();
+    clone.copy(this);
+    return clone;
   }
   add(d: Vec2) {
     this.x += d.x;
     this.y += d.y;
   }
 
-  get snapshot () {
-    return { x: this.x, y: this.y }
+  get snapshot() {
+    return { x: this.x, y: this.y };
+  }
+
+  equals(other: Vec2) {
+    return this.x === other.x && this.y === other.y;
   }
 
   applySnapshot(snap: typeof this.snapshot) {
-    this.x = snap.x
-    this.y = snap.y
+    this.x = snap.x;
+    this.y = snap.y;
   }
   static fromEntityComponent(
     eid: EntityId,
