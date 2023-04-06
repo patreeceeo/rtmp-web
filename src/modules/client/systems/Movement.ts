@@ -81,17 +81,18 @@ function exec() {
       lastReceivedSid,
       (_type, payload) => ClientNetworkState.isLocal(payload.nid),
     );
+
     for (const [snapshotType, snapshotPayload] of localEntitySnapshots) {
       applySnapshot(snapshotType, snapshotPayload);
-      for (
-        const [type, payload] of MessageState.getCommandSlice(
-          lastReceivedSid + 1,
-          lastSentSid,
-        )
-      ) {
-        // predict that the server will accept our moves
-        applyCommand(type, payload);
-      }
+    }
+    for (
+      const [type, payload] of MessageState.getCommandSlice(
+        lastReceivedSid + 1,
+        lastSentSid,
+      )
+    ) {
+      // predict that the server will accept our moves
+      applyCommand(type, payload);
     }
   }
 
