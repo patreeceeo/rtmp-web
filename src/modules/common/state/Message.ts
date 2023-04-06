@@ -26,8 +26,6 @@ export class MessageStateApi {
   #sid = 0;
   #lastSentStepId = 0;
 
-  constructor(readonly MAX_LAG: number) {}
-
   /** Increment the ID number used to identify executions of the fixed pipeline.
    * Note: even if called every milisecond, it would take ~571,233 years for this
    * number to exceed Number.MAX_SAFE_INTEGER
@@ -111,13 +109,6 @@ export class MessageStateApi {
   getSnapshotSlice(startSid: number, endSid: number) {
     return this.#snapshots.slice(startSid, endSid);
   }
-
-  getLastSnapshots() {
-    return this.#snapshots.slice(
-      this.#lastReceivedStepId,
-      this.#lastReceivedStepId,
-    );
-  }
 }
 
-export const MessageState = new MessageStateApi(100);
+export const MessageState = new MessageStateApi();

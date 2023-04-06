@@ -4,17 +4,17 @@ import { MessageType, NilPayload } from "../../common/Message.ts";
 import { NetworkId, networkId } from "../../common/state/Network.ts";
 
 Deno.test("Message sid", () => {
-  const state = new MessageStateApi(5);
+  const state = new MessageStateApi();
   let sid;
 
-  for (sid = 0; sid < state.MAX_LAG * 2; sid++) {
+  for (sid = 0; sid < 10; sid++) {
     assertEquals(state.lastStepId, sid);
     state.incrementStepId();
   }
 });
 
 Deno.test("Message unsent buffer", () => {
-  const state = new MessageStateApi(5);
+  const state = new MessageStateApi();
   const cmds: Array<number> = [];
 
   state.addCommand(
@@ -61,7 +61,7 @@ Deno.test("Message unsent buffer", () => {
 });
 
 Deno.test("Message get commands sent after sid", () => {
-  const state = new MessageStateApi(5);
+  const state = new MessageStateApi();
   const cmds: Array<number> = [];
 
   state.addCommand(
