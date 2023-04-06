@@ -17,6 +17,7 @@ import { WORLD_DIMENSIONS } from "../mod.ts";
 import { ClientNetworkState } from "~/client/state/Network.ts";
 import { ClientNetworkSystem } from "~/client/systems/Network.ts";
 import { MessageState } from "../../../modules/common/state/Message.ts";
+import { TweenSystem } from "../../../modules/client/systems/Tween.ts";
 
 const payloadMap = createPayloadMap();
 
@@ -98,6 +99,7 @@ function drawPlayers(ctx: CanvasRenderingContext2D) {
 const pipeline = new Pipeline([
   TimeSystem(),
   ClientMovementSystem(),
+  TweenSystem(),
   ClientNetworkSystem(),
 ] as Array<SystemPartial>);
 
