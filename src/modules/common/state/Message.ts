@@ -1,6 +1,7 @@
 import {
   AnyMessagePayload,
   createPayloadMap,
+  MessagePlayloadByType,
   MessageType,
 } from "../../common/Message.ts";
 import { MessagePriorityQueue } from "../MessagePriorityQueue.ts";
@@ -56,7 +57,9 @@ export class MessageStateApi {
       // TODO should sid become parameter to writeMessage?
       throw new Error(
         `Step ID of pushed message does not match current step ID. Offender: ${
-          JSON.stringify(payload)
+          JSON.stringify(
+            payload,
+          )
         }, current Step ID: ${this.#sid}`,
       );
     }
@@ -90,21 +93,29 @@ export class MessageStateApi {
     this.#lastReceivedStepId = payload.sid;
   }
 
-  getSnapshots(): Generator<[MessageType, AnyMessagePayload]> {
-    return this.#snapshots.at(this.#sid);
+  *getSnapshots(
+    start = this.#sid,
+    end = this.#sid,
+    filter: <Type extends MessageType>(
+      type: Type,
+      payload: MessagePlayloadByType[Type],
+    ) => boolean = (_type, _payload) => true,
+  ): Generator<[MessageType, AnyMessagePayload]> {
+    for (const snapshot of this.#snapshots.slice(start, end)) {
+      if (filter.apply(null, snapshot)) {
+        yield snapshot;
+      }
+    }
   }
 
-  getSnapshotSlice(
-    startSid: number,
-    endSid: number,
-  ) {
+  getSnapshotSlice(startSid: number, endSid: number) {
     return this.#snapshots.slice(startSid, endSid);
   }
 
   getLastSnapshots() {
     return this.#snapshots.slice(
       this.#lastReceivedStepId,
-      this.lastReceivedStepId,
+      this.#lastReceivedStepId,
     );
   }
 }
