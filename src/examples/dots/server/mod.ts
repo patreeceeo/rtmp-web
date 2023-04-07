@@ -18,7 +18,7 @@ import {
 import { WORLD_DIMENSIONS } from "../mod.ts";
 import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { TraitSystem } from "../../../modules/client/systems/Trait.ts";
+import { TraitSystem } from "../../../modules/server/systems/Trait.ts";
 
 const payloadMap = createPayloadMap();
 
