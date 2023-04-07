@@ -5,26 +5,34 @@ export interface OpaqueType<T extends string> {
 }
 export type EntityId = number & OpaqueType<"entityId">;
 export interface Just<T> {
-  value: T;
+  __value: T;
 }
 export type Nothing = {
-  value: undefined;
+  __value: undefined;
 };
 export type Maybe<T> =
   | Nothing
   | Just<T>;
 
-function getEmptyObject() {
-  return Object.create(null);
-}
-
 export function Just<Type>(value: Type) {
-  const o = getEmptyObject();
-  o.value = value;
-  return o as Just<Type>;
+  return new JustClass(value);
 }
 export function Nothing() {
-  return getEmptyObject() as Nothing;
+  return new NothingClass();
+}
+class JustClass<Value> implements Just<Value> {
+  constructor(readonly __value: Value) {
+  }
+}
+class NothingClass implements Nothing {
+  __value: undefined;
+}
+
+export function isJust<Type>(maybe: Maybe<Type>) {
+  return maybe.__value !== undefined;
+}
+export function unboxJust<Type>(just: Just<Type>): Type {
+  return just.__value;
 }
 
 export function copy<Klass extends { __copy__(src: Klass): void }>(

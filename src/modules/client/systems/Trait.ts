@@ -11,23 +11,23 @@ import { PlayerState } from "../../common/state/Player.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { AnyTrait, TraitState } from "../state/Trait.ts";
-import { Just, Maybe } from "../../common/state/mod.ts";
-// Define a variable of type Maybe<number>
+import { isJust, Just, Maybe, unboxJust } from "../../common/state/mod.ts";
 
 function exec() {
   const traitCommandMaybes: Array<[AnyTrait, Maybe<AnyMessagePayload>]> = [];
   for (const trait of TraitState.getAll()) {
     traitCommandMaybes.push([trait, trait.getCommand()]);
   }
-  const traitCommands: Array<[AnyTrait, Just<AnyMessagePayload>]> =
-    traitCommandMaybes.filter(([_t, p]) => p.value) as Array<
-      [AnyTrait, Just<AnyMessagePayload>]
-    >;
+
+  const traitCommands: Array<[AnyTrait, AnyMessagePayload]> = traitCommandMaybes
+    .filter(([_t, p]) => isJust(p))
+    .map(([t, p]) => [t, unboxJust(p as Just<AnyMessagePayload>)]);
+
   for (const [trait, payload] of traitCommands) {
-    TraitState.getType(trait.type).applyCommand(payload.value);
+    TraitState.getType(trait.type).applyCommand(payload);
   }
   for (const [trait, payload] of traitCommands) {
-    MessageState.addCommand(trait.mType, payload.value);
+    MessageState.addCommand(trait.mType, payload);
   }
 
   const lastReceivedSid = MessageState.lastReceivedStepId;
