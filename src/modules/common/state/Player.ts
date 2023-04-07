@@ -104,12 +104,12 @@ class PlayerStateApi {
     }
   }
 
-  getPlayerEids(): Array<EntityId> {
+  getEntityIds(): Array<EntityId> {
     return this.#players(this.world) as Array<EntityId>;
   }
 
   getPlayers(): Array<Player> {
-    return this.getPlayerEids().map((eid) => this.getPlayer(eid));
+    return this.getEntityIds().map((eid) => this.getPlayer(eid));
   }
 
   get snapshot() {

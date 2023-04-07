@@ -69,7 +69,7 @@ class DotsServerApp implements ServerApp {
     );
 
     // Catch up
-    for (const eid of PlayerState.getPlayerEids()) {
+    for (const eid of PlayerState.getEntityIds()) {
       const player = PlayerState.getPlayer(eid);
       if (eid !== addedPlayer.eid) {
         sendMessageToClient(

@@ -21,6 +21,7 @@ import { OutputState } from "~/client/state/Output.ts";
 import { OutputSystem } from "~/client/systems/Output.ts";
 import { LevelState } from "~/common/state/LevelState.ts";
 import { InputSystem } from "../../../modules/client/Input.ts";
+import { TraitState, TraitType } from "../../../modules/client/state/Trait.ts";
 
 const payloadMap = createPayloadMap();
 
@@ -60,18 +61,25 @@ function handlePlayerAdded(
   _server: WebSocket,
   { isLocal, nid, position }: PlayerAdd,
 ) {
+  // TODO player system
   const player = PlayerState.createPlayer();
   console.log("player nid:", nid);
   player.position.copy(position);
+  ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
   TweenState.add(player.eid, TweenType.position);
   TweenState.add(player.eid, TweenType.color);
-  ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
+  if (isLocal) {
+    TraitState.add(player.eid, TraitType.wasdMove);
+    TraitState.add(player.eid, TraitType.colorChange);
+  }
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: PlayerRemove) {
+  // TODO player system
   const eid = ClientNetworkState.getEntityId(playerRemove.nid)!;
   PlayerState.deletePlayer(eid);
   ClientNetworkState.deleteId(playerRemove.nid);
   TweenState.deleteEntity(eid);
+  TraitState.deleteEntity(eid);
 }
 
 const pipeline = new Pipeline([
