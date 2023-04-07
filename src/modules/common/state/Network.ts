@@ -29,6 +29,12 @@ export class NetworkStateApi {
   getId(eid: EntityId): NetworkId | undefined {
     return this.#state.reverseMap.get(eid);
   }
+  deleteId(nid: NetworkId): void {
+    const eid = this.#state.entityMap.get(nid)!;
+    this.#state.entityMap.delete(nid);
+    this.#state.reverseMap.delete(eid);
+    this.#state.localEntities.delete(eid);
+  }
 
   setNetworkEntity(nid: NetworkId, eid: EntityId, isLocal: boolean) {
     this.#state.entityMap.set(nid, eid);

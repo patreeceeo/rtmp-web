@@ -68,8 +68,10 @@ function handlePlayerAdded(
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: PlayerRemove) {
-  const eid = ClientNetworkState.getEntityId(playerRemove.nid);
-  PlayerState.deletePlayer(eid!);
+  const eid = ClientNetworkState.getEntityId(playerRemove.nid)!;
+  PlayerState.deletePlayer(eid);
+  ClientNetworkState.deleteId(playerRemove.nid);
+  TweenState.deleteEntity(eid);
 }
 
 const pipeline = new Pipeline([

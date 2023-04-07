@@ -95,6 +95,11 @@ class TweenStateApi {
       yield this.get(eid as EntityId, type);
     }
   }
+  deleteEntity(eid: EntityId) {
+    for (const map of Object.entries(this.#map)) {
+      delete map[eid];
+    }
+  }
 }
 
 export const TweenState = new TweenStateApi();
