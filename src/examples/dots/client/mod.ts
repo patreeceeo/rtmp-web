@@ -18,6 +18,7 @@ import { ClientNetworkState } from "~/client/state/Network.ts";
 import { ClientNetworkSystem } from "~/client/systems/Network.ts";
 import { MessageState } from "../../../modules/common/state/Message.ts";
 import { TweenSystem } from "../../../modules/client/systems/Tween.ts";
+import { TweenState, TweenType } from "../../../modules/client/state/Tween.ts";
 
 const payloadMap = createPayloadMap();
 
@@ -76,6 +77,8 @@ function handlePlayerAdded(
   const player = PlayerState.createPlayer();
   console.log("player nid:", nid);
   player.position.copy(position);
+  TweenState.add(player.eid, TweenType.position);
+  TweenState.add(player.eid, TweenType.color);
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: PlayerRemove) {

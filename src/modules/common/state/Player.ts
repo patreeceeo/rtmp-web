@@ -1,7 +1,6 @@
 import { Vec2, Vec2Type } from "../Vec2.ts";
 import { defaultWorld, EntityId } from "./mod.ts";
 import * as ECS from "bitecs";
-import { TweenState, TweenType } from "../../client/state/Tween.ts";
 
 export enum ColorId {
   RED,
@@ -85,8 +84,6 @@ class PlayerStateApi {
     ECS.addComponent(this.world, PositionStore, eid);
     ECS.addComponent(this.world, LastActiveStore, eid);
     ECS.addComponent(this.world, ColorStore, eid);
-    TweenState.add(eid, TweenType.position);
-    TweenState.add(eid, TweenType.color);
     return player;
   }
 
