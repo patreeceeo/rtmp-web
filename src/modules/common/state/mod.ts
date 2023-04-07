@@ -22,10 +22,14 @@ export function Nothing() {
 }
 class JustClass<Value> implements Just<Value> {
   constructor(readonly __value: Value) {
+    Object.freeze(this);
   }
 }
 class NothingClass implements Nothing {
   __value: undefined;
+  constructor() {
+    Object.freeze(this);
+  }
 }
 
 export function isJust<Type>(maybe: Maybe<Type>) {
