@@ -88,6 +88,7 @@ function exec() {
   }
 }
 
+// TODO unit test
 function reconcileAndPredict<
   SnapshotType extends MessageType,
   CommandType extends MessageType,
