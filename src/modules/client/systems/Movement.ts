@@ -15,6 +15,7 @@ import { Time } from "../../common/state/Time.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { EntityId } from "../../common/state/mod.ts";
+import { NetworkId } from "../../common/state/Network.ts";
 
 const to = new Vec2();
 
@@ -74,76 +75,72 @@ function exec() {
   const lastReceivedSid = MessageState.lastReceivedStepId;
   const lastSentSid = MessageState.lastSentStepId;
   if (lastReceivedSid < lastSentSid) {
-    const localEntitySnapshots = MessageState.getSnapshots(
+    const playerSnapshots = MessageState.getSnapshots(
       lastReceivedSid,
       lastReceivedSid,
-      (_type, payload) => ClientNetworkState.isLocal(payload.nid),
+      (type, payload) =>
+        ClientNetworkState.isLocal(payload.nid) &&
+        type === MessageType.playerSnapshot,
     );
 
-    for (const [snapshotType, snapshotPayload] of localEntitySnapshots) {
-      applySnapshot(snapshotType, snapshotPayload);
-    }
-    for (
-      const [type, payload] of MessageState.getCommandSlice(
-        lastReceivedSid + 1,
-        lastSentSid,
-      )
-    ) {
-      // predict that the server will accept our moves
-      applyCommand(type, payload);
-    }
-  }
-}
-
-function applyCommand<Type extends MessageType>(
-  type: Type,
-  payload: MessagePlayloadByType[Type],
-) {
-  const eid = ClientNetworkState.getEntityId(payload.nid);
-
-  switch (type) {
-    case MessageType.playerMoved: {
-      if (PlayerState.hasPlayer(eid!)) {
-        const player = PlayerState.getPlayer(eid!);
-        player.position.add((payload as PlayerMove).delta);
+    for (const [_type, payload] of playerSnapshots) {
+      const eid = ClientNetworkState.getEntityId(payload.nid)!;
+      if (PlayerState.hasPlayer(eid)) {
+        const player = PlayerState.getPlayer(eid);
+        // Server sends back correct position
+        player.position.copy((payload as PlayerSnapshot).position);
+      } else {
+        console.warn(`Requested moving unknown player with nid ${payload.nid}`);
       }
-      break;
     }
-  }
-}
-
-/** authoritative */
-function applySnapshot<Type extends MessageType>(
-  type: Type,
-  payload: MessagePlayloadByType[Type],
-) {
-  const eid = ClientNetworkState.getEntityId(payload.nid)!;
-
-  switch (type) {
-    case MessageType.playerSnapshot:
-      {
-        if (PlayerState.hasPlayer(eid)) {
-          const player = PlayerState.getPlayer(eid);
-          // Server sends back correct position
-          player.position.copy((payload as PlayerSnapshot).position);
-        } else {
-          console.warn(
-            `Requested moving unknown player with nid ${payload.nid}`,
-          );
+    if (playerSnapshots.length > 0) {
+      for (
+        const [_type, payload] of MessageState.getCommands(
+          lastReceivedSid + 1,
+          lastSentSid,
+          (type) => type === MessageType.playerMoved,
+        )
+      ) {
+        const eid = ClientNetworkState.getEntityId(payload.nid);
+        // predict that the server will accept our moves
+        if (PlayerState.hasPlayer(eid!)) {
+          const player = PlayerState.getPlayer(eid!);
+          player.position.add((payload as PlayerMove).delta);
         }
       }
-      break;
-    case MessageType.colorChange:
-      {
-        applyColor(eid, (payload as ColorChange).color);
+    }
+
+    const colorChanges = MessageState.getSnapshots(
+      lastReceivedSid,
+      lastReceivedSid,
+      (type, payload) =>
+        ClientNetworkState.isLocal(payload.nid) &&
+        type === MessageType.colorChange,
+    );
+    for (const [_type, payload] of colorChanges) {
+      applyColorByNid(payload.nid, (payload as ColorChange).color);
+    }
+    if (colorChanges.length > 0) {
+      for (
+        const [_type, payload] of MessageState.getCommands(
+          lastReceivedSid + 1,
+          lastSentSid,
+          (type) => type === MessageType.colorChange,
+        )
+      ) {
+        applyColorByNid(payload.nid, (payload as ColorChange).color);
       }
-      break;
+    }
   }
 }
 
-function applyColor(eid: EntityId, color: ColorId) {
-  const player = PlayerState.getPlayer(eid!);
-  player.color = color;
+function applyColorByNid(nid: NetworkId, color: ColorId) {
+  const eid = ClientNetworkState.getEntityId(nid);
+  // predict that the server will accept our moves
+  if (PlayerState.hasPlayer(eid!)) {
+    const player = PlayerState.getPlayer(eid!);
+    player.color = color;
+  }
 }
 
 export const ClientMovementSystem: SystemLoader = () => {

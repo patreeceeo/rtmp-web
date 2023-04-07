@@ -64,18 +64,19 @@ export class MessageStateApi {
     this.#commands.insert(this.#sid, type, payload);
   }
 
-  getCommands(): Generator<[MessageType, AnyMessagePayload]> {
-    return this.#commands.at(this.#sid);
-  }
-
-  /**
-   * Get commands in buffer added after the given Step ID
-   */
-  getCommandSlice(
-    startSid: number,
-    endSid: number,
+  *getCommands(
+    start = this.#sid,
+    end = this.#sid,
+    filter: <Type extends MessageType>(
+      type: Type,
+      payload: MessagePlayloadByType[Type],
+    ) => boolean = (_type, _payload) => true,
   ): Generator<[MessageType, AnyMessagePayload]> {
-    return this.#commands.slice(startSid, endSid);
+    for (const snapshot of this.#commands.slice(start, end)) {
+      if (filter.apply(null, snapshot)) {
+        yield snapshot;
+      }
+    }
   }
 
   #lastReceivedStepId = 0;
@@ -91,23 +92,21 @@ export class MessageStateApi {
     this.#lastReceivedStepId = payload.sid;
   }
 
-  *getSnapshots(
+  getSnapshots(
     start = this.#sid,
     end = this.#sid,
     filter: <Type extends MessageType>(
       type: Type,
       payload: MessagePlayloadByType[Type],
     ) => boolean = (_type, _payload) => true,
-  ): Generator<[MessageType, AnyMessagePayload]> {
+  ): Array<[MessageType, AnyMessagePayload]> {
+    const result = [];
     for (const snapshot of this.#snapshots.slice(start, end)) {
       if (filter.apply(null, snapshot)) {
-        yield snapshot;
+        result.push(snapshot);
       }
     }
-  }
-
-  getSnapshotSlice(startSid: number, endSid: number) {
-    return this.#snapshots.slice(startSid, endSid);
+    return result;
   }
 }
 

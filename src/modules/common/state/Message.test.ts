@@ -92,7 +92,7 @@ Deno.test("Message get commands sent after sid", () => {
   );
   state.lastSentStepId = state.lastStepId;
 
-  for (const [_, payload] of state.getCommandSlice(1, 3)) {
+  for (const [_, payload] of state.getCommands(1, 3)) {
     cmds.push(payload.nid);
   }
   assertEquals(cmds, [
@@ -103,13 +103,13 @@ Deno.test("Message get commands sent after sid", () => {
   ]);
   cmds.length = 0;
 
-  for (const [_, payload] of state.getCommandSlice(2, 3)) {
+  for (const [_, payload] of state.getCommands(2, 3)) {
     cmds.push(payload.nid);
   }
   assertEquals(cmds, [2, 3, 4]);
   cmds.length = 0;
 
-  for (const [_, payload] of state.getCommandSlice(3, 3)) {
+  for (const [_, payload] of state.getCommands(3, 3)) {
     cmds.push(payload.nid);
   }
   assertEquals(cmds, [4]);
