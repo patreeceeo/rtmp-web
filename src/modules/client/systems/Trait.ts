@@ -155,6 +155,6 @@ function applyColorChange({ nid, color }: ColorChange) {
   }
 }
 
-export const ClientMovementSystem: SystemLoader = () => {
+export const TraitSystem: SystemLoader = () => {
   return { exec };
 };

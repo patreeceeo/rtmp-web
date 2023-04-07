@@ -9,7 +9,6 @@ import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { drawCircle } from "~/client/canvas.ts";
 import { TimeSystem } from "~/common/systems/Time.ts";
-import { ClientMovementSystem } from "~/client/systems/Movement.ts";
 import { Pipeline, SystemPartial } from "~/common/systems/mod.ts";
 import { ClientApp, startClient } from "~/client/mod.ts";
 import { useClient } from "hot_mod/dist/client/mod.js";
@@ -19,6 +18,7 @@ import { ClientNetworkSystem } from "~/client/systems/Network.ts";
 import { MessageState } from "../../../modules/common/state/Message.ts";
 import { TweenSystem } from "../../../modules/client/systems/Tween.ts";
 import { TweenState, TweenType } from "../../../modules/client/state/Tween.ts";
+import { TraitSystem } from "../../../modules/client/systems/Trait.ts";
 
 const payloadMap = createPayloadMap();
 
@@ -101,7 +101,7 @@ function drawPlayers(ctx: CanvasRenderingContext2D) {
 
 const pipeline = new Pipeline([
   TimeSystem(),
-  ClientMovementSystem(),
+  TraitSystem(),
   TweenSystem(),
   ClientNetworkSystem(),
 ] as Array<SystemPartial>);
