@@ -9,13 +9,11 @@ import {
   PlayerSnapshot,
 } from "~/common/Message.ts";
 import { Vec2 } from "../../common/Vec2.ts";
-import { ColorId, PlayerState } from "../../common/state/Player.ts";
+import { PlayerState } from "../../common/state/Player.ts";
 import { InputState } from "../../common/state/Input.ts";
 import { Time } from "../../common/state/Time.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { EntityId } from "../../common/state/mod.ts";
-import { NetworkId } from "../../common/state/Network.ts";
 
 const to = new Vec2();
 
@@ -75,66 +73,79 @@ function exec() {
   const lastReceivedSid = MessageState.lastReceivedStepId;
   const lastSentSid = MessageState.lastSentStepId;
   if (lastReceivedSid < lastSentSid) {
-    const playerSnapshots = MessageState.getSnapshots(
-      lastReceivedSid,
-      lastReceivedSid,
-      (type, payload) =>
-        ClientNetworkState.isLocal(payload.nid) &&
-        type === MessageType.playerSnapshot,
+    reconcileAndPredict(
+      MessageType.playerSnapshot,
+      MessageType.playerMoved,
+      applyPlayerSnapshot,
+      applyPlayerMoveCommand,
     );
-
-    for (const [_type, payload] of playerSnapshots) {
-      const eid = ClientNetworkState.getEntityId(payload.nid)!;
-      if (PlayerState.hasPlayer(eid)) {
-        const player = PlayerState.getPlayer(eid);
-        // Server sends back correct position
-        player.position.copy((payload as PlayerSnapshot).position);
-      } else {
-        console.warn(`Requested moving unknown player with nid ${payload.nid}`);
-      }
-    }
-    if (playerSnapshots.length > 0) {
-      for (
-        const [_type, payload] of MessageState.getCommands(
-          lastReceivedSid + 1,
-          lastSentSid,
-          (type) => type === MessageType.playerMoved,
-        )
-      ) {
-        const eid = ClientNetworkState.getEntityId(payload.nid);
-        // predict that the server will accept our moves
-        if (PlayerState.hasPlayer(eid!)) {
-          const player = PlayerState.getPlayer(eid!);
-          player.position.add((payload as PlayerMove).delta);
-        }
-      }
-    }
-
-    const colorChanges = MessageState.getSnapshots(
-      lastReceivedSid,
-      lastReceivedSid,
-      (type, payload) =>
-        ClientNetworkState.isLocal(payload.nid) &&
-        type === MessageType.colorChange,
+    reconcileAndPredict(
+      MessageType.colorChange,
+      MessageType.colorChange,
+      applyColorChange,
+      applyColorChange,
     );
-    for (const [_type, payload] of colorChanges) {
-      applyColorByNid(payload.nid, (payload as ColorChange).color);
-    }
-    if (colorChanges.length > 0) {
-      for (
-        const [_type, payload] of MessageState.getCommands(
-          lastReceivedSid + 1,
-          lastSentSid,
-          (type) => type === MessageType.colorChange,
-        )
-      ) {
-        applyColorByNid(payload.nid, (payload as ColorChange).color);
-      }
+  }
+}
+
+function reconcileAndPredict<
+  SnapshotType extends MessageType,
+  CommandType extends MessageType,
+>(
+  snapshotType: SnapshotType,
+  commandType: CommandType,
+  applySnapshot: (payload: MessagePlayloadByType[SnapshotType]) => void,
+  applyCommand: (payload: MessagePlayloadByType[CommandType]) => void,
+) {
+  const lastReceivedSid = MessageState.lastReceivedStepId;
+  const lastSentSid = MessageState.lastSentStepId;
+  const snapshots = MessageState.getSnapshots(
+    lastReceivedSid,
+    lastReceivedSid,
+    (type, payload) =>
+      ClientNetworkState.isLocal(payload.nid) &&
+      // deno-lint-ignore no-explicit-any
+      (type as any) === snapshotType,
+  );
+
+  for (const [_type, payload] of snapshots) {
+    applySnapshot(payload as MessagePlayloadByType[SnapshotType]);
+  }
+  if (snapshots.length > 0) {
+    for (
+      const [_type, payload] of MessageState.getCommands(
+        lastReceivedSid + 1,
+        lastSentSid,
+        // deno-lint-ignore no-explicit-any
+        (type) => (type as any) === commandType,
+      )
+    ) {
+      applyCommand(payload as MessagePlayloadByType[CommandType]);
     }
   }
 }
 
-function applyColorByNid(nid: NetworkId, color: ColorId) {
+function applyPlayerMoveCommand({ nid, delta }: PlayerMove) {
+  const eid = ClientNetworkState.getEntityId(nid);
+  // predict that the server will accept our moves
+  if (PlayerState.hasPlayer(eid!)) {
+    const player = PlayerState.getPlayer(eid!);
+    player.position.add(delta);
+  }
+}
+
+function applyPlayerSnapshot({ nid, position }: PlayerSnapshot) {
+  const eid = ClientNetworkState.getEntityId(nid)!;
+  if (PlayerState.hasPlayer(eid)) {
+    const player = PlayerState.getPlayer(eid);
+    // Server sends back correct position
+    player.position.copy(position);
+  } else {
+    console.warn(`Requested moving unknown player with nid ${nid}`);
+  }
+}
+
+function applyColorChange({ nid, color }: ColorChange) {
   const eid = ClientNetworkState.getEntityId(nid);
   // predict that the server will accept our moves
   if (PlayerState.hasPlayer(eid!)) {
