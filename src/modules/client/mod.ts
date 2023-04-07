@@ -1,13 +1,12 @@
+import { InputState } from "../common/state/Input.ts";
 import { ClientNetworkState } from "./state/Network.ts";
+import { OutputState } from "./state/Output.ts";
 
 export abstract class ClientApp {
   abstract handleOpen(server: WebSocket, event: Event): void;
   abstract handleClose(server: WebSocket, event: Event): void;
   abstract handleError(server: WebSocket, event: Event): void;
   abstract handleMessage(server: WebSocket, event: MessageEvent): void;
-  abstract handleLoad(): void;
-  abstract handleKeyDown(e: KeyboardEvent): void;
-  abstract handleKeyUp(e: KeyboardEvent): void;
   abstract handleIdle(): void;
 }
 
@@ -36,8 +35,7 @@ export function startClient(app: ClientApp) {
     };
 
     ClientNetworkState.socket = socket;
-
-    app.handleLoad();
+    OutputState.ready.resolve();
   };
 
   window.onload = handleLoad;
@@ -49,7 +47,15 @@ export function startClient(app: ClientApp) {
     }
   });
 
-  window.onkeydown = (e) => app.handleKeyDown(e);
-  window.onkeyup = (e) => app.handleKeyUp(e);
+  window.onkeydown = (e) => {
+    InputState.setKeyPressed(e.code);
+  };
+  window.onkeyup = (e) => {
+    InputState.setKeyReleased(e.code);
+  };
+  window.onmousemove = (e) => {
+    InputState.pointerPosition.set(e.clientX, e.clientY);
+    InputState.pointerPositionIsDirty = true;
+  };
   window.onblur = () => app.handleIdle();
 }

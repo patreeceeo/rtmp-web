@@ -1,5 +1,3 @@
+import { LevelState } from "../../modules/common/state/LevelState.ts";
 
-export const WORLD_DIMENSIONS = {
-  WIDTH: 256,
-  HEIGHT: 256
-}
+LevelState.dimensions.set(256, 256);

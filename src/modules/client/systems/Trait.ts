@@ -1,5 +1,4 @@
 // TODO make this an option arg
-import { WORLD_DIMENSIONS } from "../../../examples/dots/mod.ts";
 import { ClientNetworkState } from "../../client/state/Network.ts";
 import {
   ColorChange,
@@ -14,6 +13,7 @@ import { InputState } from "../../common/state/Input.ts";
 import { Time } from "../../common/state/Time.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
+import { LevelState } from "../../common/state/LevelState.ts";
 
 const to = new Vec2();
 
@@ -35,13 +35,13 @@ function exec() {
       }
       if (
         InputState.isKeyPressed("KeyS") &&
-        y < WORLD_DIMENSIONS.HEIGHT - player.height
+        y < LevelState.dimensions.y - player.height
       ) {
         dy = velocity * Time.delta;
       }
       if (
         InputState.isKeyPressed("KeyD") &&
-        x < WORLD_DIMENSIONS.WIDTH - player.width
+        x < LevelState.dimensions.x - player.width
       ) {
         dx = velocity * Time.delta;
       }

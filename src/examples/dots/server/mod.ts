@@ -5,6 +5,7 @@ import {
   PlayerAdd,
   PlayerRemove,
 } from "~/common/Message.ts";
+import "../mod.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { TimeSystem } from "~/common/systems/Time.ts";
 import { NetworkSystem } from "~/server/systems/Network.ts";
@@ -15,10 +16,10 @@ import {
   ServerApp,
   startServer,
 } from "~/server/mod.ts";
-import { WORLD_DIMENSIONS } from "../mod.ts";
 import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { TraitSystem } from "../../../modules/server/systems/Trait.ts";
+import { LevelState } from "../../../modules/common/state/LevelState.ts";
 
 const payloadMap = createPayloadMap();
 
@@ -37,8 +38,8 @@ class DotsServerApp implements ServerApp {
     client.addNetworkId(playerNid);
 
     addedPlayer.position.set(
-      getRandomInt(0, WORLD_DIMENSIONS.WIDTH),
-      getRandomInt(0, WORLD_DIMENSIONS.HEIGHT),
+      getRandomInt(0, LevelState.dimensions.x),
+      getRandomInt(0, LevelState.dimensions.y),
     );
     addedPlayer.color = getRandomInt(0, 6);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
