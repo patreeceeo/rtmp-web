@@ -55,7 +55,7 @@ function exec() {
   }
 }
 
-export const MovementSystem: SystemLoader = () => {
+export const TraitSystem: SystemLoader = () => {
   return { exec };
 };
 

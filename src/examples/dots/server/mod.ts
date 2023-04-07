@@ -7,7 +7,6 @@ import {
 } from "~/common/Message.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { TimeSystem } from "~/common/systems/Time.ts";
-import { MovementSystem } from "~/server/systems/Movement.ts";
 import { NetworkSystem } from "~/server/systems/Network.ts";
 import { Pipeline, SystemPartial } from "~/common/systems/mod.ts";
 import {
@@ -19,6 +18,7 @@ import {
 import { WORLD_DIMENSIONS } from "../mod.ts";
 import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
+import { TraitSystem } from "../../../modules/client/systems/Trait.ts";
 
 const payloadMap = createPayloadMap();
 
@@ -110,7 +110,7 @@ class DotsServerApp implements ServerApp {
 
 const pipeline = new Pipeline([
   TimeSystem(),
-  MovementSystem(),
+  TraitSystem(),
   NetworkSystem({ idleTimeout }),
 ] as Array<SystemPartial>);
 pipeline.start(80);
