@@ -41,7 +41,7 @@ function exec() {
   if (lastReceivedSid < lastSentSid) {
     for (const type of TraitState.getTypes()) {
       const Trait = TraitState.getType(type);
-      reconcileAndPredict(
+      reconcile(
         Trait.snapshotType,
         Trait.commandType,
         Trait.applySnapshot,
@@ -51,8 +51,16 @@ function exec() {
   }
 }
 
-// TODO unit test
-function reconcileAndPredict<
+/**
+ * Sometimes, especially when there's network lag, the server sends back snapshots
+ * that correspond to commands that are one or more steps behind what the client has
+ * sent, and since snapshots specify absolute values for state while commands specify
+ * deltas, the old snapshots, if simply applied, would take the client back to an old
+ * state. Instead, this function applies new snapshots for a given type, then applies
+ * commands that have been sent since the corresponding command of the most recently
+ * received snapshot.
+ */
+function reconcile<
   SnapshotType extends MessageType,
   CommandType extends MessageType,
 >(
