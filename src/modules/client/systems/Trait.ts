@@ -7,7 +7,7 @@ import {
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { AnyTraitConstructor, TraitState } from "~/common/state/Trait.ts";
-import { isJust, Just, Maybe, unboxJust } from "../../common/state/mod.ts";
+import { isJust, Just, Maybe, unboxJust } from "../../common/Maybe.ts";
 
 function exec() {
   const traitCommandMaybes: Array<
