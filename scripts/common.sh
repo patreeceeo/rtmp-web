@@ -3,8 +3,7 @@
 shopt -s globstar
 client_sub_module_rel_paths=$(ls -1rd \
   src/**/*.ts \
-  | grep -v test.ts$ \
-  | grep -v server/
+  | grep -v test.ts$
 )
 export client_sub_module_rel_paths
 
