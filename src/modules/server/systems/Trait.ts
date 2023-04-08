@@ -1,6 +1,6 @@
 import { filter, map } from "../../common/Iterable.ts";
+import { flattenMaybes } from "../../common/Maybe.ts";
 import { MessageState } from "../../common/state/Message.ts";
-import { flattenMaybes } from "../../common/state/mod.ts";
 import { TraitState } from "../../common/state/Trait.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 

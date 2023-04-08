@@ -8,13 +8,14 @@ import {
 import { InputState } from "./Input.ts";
 import { LevelState } from "./LevelState.ts";
 import { MessageState } from "./Message.ts";
-import { EntityId, Just, Maybe, Nothing } from "./mod.ts";
+import { EntityId } from "./mod.ts";
 import { NetworkId } from "./Network.ts";
 import { Player, PlayerState } from "./Player.ts";
 import { Time } from "./Time.ts";
 import { Vec2 } from "../Vec2.ts";
 import { NetworkState } from "./Network.ts";
 import { clampLine, getDistanceSquared } from "../math.ts";
+import { Just, Maybe, Nothing } from "../Maybe.ts";
 
 export enum TraitType {
   wasdMove,
