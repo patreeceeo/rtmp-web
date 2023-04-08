@@ -1,5 +1,4 @@
-// from https://github.com/Electroid/bytebuf
-// TODO adapt unit tests
+// adapted from https://github.com/Electroid/bytebuf
 export { DataViewMovable };
 
 const tempBuf = new ArrayBuffer(8);

@@ -56,7 +56,6 @@ class DotsServerApp implements ServerApp {
     );
 
     // Tell other clients about added player
-    // TODO use broadcastMessage
     broadcastMessage(
       MessageType.playerAdded,
       new PlayerAdd(
