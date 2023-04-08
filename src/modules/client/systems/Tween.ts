@@ -13,6 +13,7 @@ import { clampLine } from "../../common/math.ts";
 import { TweenState, TweenType } from "../state/Tween.ts";
 import { EntityId } from "../../common/state/mod.ts";
 
+// TODO use polymorphism to make system code more generic
 function exec() {
   const lastReceivedSid = MessageState.lastReceivedStepId;
   const remoteEntitySnapshots = MessageState.getSnapshots(
@@ -23,9 +24,15 @@ function exec() {
 
   for (const [type, payload] of remoteEntitySnapshots) {
     const eid = ClientNetworkState.getEntityId(payload.nid)!;
-    const tweenType = message2TweenType(type);
-    if (TweenState.has(eid, tweenType)) {
-      TweenState.activate(eid, tweenType, message2TweenData(type, payload));
+    const tweenTypes = message2TweenType(type);
+    for (const tweenType of tweenTypes) {
+      if (TweenState.has(eid, tweenType)) {
+        TweenState.activate(
+          eid,
+          tweenType,
+          message2TweenData(tweenType, payload),
+        );
+      }
     }
   }
 
@@ -43,6 +50,10 @@ function exec() {
   for (const tween of TweenState.getActive(TweenType.color)) {
     applyColor(tween.eid, tween.end);
   }
+  for (const tween of TweenState.getActive(TweenType.pose)) {
+    const player = PlayerState.getPlayer(tween.eid);
+    player.pose = tween.end;
+  }
 }
 
 function applyColor(eid: EntityId, color: ColorId) {
@@ -53,22 +64,24 @@ function applyColor(eid: EntityId, color: ColorId) {
 function message2TweenType<Type extends MessageType>(type: Type) {
   switch (type) {
     case MessageType.playerSnapshot:
-      return TweenType.position;
+      return [TweenType.position, TweenType.pose];
     case MessageType.colorChange:
-      return TweenType.color;
+      return [TweenType.color];
     default:
       throw new Error("unhandled case");
   }
 }
 function message2TweenData<Type extends MessageType>(
-  type: Type,
+  type: TweenType,
   payload: MessagePlayloadByType[Type],
 ) {
   switch (type) {
-    case MessageType.playerSnapshot:
+    case TweenType.position:
       return (payload as PlayerSnapshot).position;
-    case MessageType.colorChange:
+    case TweenType.color:
       return (payload as ColorChange).color;
+    case TweenType.pose:
+      return (payload as PlayerSnapshot).pose;
     default:
       throw new Error("unhandled case");
   }

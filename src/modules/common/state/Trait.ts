@@ -10,7 +10,7 @@ import { LevelState } from "./LevelState.ts";
 import { MessageState } from "./Message.ts";
 import { EntityId } from "./mod.ts";
 import { NetworkId } from "./Network.ts";
-import { Player, PlayerState } from "./Player.ts";
+import { Player, PlayerState, PoseType } from "./Player.ts";
 import { Time } from "./Time.ts";
 import { Vec2 } from "../Vec2.ts";
 import { NetworkState } from "./Network.ts";
@@ -102,13 +102,18 @@ class WasdMoveTrait
     if (PlayerState.hasPlayer(eid!)) {
       const player = PlayerState.getPlayer(eid!);
       const timeSinceLastMove = Time.elapsed * player.lastActiveTime;
+      const pose = delta.x == 0
+        ? player.pose
+        : delta.x > 0
+        ? PoseType.facingRight
+        : PoseType.facingLeft;
       const clampDelta =
         getDistanceSquared(origin, delta) < player.MAX_VELOCITY_SQR
           ? delta
           : clampLine(origin, delta, player.MAX_VELOCITY * timeSinceLastMove);
       reVec2.copy(player.position);
       reVec2.add(clampDelta);
-      return Just(new PlayerSnapshot(reVec2, nid, sid));
+      return Just(new PlayerSnapshot(reVec2, pose, nid, sid));
     }
     return Nothing();
   }
@@ -118,15 +123,21 @@ class WasdMoveTrait
     if (PlayerState.hasPlayer(eid!)) {
       const player = PlayerState.getPlayer(eid!);
       player.position.add(delta);
+      player.pose = delta.x == 0
+        ? player.pose
+        : delta.x > 0
+        ? PoseType.facingRight
+        : PoseType.facingLeft;
     }
   }
-  static applySnapshot({ nid, position }: PlayerSnapshot) {
+  static applySnapshot({ nid, pose, position }: PlayerSnapshot) {
     const eid = NetworkState.getEntityId(nid)!;
     // TODO filter out invalid snapshots
     if (PlayerState.hasPlayer(eid)) {
       const player = PlayerState.getPlayer(eid);
       // Server sends back correct position
       player.position.copy(position);
+      player.pose = pose;
       // TODO what if lastActiveTime is changed by more than just moving?
       player.lastActiveTime = Time.elapsed;
     } else {

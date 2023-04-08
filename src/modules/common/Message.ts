@@ -4,10 +4,11 @@ import {
   boolAdaptor,
   networkIdAdaptor,
   uint16Adaptor,
+  uint8Adaptor,
   vec2Adaptor,
 } from "./BinaryAdaptor.ts";
 import { NetworkId } from "./state/Network.ts";
-import { ColorId } from "./state/Player.ts";
+import { ColorId, PoseType } from "./state/Player.ts";
 import { Vec2 } from "./Vec2.ts";
 
 export interface IPayload {
@@ -120,11 +121,13 @@ export class PlayerAddMutable extends PlayerAdd implements IPayloadMutable {
 const playerSnapshotAdaptor = new BinaryObjectAdaptor<PlayerSnapshot>([
   ["sid", uint16Adaptor],
   ["position", vec2Adaptor],
+  ["pose", uint8Adaptor],
   ["nid", networkIdAdaptor],
 ]);
 export class PlayerSnapshot implements IPayload {
   constructor(
     readonly position: Vec2,
+    readonly pose: PoseType,
     readonly nid: NetworkId,
     readonly sid: number,
   ) {}
@@ -137,10 +140,11 @@ export class PlayerSnapshotMutable extends PlayerSnapshot
   implements IPayloadMutable {
   constructor(
     public position: Vec2,
+    readonly pose: PoseType,
     public nid: NetworkId,
     public sid: number,
   ) {
-    super(position, nid, sid);
+    super(position, pose, nid, sid);
   }
   read(buf: DataViewMovable): void {
     playerSnapshotAdaptor.read(buf, this);
@@ -284,6 +288,7 @@ export function createPayloadMap(): MessageMutablePlayloadByType {
     ),
     [MessageType.playerSnapshot]: new PlayerSnapshotMutable(
       new Vec2(),
+      PoseType.facingLeft,
       0 as NetworkId,
       0,
     ),

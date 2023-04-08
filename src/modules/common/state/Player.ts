@@ -53,6 +53,14 @@ export class Player {
     return webColors[this.color];
   }
 
+  get pose() {
+    return PoseStore.value[this.eid] as PoseType;
+  }
+
+  set pose(pose: PoseType) {
+    PoseStore.value[this.eid] = pose;
+  }
+
   get snapshot() {
     return {
       eid: this.eid,
@@ -71,6 +79,12 @@ const PlayerTagStore = ECS.defineComponent();
 const PositionStore = ECS.defineComponent(Vec2Type);
 const LastActiveStore = ECS.defineComponent({ time: ECS.Types.ui32 });
 const ColorStore = ECS.defineComponent({ value: ECS.Types.ui8 });
+const PoseStore = ECS.defineComponent({ value: ECS.Types.ui8 });
+
+export enum PoseType {
+  facingLeft,
+  facingRight,
+}
 
 class PlayerStateApi {
   #players = ECS.defineQuery([PlayerTagStore]);
@@ -84,6 +98,7 @@ class PlayerStateApi {
     ECS.addComponent(this.world, PositionStore, eid);
     ECS.addComponent(this.world, LastActiveStore, eid);
     ECS.addComponent(this.world, ColorStore, eid);
+    ECS.addComponent(this.world, PoseStore, eid);
     return player;
   }
 

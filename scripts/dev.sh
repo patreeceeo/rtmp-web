@@ -45,12 +45,15 @@ else
 fi
 
 
-server_mod="./src/examples/dots/server/mod.ts"
+server_mod="./src/examples/platformer/server/mod.ts"
 
 assert_ok stat "$server_mod" 1>/dev/null 2>/dev/null
 
 assert_ok mkdir -p public
 assert_ok cp ./src/index.html ./public
+
+# TODO figure out a better way to handle example assets
+assert_ok cp ./src/examples/platformer/assets ./public/assets -a
 
 screen -S esbuild -d -m ./scripts/build_client.ts "public" "$(join_array , $client_sub_module_rel_paths)" --watch
 

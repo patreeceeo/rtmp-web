@@ -13,7 +13,7 @@ import {
 import * as asserts from "asserts";
 import { Vec2 } from "./Vec2.ts";
 import { NetworkId } from "./state/Network.ts";
-import { ColorId } from "./state/Player.ts";
+import { ColorId, PoseType } from "./state/Player.ts";
 
 const payloadMap = createPayloadMap();
 
@@ -25,7 +25,12 @@ Deno.test("parseMessage/serializeMessage", () => {
     ],
     [
       MessageType.playerSnapshot,
-      new PlayerSnapshotMutable(new Vec2(0, 0), 6 as NetworkId, 12),
+      new PlayerSnapshotMutable(
+        new Vec2(0, 0),
+        PoseType.facingLeft,
+        6 as NetworkId,
+        12,
+      ),
     ],
     [
       MessageType.playerMoved,

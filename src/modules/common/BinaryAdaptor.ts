@@ -16,6 +16,15 @@ class BoolAdaptor implements IBinaryFieldAdaptor<boolean> {
   }
 }
 
+class Uint8Adaptor implements IBinaryFieldAdaptor<number> {
+  read(buf: DataViewMovable): number {
+    return buf.readUint8();
+  }
+  write(buf: DataViewMovable, value: number): void {
+    buf.writeUint8(value);
+  }
+}
+
 class Uint16Adaptor implements IBinaryFieldAdaptor<number> {
   read(buf: DataViewMovable): number {
     return buf.readUint16();
@@ -50,6 +59,7 @@ class NetworkIdAdaptor implements IBinaryFieldAdaptor<number> {
 }
 
 export const boolAdaptor = new BoolAdaptor();
+export const uint8Adaptor = new Uint8Adaptor();
 export const uint16Adaptor = new Uint16Adaptor();
 export const int16Adaptor = new Int16Adaptor();
 export const float64Adaptor = new Float64Adaptor();

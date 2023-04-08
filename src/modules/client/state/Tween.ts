@@ -1,15 +1,17 @@
 import { defaultWorld, EntityId } from "../../common/state/mod.ts";
-import { ColorId } from "../../common/state/Player.ts";
+import { ColorId, PoseType } from "../../common/state/Player.ts";
 import { Vec2, Vec2Type } from "../../common/Vec2.ts";
 import * as ECS from "bitecs";
 
 export enum TweenType {
   position,
   color,
+  pose,
 }
 
 export type TweenDataByType = {
   [TweenType.position]: Vec2;
+  [TweenType.pose]: PoseType;
   [TweenType.color]: ColorId;
 };
 
@@ -54,19 +56,37 @@ class PositionTween implements Tween<TweenType.position> {
   }
 }
 
+class PoseTween implements Tween<TweenType.pose> {
+  static readonly store = ECS.defineComponent({ value: ECS.Types.ui8 });
+  readonly type = TweenType.pose;
+  constructor(readonly eid: EntityId) {
+  }
+
+  setEnd(pose: PoseType) {
+    PoseTween.store.value[this.eid] = pose;
+  }
+
+  get end(): PoseType {
+    return PoseTween.store.value[this.eid];
+  }
+}
+
 const klassMap: Map<TweenType, TweenConstructor<TweenType>> = new Map();
 klassMap.set(TweenType.color, ColorTween);
 klassMap.set(TweenType.position, PositionTween);
+klassMap.set(TweenType.pose, PoseTween);
 
 class TweenStateApi {
   #world = defaultWorld;
   #map: Record<TweenType, Record<EntityId, Tween<TweenType>>> = {
     [TweenType.position]: {},
     [TweenType.color]: {},
+    [TweenType.pose]: {},
   };
   #queries = {
     [TweenType.position]: ECS.defineQuery([PositionTween.store]),
     [TweenType.color]: ECS.defineQuery([ColorTween.store]),
+    [TweenType.pose]: ECS.defineQuery([PoseTween.store]),
   };
   add(eid: EntityId, type: TweenType) {
     const Klass = klassMap.get(type)!;
