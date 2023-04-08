@@ -1,11 +1,11 @@
-import { INetworkState, NetworkStateApi } from "../../common/state/Network.ts";
+import { INetworkState, NetworkStateApi } from "../../common/NetworkApi.ts";
 
 interface IClientNetworkState extends INetworkState {
   ws?: WebSocket;
 }
 
 class ClientNetworkStateApi extends NetworkStateApi {
-  #state: IClientNetworkState = NetworkStateApi.init()
+  #state: IClientNetworkState = NetworkStateApi.init();
 
   isReady(): boolean {
     return !!this.#state.ws;
@@ -20,4 +20,4 @@ class ClientNetworkStateApi extends NetworkStateApi {
   }
 }
 
-export const ClientNetworkState = new ClientNetworkStateApi()
+export const ClientNetworkState = new ClientNetworkStateApi();

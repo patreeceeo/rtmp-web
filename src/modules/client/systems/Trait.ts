@@ -10,41 +10,44 @@ import {
 import { PlayerState } from "../../common/state/Player.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { AnyTrait, TraitState } from "../state/Trait.ts";
+import { AnyTraitConstructor, TraitState } from "~/common/state/Trait.ts";
 import { isJust, Just, Maybe, unboxJust } from "../../common/state/mod.ts";
 
 function exec() {
-  const traitCommandMaybes: Array<[AnyTrait, Maybe<AnyMessagePayload>]> = [];
+  const traitCommandMaybes: Array<
+    [AnyTraitConstructor, Maybe<AnyMessagePayload>]
+  > = [];
   for (const trait of TraitState.getAll()) {
-    traitCommandMaybes.push([trait, trait.getCommand()]);
+    traitCommandMaybes.push([
+      TraitState.getType(trait.type),
+      trait.getCommandMaybe(),
+    ]);
   }
 
-  const traitCommands: Array<[AnyTrait, AnyMessagePayload]> = traitCommandMaybes
-    .filter(([_t, p]) => isJust(p))
-    .map(([t, p]) => [t, unboxJust(p as Just<AnyMessagePayload>)]);
+  const traitCommands: Array<[AnyTraitConstructor, AnyMessagePayload]> =
+    traitCommandMaybes
+      .filter(([_t, p]) => isJust(p))
+      .map(([t, p]) => [t, unboxJust(p as Just<AnyMessagePayload>)]);
 
-  for (const [trait, payload] of traitCommands) {
-    TraitState.getType(trait.type).applyCommand(payload);
+  for (const [Trait, payload] of traitCommands) {
+    Trait.applyCommand(payload);
   }
-  for (const [trait, payload] of traitCommands) {
-    MessageState.addCommand(trait.mType, payload);
+  for (const [Trait, payload] of traitCommands) {
+    MessageState.addCommand(Trait.commandType, payload);
   }
 
   const lastReceivedSid = MessageState.lastReceivedStepId;
   const lastSentSid = MessageState.lastSentStepId;
   if (lastReceivedSid < lastSentSid) {
-    reconcileAndPredict(
-      MessageType.playerSnapshot,
-      MessageType.playerMoved,
-      applyPlayerSnapshot,
-      applyPlayerMoveCommand,
-    );
-    reconcileAndPredict(
-      MessageType.colorChange,
-      MessageType.colorChange,
-      applyColorChange,
-      applyColorChange,
-    );
+    for (const type of TraitState.getTypes()) {
+      const Trait = TraitState.getType(type);
+      reconcileAndPredict(
+        Trait.snapshotType,
+        Trait.commandType,
+        Trait.applySnapshot,
+        Trait.applyCommand,
+      );
+    }
   }
 }
 

@@ -21,7 +21,7 @@ import { OutputState } from "~/client/state/Output.ts";
 import { OutputSystem } from "~/client/systems/Output.ts";
 import { LevelState } from "~/common/state/LevelState.ts";
 import { InputSystem } from "../../../modules/client/Input.ts";
-import { TraitState, TraitType } from "../../../modules/client/state/Trait.ts";
+import { TraitState, TraitType } from "~/common/state/Trait.ts";
 
 const payloadMap = createPayloadMap();
 

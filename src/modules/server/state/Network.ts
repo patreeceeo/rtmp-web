@@ -1,18 +1,22 @@
-import { INetworkState, NetworkId, NetworkStateApi } from "../../common/state/Network.ts";
+import {
+  INetworkState,
+  NetworkId,
+  NetworkStateApi,
+} from "../../common/NetworkApi.ts";
 
 export class Client {
-  #nids = new Set<NetworkId>()
-  lastActiveTime = -Infinity
-  isBeingRemoved = false
+  #nids = new Set<NetworkId>();
+  lastActiveTime = -Infinity;
+  isBeingRemoved = false;
   constructor(readonly nid: NetworkId, readonly ws: WebSocket) {}
   addNetworkId(nid: NetworkId) {
-    this.#nids.add(nid)
+    this.#nids.add(nid);
   }
   hasNetworkId(nid: NetworkId) {
-    return this.#nids.has(nid)
+    return this.#nids.has(nid);
   }
   getNetworkIds() {
-    return this.#nids.keys()
+    return this.#nids.keys();
   }
 }
 
@@ -29,8 +33,8 @@ class ServerNetworkStateApi extends NetworkStateApi {
     ...NetworkStateApi.init(),
     nextNetworkId: 0 as NetworkId,
     connectedClients: new Map(),
-    connectedClientsByWs: new Map()
-  }
+    connectedClientsByWs: new Map(),
+  };
 
   createId(): NetworkId {
     const nid = this.#state.nextNetworkId;
@@ -44,34 +48,34 @@ class ServerNetworkStateApi extends NetworkStateApi {
   }
 
   getClient(nid: NetworkId): Client | undefined {
-    return this.#state.connectedClients.get(nid)
+    return this.#state.connectedClients.get(nid);
   }
 
-  * getClients(includeBeingRemoved = false): IterableIterator<Client> {
-    for(const client of this.#state.connectedClients.values()) {
-      if(!client.isBeingRemoved || includeBeingRemoved) {
-        yield client
+  *getClients(includeBeingRemoved = false): IterableIterator<Client> {
+    for (const client of this.#state.connectedClients.values()) {
+      if (!client.isBeingRemoved || includeBeingRemoved) {
+        yield client;
       }
     }
   }
 
-  * getClientSockets(includeBeingRemoved = false): IterableIterator<WebSocket> {
-    for(const client of this.getClients(includeBeingRemoved)) {
-      yield client.ws
+  *getClientSockets(includeBeingRemoved = false): IterableIterator<WebSocket> {
+    for (const client of this.getClients(includeBeingRemoved)) {
+      yield client.ws;
     }
   }
 
   getClientForSocket(ws: WebSocket) {
-    return this.#state.connectedClientsByWs.get(ws)
+    return this.#state.connectedClientsByWs.get(ws);
   }
 
   removeClient(nid: NetworkId) {
-    if(this.#state.connectedClients.has(nid)) {
-      const client = this.#state.connectedClients.get(nid)!
-      this.#state.connectedClients.delete(client.nid)
-      this.#state.connectedClientsByWs.delete(client.ws)
+    if (this.#state.connectedClients.has(nid)) {
+      const client = this.#state.connectedClients.get(nid)!;
+      this.#state.connectedClients.delete(client.nid);
+      this.#state.connectedClientsByWs.delete(client.ws);
     }
   }
 }
 
-export const ServerNetworkState = new ServerNetworkStateApi()
+export const ServerNetworkState = new ServerNetworkStateApi();
