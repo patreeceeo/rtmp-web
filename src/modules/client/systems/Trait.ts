@@ -1,13 +1,9 @@
 import { ClientNetworkState } from "../../client/state/Network.ts";
 import {
   AnyMessagePayload,
-  ColorChange,
   MessagePlayloadByType,
   MessageType,
-  PlayerMove,
-  PlayerSnapshot,
 } from "~/common/Message.ts";
-import { PlayerState } from "../../common/state/Player.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { AnyTraitConstructor, TraitState } from "~/common/state/Trait.ts";
@@ -94,35 +90,6 @@ function reconcile<
     ) {
       applyCommand(payload as MessagePlayloadByType[CommandType]);
     }
-  }
-}
-
-function applyPlayerMoveCommand({ nid, delta }: PlayerMove) {
-  const eid = ClientNetworkState.getEntityId(nid);
-  // predict that the server will accept our moves
-  if (PlayerState.hasPlayer(eid!)) {
-    const player = PlayerState.getPlayer(eid!);
-    player.position.add(delta);
-  }
-}
-
-function applyPlayerSnapshot({ nid, position }: PlayerSnapshot) {
-  const eid = ClientNetworkState.getEntityId(nid)!;
-  if (PlayerState.hasPlayer(eid)) {
-    const player = PlayerState.getPlayer(eid);
-    // Server sends back correct position
-    player.position.copy(position);
-  } else {
-    console.warn(`Requested moving unknown player with nid ${nid}`);
-  }
-}
-
-function applyColorChange({ nid, color }: ColorChange) {
-  const eid = ClientNetworkState.getEntityId(nid);
-  // predict that the server will accept our moves
-  if (PlayerState.hasPlayer(eid!)) {
-    const player = PlayerState.getPlayer(eid!);
-    player.color = color;
   }
 }
 
