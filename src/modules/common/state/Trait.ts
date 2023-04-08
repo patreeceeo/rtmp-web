@@ -3,7 +3,7 @@ import {
   MessagePlayloadByType,
   MessageType,
   PlayerMove,
-PlayerSnapshot,
+  PlayerSnapshot,
 } from "../../common/Message.ts";
 import { InputState } from "./Input.ts";
 import { LevelState } from "./LevelState.ts";
@@ -21,15 +21,25 @@ export enum TraitType {
   colorChange,
 }
 
-interface TraitConstructor<Type extends TraitType, CommandType extends MessageType, SnapshotType extends MessageType> {
+interface TraitConstructor<
+  Type extends TraitType,
+  CommandType extends MessageType,
+  SnapshotType extends MessageType,
+> {
   new (eid: EntityId): Trait<Type, CommandType>;
   applyCommand(message: MessagePlayloadByType[CommandType]): void;
   applySnapshot(message: MessagePlayloadByType[SnapshotType]): void;
-  getSnapshot(command: MessagePlayloadByType[CommandType]): Maybe<MessagePlayloadByType[SnapshotType]>;
+  getSnapshotMaybe(
+    command: MessagePlayloadByType[CommandType],
+  ): Maybe<MessagePlayloadByType[SnapshotType]>;
   commandType: CommandType;
   snapshotType: SnapshotType;
 }
-export type AnyTraitConstructor = TraitConstructor<TraitType, MessageType, MessageType>;
+export type AnyTraitConstructor = TraitConstructor<
+  TraitType,
+  MessageType,
+  MessageType
+>;
 
 interface Trait<Type extends TraitType, CommandType extends MessageType> {
   readonly eid: EntityId;
@@ -44,7 +54,7 @@ class WasdMoveTrait
   implements Trait<TraitType.wasdMove, MessageType.playerMoved> {
   readonly type = TraitType.wasdMove;
   static readonly commandType = MessageType.playerMoved;
-  static readonly snapshotType = MessageType.playerSnapshot
+  static readonly snapshotType = MessageType.playerSnapshot;
   readonly #player: Player;
   readonly #nid: NetworkId;
 
@@ -77,29 +87,33 @@ class WasdMoveTrait
     }
     if (dx !== 0 || dy !== 0) {
       reVec2.set(dx, dy);
-      return Just(
-        new PlayerMove(reVec2, this.#nid, MessageState.lastStepId),
-      );
+      return Just(new PlayerMove(reVec2, this.#nid, MessageState.lastStepId));
     }
     return Nothing();
   }
-  static getSnapshot({delta, nid, sid}: PlayerMove): Maybe<PlayerSnapshot> {
+  static getSnapshotMaybe({
+    delta,
+    nid,
+    sid,
+  }: PlayerMove): Maybe<PlayerSnapshot> {
     const eid = NetworkState.getEntityId(nid);
+    // TODO filter out invalid commands
     if (PlayerState.hasPlayer(eid!)) {
       const player = PlayerState.getPlayer(eid!);
-      // TODO what if lastActiveTime is changed by more than just moving?
       const timeSinceLastMove = Time.elapsed * player.lastActiveTime;
-      const clamped = getDistanceSquared(origin, delta) < player.MAX_VELOCITY_SQR
-        ? reVec2
-        : clampLine(origin, delta, player.MAX_VELOCITY * timeSinceLastMove);
-
-        Just(new PlayerSnapshot(clamped, nid, sid));
+      const clampDelta =
+        getDistanceSquared(origin, delta) < player.MAX_VELOCITY_SQR
+          ? delta
+          : clampLine(origin, delta, player.MAX_VELOCITY * timeSinceLastMove);
+      reVec2.copy(player.position);
+      reVec2.add(clampDelta);
+      return Just(new PlayerSnapshot(reVec2, nid, sid));
     }
-    return Nothing()
+    return Nothing();
   }
   static applyCommand({ nid, delta }: PlayerMove) {
     const eid = NetworkState.getEntityId(nid);
-    // predict that the server will accept our moves
+    // TODO filter out invalid commands
     if (PlayerState.hasPlayer(eid!)) {
       const player = PlayerState.getPlayer(eid!);
       player.position.add(delta);
@@ -107,10 +121,12 @@ class WasdMoveTrait
   }
   static applySnapshot({ nid, position }: PlayerSnapshot) {
     const eid = NetworkState.getEntityId(nid)!;
+    // TODO filter out invalid snapshots
     if (PlayerState.hasPlayer(eid)) {
       const player = PlayerState.getPlayer(eid);
       // Server sends back correct position
       player.position.copy(position);
+      // TODO what if lastActiveTime is changed by more than just moving?
       player.lastActiveTime = Time.elapsed;
     } else {
       console.warn(`Requested moving unknown player with nid ${nid}`);
@@ -162,14 +178,14 @@ class ColorChangeTrait
       player.color = color;
     }
   }
-  static getSnapshot(payload: ColorChange) {
+  static getSnapshotMaybe(payload: ColorChange) {
     const eid = NetworkState.getEntityId(payload.nid);
     const player = PlayerState.getPlayer(eid!);
     player.color = payload.color;
     player.lastActiveTime = Time.elapsed;
     return Just(payload);
   }
-  static applySnapshot = this.applyCommand
+  static applySnapshot = this.applyCommand;
 }
 
 const traitKlassMap = new Map<
@@ -203,7 +219,7 @@ class TraitStateApi {
     }
   }
   getTypes(): Array<TraitType> {
-    return [TraitType.wasdMove, TraitType.colorChange]
+    return [TraitType.wasdMove, TraitType.colorChange];
   }
   getType<Type extends TraitType>(type: Type) {
     return traitKlassMap.get(type)!;

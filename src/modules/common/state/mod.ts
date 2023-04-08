@@ -1,4 +1,5 @@
 import * as ECS from "bitecs";
+import { filter, map } from "../Iterable.ts";
 
 export interface OpaqueType<T extends string> {
   readonly __opaqueType: T;
@@ -7,6 +8,8 @@ export type EntityId = number & OpaqueType<"entityId">;
 export interface Just<T> {
   __value: T;
 }
+
+// TODO move Maybe stuff elsewhere
 export type Nothing = {
   __value: undefined;
 };
@@ -37,6 +40,12 @@ export function isJust<Type>(maybe: Maybe<Type>) {
 }
 export function unboxJust<Type>(just: Just<Type>): Type {
   return just.__value;
+}
+
+export function flattenMaybes<Type>(
+  iter: Iterable<Maybe<Type>>,
+): Iterable<Type> {
+  return map(filter(iter, isJust), unboxJust) as Iterable<Type>;
 }
 
 export function copy<Klass extends { __copy__(src: Klass): void }>(
