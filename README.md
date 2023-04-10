@@ -64,7 +64,7 @@ Here's how I think this will work. If you put a link to a TypeScript module in y
 
 ### Authoritative Server
 
-Heavily influenced by [https://www.gabrielgambetta.com/client-server-game-architecture.html](Gabriel Gambetta's writing on Client-Server game architecture.)
+Heavily influenced by [Gabriel Gambetta's writing on Client-Server game architecture.](https://www.gabrielgambetta.com/client-server-game-architecture.html)
 
 #### Sequence Diagram
 
