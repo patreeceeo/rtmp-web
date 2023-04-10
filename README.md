@@ -10,6 +10,7 @@ NOTE: This project is still in its infancy. This README is mostly for my own ben
 ## Goals
 
 - Authoritative server with client-side prediction, tweening and rollback (see sequence diagram below)
+- Matchmaking and instance servers that can be spun up on demand
 - Hot module reloading on client and server, for both production and development
 - Use Web Transport (once it's more widely adopted) instead of Web Sockets.
 - Be generic enough to be used in a variety of games as well as non-game applications
