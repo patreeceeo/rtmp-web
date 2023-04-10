@@ -24,5 +24,7 @@ Real-time multiplayer Web framework, for Deno. Goals:
 
 ## Authoritative Server Sequence Diagram
 ![Authoritative Server Sequence Diagram](./auth_server_seq_diagram.jpg)
+
 <iframe src="https://miro.com/app/live-embed/uXjVMZ4l_4o=/?moveToViewport=-1619,-187,2301,1210&embedId=2235689463" scrolling="no" allow="fullscreen; clipboard-read; clipboard-write" allowfullscreen width="768" height="432" frameborder="0"></iframe>
+
 [View on Miro](https://miro.com/app/board/uXjVMZ4l_4o=/?share_link_id=837242552602)
