@@ -56,7 +56,7 @@ This would simply mean reading the source import_map.json, ensuring that any rel
 
 #### (TODO) Production client-side import map (in HTML)
 
-There's a smart way and a dumb way to do this. The dumb way would be to assume every module in the source importmap might be used on the client, so the client-side importmap would be the same as the server-side importmap. I can't think of a reason not to do this, unless there are browsers that eagerly fetch all entries in an importmap before they're actually imported (?). The smart way would either rely on the developer to somehow indicated which imports are used client-side, or on a script that uses a parser like ESPrima to determine that automatically.
+There's a smart way and a dumb way to do this. The dumb way would be to assume every module in the source importmap might be used on the client, so the client-side importmap would be the same as the server-side importmap. I can't think of a reason not to do this, unless there are browsers that eagerly fetch all entries in an importmap before they're actually imported (?). The smart way would either rely on the developer to somehow indicate which imports are used client-side, or on a script that uses a parser like ESPrima to determine that automatically.
 
 #### (TODO) Client-side remote TypeScript modules
 
