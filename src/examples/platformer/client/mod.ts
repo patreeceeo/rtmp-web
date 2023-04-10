@@ -22,6 +22,7 @@ import { OutputSystem } from "~/client/systems/Output.ts";
 import { LevelState } from "~/common/state/LevelState.ts";
 import { InputSystem } from "../../../modules/client/Input.ts";
 import { TraitState, TraitType } from "~/common/state/Trait.ts";
+import { ReconcileSystem } from "../../../modules/client/systems/Reconcile.ts";
 
 const payloadMap = createPayloadMap();
 
@@ -87,8 +88,9 @@ const pipeline = new Pipeline([
   TimeSystem(),
   InputSystem(),
   TraitSystem(),
-  TweenSystem(),
   ClientNetworkSystem(),
+  TweenSystem(),
+  ReconcileSystem(),
 ] as Array<SystemPartial>);
 
 startClient(new DotsClientApp());
