@@ -33,7 +33,7 @@ The eventual goal is to make it available as a set of ES Modules that can be dow
 
 Then, if your project uses any assets, you must edit scripts/dev.sh and scripts/build-client.sh to copy those to public and dist/public, respectively.
 
-TODO: Simply the above by exposing a variable in scripts/common.sh that identifies the active project. The entry points for both client and server, as well as any assets, would then be assumed to be at a fixed path relative to the root of the project.
+TODO: Simplify the above by exposing a variable in scripts/common.sh that identifies the active project. The entry points for both client and server, as well as any assets, would then be assumed to be at a fixed path relative to the root of the project.
 
 ### Developing
 
