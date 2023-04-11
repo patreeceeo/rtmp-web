@@ -26,16 +26,9 @@ NOTE: This project is still in its infancy. This README is mostly for my own ben
 
 ## How it works
 
-### (WIP) Creating a Project
+### Creating a Project
 
-The eventual goal is to make it available as a set of ES Modules that can be downloaded from a host like <https://deno.land/x> (maybe even NPM) but for now, creating an example project under `src/examples` is currently the only way to build anything with this framework, as it's still very immature. A project has two entry points: client-side and server-side. Currently, to change which entry points get loaded, you have to edit:
-
-- src/index.html
-- .github/workflows/deploy.yml
-
-Then, if your project uses any assets, you must edit scripts/dev.sh and scripts/build-client.sh to copy those to public and dist/public, respectively.
-
-TODO: Simplify the above by exposing a variable in scripts/common.sh that identifies the active project. The entry points for both client and server, as well as any assets, would then be assumed to be at a fixed path relative to the root of the project.
+The eventual goal is to make it available as a set of ES Modules that can be downloaded from a host like <https://deno.land/x> (maybe even NPM) but for now, creating an example project under `src/examples` is currently the only way to build anything with this framework, as it's still very immature. A project essentially consists of two entry points for client and server, and optionally, some static assets. To change which project gets loaded, edit scripts/common.sh and change the `active_project` variable.
 
 ### Developing
 
