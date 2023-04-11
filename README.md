@@ -7,20 +7,21 @@ NOTE: This project is still in its infancy. This README is mostly for my own ben
 
 \* Current working title. Passively looking for a better name.
 
-## Goals
+## Goals and (Planned) High-Level Features
 
 - Authoritative server with client-side prediction, tweening and rollback (see sequence diagram below)
 - Matchmaking and instance servers that can be spun up on demand
-- Hot module reloading on client and server, for both production and development
-- Use Web Transport (once it's more widely adopted) instead of Web Sockets.
 - Be generic enough to be used in a variety of games as well as non-game applications
-- Use standard APIs and only deviate when it makes sense to do so
-  - ES Modules in production
-- Leverage the above to make it easier to write isomorphic code.
 - Support as many devices as possible
-- Be efficient w/ regard to power and memory consumption
-- Leverage TypeScript's powerful type system to help developers write maintainable, robust code.
-- Support time-travel debugging (?)
+- Be efficient w/ regard to power, memory, network
+  - Use Web Transport (once it's more widely adopted) instead of Web Sockets.
+  - ECS
+  - Binary wire format
+- Joyful DX:
+  - Prod-ready HMR
+  - Use standard Web APIs on Client and Server, only deviate when it makes sense to do so
+  - Leverage TypeScript's powerful type system to help developers write maintainable, robust code.
+  - Time-travel debugging
 - Keep it free (as in beer and as in speech)
 
 ## How it works
