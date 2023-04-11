@@ -24,10 +24,13 @@ jobs:
       - name: Build server
         run: ./scripts/build-server.sh
 
+      - name: Export variables to use in this workflow
+        run: ./scripts/export-vars.sh
+
       - name: Upload to Deno Deploy
         uses: denoland/deployctl@v1
         with:
           project: "rtmp-web"
-          entrypoint: ./examples/platformer/server/mod.ts
+          entrypoint: ./examples/${{ env.active_project }}/server/mod.ts
           root: dist
           import-map: ./import_map_prod.json
