@@ -4,7 +4,7 @@ import {
   MessagePlayloadByType,
   MessageType,
 } from "../../common/Message.ts";
-import { MessagePriorityQueue } from "../MessagePriorityQueue.ts";
+import { MessageTimelineBuffer } from "../MessageTimelineBuffer.ts";
 import { isClient } from "~/common/env.ts";
 
 /**
@@ -22,7 +22,7 @@ import { isClient } from "~/common/env.ts";
 export class MessageStateApi {
   #payloadMap = createPayloadMap();
   #commandBuffer = new ArrayBuffer(1024);
-  #commands = new MessagePriorityQueue(this.#commandBuffer, this.#payloadMap);
+  #commands = new MessageTimelineBuffer(this.#commandBuffer, this.#payloadMap);
   #sid = 0;
   #lastSentStepId = 0;
 
@@ -81,7 +81,10 @@ export class MessageStateApi {
 
   #lastReceivedStepId = 0;
   #snapshotBuffer = new ArrayBuffer(1024);
-  #snapshots = new MessagePriorityQueue(this.#snapshotBuffer, this.#payloadMap);
+  #snapshots = new MessageTimelineBuffer(
+    this.#snapshotBuffer,
+    this.#payloadMap,
+  );
   addSnapshot(type: MessageType, payload: AnyMessagePayload) {
     this.#snapshots.insert(this.#sid, type, payload);
     this.#lastReceivedStepId = payload.sid;

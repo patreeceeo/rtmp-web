@@ -10,39 +10,39 @@ import { MessageType } from "./Message.ts";
 
 class ItemSet {
   constructor(
-    readonly priority: number,
-    readonly startOffset: number,
-    public endOffset: number,
+    readonly timeIndex: number,
+    readonly startBufferOffset: number,
+    public endBufferOffset: number,
   ) {}
 }
 
-export class MessagePriorityQueue {
+export class MessageTimelineBuffer {
   #view: DataViewMovable;
-  /** Contains one entry for each set of priority-grouped message, keyed by a modulus of the priority */
+  /** Contains one entry for each set of timeIndex-grouped message, keyed by a modulus of the timeIndex */
   #map: Array<ItemSet>;
   constructor(
     buf: ArrayBufferLike,
     readonly payloadMap: MessageMutablePlayloadByType,
   ) {
     this.#view = new DataViewMovable(buf, { isCircular: true });
-    // The minimal message is at least 2 bytes (type + sid)
-    this.#map = new Array(this.maxLegth);
+    /** map time index to positions in the buffer */
+    this.#map = new Array(this.byteLength);
   }
 
-  #getPreviousItems(priority: number) {
-    const mapKey = priority % this.maxLegth;
+  #getPreviousItems(timeIndex: number) {
+    const mapKey = timeIndex % this.byteLength;
     const items = (mapKey === 0)
-      ? this.#map[this.maxLegth - 1]
+      ? this.#map[this.byteLength - 1]
       : this.#map[mapKey - 1];
-    return items?.priority === priority ? items : undefined;
+    return items?.timeIndex === timeIndex ? items : undefined;
   }
 
   #purgeItems() {
-    for (let mapKey = 0; mapKey < this.maxLegth; mapKey++) {
+    for (let mapKey = 0; mapKey < this.byteLength; mapKey++) {
       const items = this.#map[mapKey];
       const sweepOffset = this.#view.byteOffset - this.#view.byteLength;
       // console.log("startOffset", items?.startOffset, "sweepOffset", sweepOffset)
-      if (items && items.startOffset < sweepOffset) {
+      if (items && items.startBufferOffset < sweepOffset) {
         // console.log("deleting items", JSON.stringify(items))
         delete this.#map[mapKey];
       }
@@ -50,25 +50,26 @@ export class MessagePriorityQueue {
   }
 
   insert<Type extends MessageType>(
-    priority: number,
+    timeIndex: number,
     type: Type,
     payload: MessagePlayloadByType[Type],
   ) {
-    const mapKey = priority % this.maxLegth;
+    const mapKey = timeIndex % this.byteLength;
     const startOffset = this.#view.byteOffset;
+    console.log({startOffset})
     writeMessage(this.#view, type, payload);
     const endOffset = this.#view.byteOffset;
     const set = this.#map[mapKey];
     this.#purgeItems();
-    if (set && set.priority === priority) {
+    if (set && set.timeIndex === timeIndex) {
       // console.log("update endOffset", endOffset)
-      set.endOffset = endOffset;
+      set.endBufferOffset = endOffset;
     } else {
-      const item = new ItemSet(priority, startOffset, endOffset);
+      const item = new ItemSet(timeIndex, startOffset, endOffset);
       // console.log("create items", JSON.stringify(item))
       this.#map[mapKey] = item;
-      const previous = this.#getPreviousItems(priority);
-      if (previous && previous.endOffset !== startOffset) {
+      const previous = this.#getPreviousItems(timeIndex);
+      if (previous && previous.endBufferOffset !== startOffset) {
         throw new Error(
           "Invariant violated: Items should be in order and continuous",
         );
@@ -76,20 +77,20 @@ export class MessagePriorityQueue {
     }
   }
 
-  has(priority: number) {
-    const items = this.#map[priority % this.maxLegth];
-    return items?.priority === priority;
+  has(timeIndex: number) {
+    const items = this.#map[timeIndex % this.byteLength];
+    return items?.timeIndex === timeIndex;
   }
 
   *at(
-    priority: number,
+    timeIndex: number,
   ): Generator<[MessageType, AnyMessagePayload]> {
     const initialByteOffset = this.#view.byteOffset;
-    if (this.has(priority)) {
-      const items = this.#map[priority % this.maxLegth];
+    if (this.has(timeIndex)) {
+      const items = this.#map[timeIndex % this.byteLength];
       // console.log("got items", JSON.stringify(items))
-      this.#view.jump(items.startOffset);
-      while (this.#view.byteOffset < items.endOffset) {
+      this.#view.jump(items.startBufferOffset);
+      while (this.#view.byteOffset < items.endBufferOffset) {
         // console.log("reading at", this.#view.byteOffset)
         yield readMessage(this.#view, this.payloadMap);
       }
@@ -98,19 +99,23 @@ export class MessagePriorityQueue {
   }
 
   *slice(
-    startPriority: number,
-    endPriority: number,
+    startTimeIndex: number,
+    endTimeIndex: number,
   ): Generator<[MessageType, AnyMessagePayload]> {
-    let priority = startPriority;
-    while (priority <= endPriority) {
-      if (this.has(priority)) {
-        yield* this.at(priority);
+    let timeIndex = startTimeIndex;
+    while (timeIndex <= endTimeIndex) {
+      if (this.has(timeIndex)) {
+        yield* this.at(timeIndex);
       }
-      priority++;
+      timeIndex++;
     }
   }
 
-  get maxLegth() {
-    return this.#view.byteLength / 2;
+  get byteLength() {
+    return this.#view.byteLength;
+  }
+
+  get byteOffset() {
+    return this.#view.byteOffset;
   }
 }
