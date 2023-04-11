@@ -1,4 +1,5 @@
 import { DataViewMovable } from "./DataView.ts";
+import { filter } from "./Iterable.ts";
 import {
   AnyMessagePayload,
   MessageMutablePlayloadByType,
@@ -8,45 +9,22 @@ import {
 } from "./Message.ts";
 import { MessageType } from "./Message.ts";
 
-class ItemSet {
-  constructor(
-    readonly timeIndex: number,
-    readonly startBufferOffset: number,
-    public endBufferOffset: number,
-  ) {}
+class Bucket {
+  public bufferOffsets = new Set<number>();
+  constructor(public timeIndex: number) {}
 }
 
 export class MessageTimelineBuffer {
   #view: DataViewMovable;
-  /** Contains one entry for each set of timeIndex-grouped message, keyed by a modulus of the timeIndex */
-  #map: Array<ItemSet>;
+  #buckets: Array<Bucket>;
   constructor(
     buf: ArrayBufferLike,
+    readonly maxTimeSteps: number,
     readonly payloadMap: MessageMutablePlayloadByType,
   ) {
     this.#view = new DataViewMovable(buf, { isCircular: true });
-    /** map time index to positions in the buffer */
-    this.#map = new Array(this.byteLength);
-  }
-
-  #getPreviousItems(timeIndex: number) {
-    const mapKey = timeIndex % this.byteLength;
-    const items = (mapKey === 0)
-      ? this.#map[this.byteLength - 1]
-      : this.#map[mapKey - 1];
-    return items?.timeIndex === timeIndex ? items : undefined;
-  }
-
-  #purgeItems() {
-    for (let mapKey = 0; mapKey < this.byteLength; mapKey++) {
-      const items = this.#map[mapKey];
-      const sweepOffset = this.#view.byteOffset - this.#view.byteLength;
-      // console.log("startOffset", items?.startOffset, "sweepOffset", sweepOffset)
-      if (items && items.startBufferOffset < sweepOffset) {
-        // console.log("deleting items", JSON.stringify(items))
-        delete this.#map[mapKey];
-      }
-    }
+    /** map timeIndex to positions in the buffer */
+    this.#buckets = Array.from(new Array(maxTimeSteps), () => new Bucket(0));
   }
 
   insert<Type extends MessageType>(
@@ -54,43 +32,39 @@ export class MessageTimelineBuffer {
     type: Type,
     payload: MessagePlayloadByType[Type],
   ) {
-    const mapKey = timeIndex % this.byteLength;
+    const mapKey = timeIndex % this.maxTimeSteps;
     const startOffset = this.#view.byteOffset;
-    console.log({startOffset})
     writeMessage(this.#view, type, payload);
-    const endOffset = this.#view.byteOffset;
-    const set = this.#map[mapKey];
-    this.#purgeItems();
-    if (set && set.timeIndex === timeIndex) {
-      // console.log("update endOffset", endOffset)
-      set.endBufferOffset = endOffset;
-    } else {
-      const item = new ItemSet(timeIndex, startOffset, endOffset);
-      // console.log("create items", JSON.stringify(item))
-      this.#map[mapKey] = item;
-      const previous = this.#getPreviousItems(timeIndex);
-      if (previous && previous.endBufferOffset !== startOffset) {
-        throw new Error(
-          "Invariant violated: Items should be in order and continuous",
-        );
+    const bucket = this.#buckets[mapKey];
+    if (bucket.timeIndex !== timeIndex) {
+      bucket.timeIndex = timeIndex;
+      bucket.bufferOffsets.clear();
+    }
+    for (const bucket of this.#buckets) {
+      const offsetsLeftBehind = filter(
+        bucket.bufferOffsets.values(),
+        (offset) => startOffset - offset >= this.byteLength,
+      );
+      for (const offset of offsetsLeftBehind) {
+        bucket.bufferOffsets.delete(offset);
       }
     }
+    bucket.bufferOffsets.add(startOffset);
   }
 
   has(timeIndex: number) {
-    const items = this.#map[timeIndex % this.byteLength];
-    return items?.timeIndex === timeIndex;
+    const bucket = this.#buckets[timeIndex % this.maxTimeSteps];
+    return bucket?.timeIndex === timeIndex && bucket.bufferOffsets.size > 0;
   }
 
-  *at(
-    timeIndex: number,
-  ): Generator<[MessageType, AnyMessagePayload]> {
+  *at(timeIndex: number): Generator<[MessageType, AnyMessagePayload]> {
     const initialByteOffset = this.#view.byteOffset;
     if (this.has(timeIndex)) {
-      const items = this.#map[timeIndex % this.byteLength];
+      const bucket = this.#buckets[timeIndex % this.maxTimeSteps];
       // console.log("got items", JSON.stringify(items))
-      this.#view.jump(items.startBufferOffset);
-      while (this.#view.byteOffset < items.endBufferOffset) {
+
+      for (const offset of bucket.bufferOffsets.values()) {
+        this.#view.jump(offset);
         // console.log("reading at", this.#view.byteOffset)
         yield readMessage(this.#view, this.payloadMap);
       }
@@ -117,5 +91,9 @@ export class MessageTimelineBuffer {
 
   get byteOffset() {
     return this.#view.byteOffset;
+  }
+
+  get __buckets__() {
+    return this.#buckets;
   }
 }

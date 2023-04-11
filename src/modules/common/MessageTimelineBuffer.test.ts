@@ -11,86 +11,128 @@ import { networkId } from "./state/Network.ts";
 
 const payloadMap = createPayloadMap();
 
-// Each "nil" message requires 5 bytes
-const messageByteLength = 5;
-const bufferByteLength = messageByteLength * 4;
-const mq = new MessageTimelineBuffer(
-  new ArrayBuffer(bufferByteLength),
-  payloadMap,
-);
-const arr: Array<[MessageType, AnyMessagePayload]> = [];
-
-function insert(index: number, nid: number) {
+function insert(mq: MessageTimelineBuffer, index: number, nid: number) {
   const item = [MessageType.nil, new NilPayload(networkId(nid), 0)] as [
     MessageType,
     AnyMessagePayload,
   ];
   mq.insert(index, ...item);
-  arr.splice(index, 0, item);
 }
 function mapPayloadNid(iter: Iterable<[unknown, AnyMessagePayload]>) {
   return map(iter, ([_, payload]) => payload.nid);
 }
 
-Deno.test("MessageTimelineQueue", () => {
+Deno.test("MessageTimelineBuffer happy path", () => {
+  // Each "nil" message requires 5 bytes
+  const messageByteLength = 5;
+  const maxTimeSteps = 4;
+  const bufferByteLength = messageByteLength * maxTimeSteps;
+  const mq = new MessageTimelineBuffer(
+    new ArrayBuffer(bufferByteLength),
+    maxTimeSteps,
+    payloadMap,
+  );
   assertEquals(toArray(mq.at(0)).length, 0, "should initially be empty");
 
-  insert(0, 0);
-  insert(0, 1);
-  insert(0, 2);
+  insert(mq, 0, 0);
+  insert(mq, 0, 1);
+  insert(mq, 0, 2);
 
   // should retreive multiple for given timeIndex
-  assertEquals(
-    toArray(mapPayloadNid(mq.at(0))),
-    [0, 1, 2],
-  );
+  assertEquals(toArray(mapPayloadNid(mq.at(0))), [0, 1, 2]);
   assertEquals(mq.byteOffset, 3 * messageByteLength);
 
   // should be idempotent
-  assertEquals(
-    toArray(mapPayloadNid(mq.at(0))),
-    [0, 1, 2],
-  );
+  assertEquals(toArray(mapPayloadNid(mq.at(0))), [0, 1, 2]);
 
-  insert(1, 3);
-  assertEquals(
-    toArray(mapPayloadNid(mq.at(1))),
-    [3],
-  );
+  insert(mq, 1, 3);
+  assertEquals(toArray(mapPayloadNid(mq.at(1))), [3]);
   assertEquals(mq.byteOffset, 4 * messageByteLength);
 
   // earlier items should still be there
-  assertEquals(
-    toArray(mapPayloadNid(mq.at(0))),
-    [0, 1, 2],
-  );
+  assertEquals(toArray(mapPayloadNid(mq.at(0))), [0, 1, 2]);
 
-  insert(1, 4);
-  insert(2, 5);
+  insert(mq, 1, 4);
+  insert(mq, 2, 5);
   // At this point, the reported byteLength is actually longer than the underlying buffer
   // This is because it's a circular buffer
   assertEquals(mq.byteOffset, 6 * messageByteLength);
 
-  assertEquals(
-    toArray(mapPayloadNid(mq.slice(1, 2))),
-    [3, 4, 5],
-  );
+  assertEquals(toArray(mapPayloadNid(mq.slice(1, 2))), [3, 4, 5]);
 
   // non-sequential insert still writes to the buffer sequentially
-  insert(12, 6);
+  insert(mq, 12, 6);
   assertEquals(mq.byteOffset, 7 * messageByteLength);
 
-  assertEquals(
-    toArray(mapPayloadNid(mq.slice(12, 12))),
-    [6],
+  // non-sequential insert still writes to the buffer sequentially
+  insert(mq, 2, 7);
+  assertEquals(toArray(mapPayloadNid(mq.at(2))), [5, 7]);
+
+  assertEquals(toArray(mapPayloadNid(mq.slice(12, 12))), [6]);
+});
+
+Deno.test("MessageTimelineBuffer overflow by adding too many steps with one message each", () => {
+  // Each "nil" message requires 5 bytes
+  const messageByteLength = 5;
+  const maxTimeSteps = 4;
+  const bufferByteLength = messageByteLength * maxTimeSteps;
+  const mq = new MessageTimelineBuffer(
+    new ArrayBuffer(bufferByteLength),
+    maxTimeSteps,
+    payloadMap,
   );
 
-  // overflow by adding one too many
-  for (let p = 0; p <= bufferByteLength / messageByteLength; p++) {
-    insert(p, p);
+  for (
+    let timeIndex = 0;
+    timeIndex <= maxTimeSteps;
+    timeIndex++
+  ) {
+    insert(mq, timeIndex, timeIndex);
+  }
+  assert(!mq.has(0));
+  assertEquals(toArray(mapPayloadNid(mq.slice(0, maxTimeSteps))), [1, 2, 3, 4]);
+});
+
+Deno.test("MessageTimelineBuffer overflow by adding too many messages to one step", () => {
+  // Each "nil" message requires 5 bytes
+  const messageByteLength = 5;
+  const maxTimeSteps = 4;
+  const bufferByteLength = messageByteLength * maxTimeSteps;
+  const mq = new MessageTimelineBuffer(
+    new ArrayBuffer(bufferByteLength),
+    maxTimeSteps,
+    payloadMap,
+  );
+  for (let data = 0; data <= maxTimeSteps; data++) {
+    insert(mq, 18, data);
   }
 
+  assertEquals(toArray(mapPayloadNid(mq.at(18))), [1, 2, 3, 4]);
+});
+
+Deno.test("MessageTimelineBuffer overflow by adding too many messages accross multiple steps", () => {
+  // Each "nil" message requires 5 bytes
+  const messageByteLength = 5;
+  const maxTimeSteps = 4;
+  const bufferByteLength = messageByteLength * maxTimeSteps;
+  const mq = new MessageTimelineBuffer(
+    new ArrayBuffer(bufferByteLength),
+    maxTimeSteps,
+    payloadMap,
+  );
+  for (
+    let timeIndex = 0;
+    timeIndex <= maxTimeSteps / 2;
+    timeIndex++
+  ) {
+    insert(mq, timeIndex, timeIndex);
+    insert(mq, timeIndex, timeIndex);
+  }
   assert(!mq.has(0));
-  assert(mq.has(1));
-  assertEquals(mq.byteOffset, 12 * messageByteLength);
+  assertEquals(toArray(mapPayloadNid(mq.slice(0, maxTimeSteps / 2))), [
+    1,
+    1,
+    2,
+    2,
+  ]);
 });

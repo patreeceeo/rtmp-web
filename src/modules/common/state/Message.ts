@@ -21,8 +21,12 @@ import { isClient } from "~/common/env.ts";
  */
 export class MessageStateApi {
   #payloadMap = createPayloadMap();
-  #commandBuffer = new ArrayBuffer(1024);
-  #commands = new MessageTimelineBuffer(this.#commandBuffer, this.#payloadMap);
+  #commandBuffer = new ArrayBuffer(2048);
+  #commands = new MessageTimelineBuffer(
+    this.#commandBuffer,
+    7,
+    this.#payloadMap,
+  );
   #sid = 0;
   #lastSentStepId = 0;
 
@@ -80,9 +84,10 @@ export class MessageStateApi {
   }
 
   #lastReceivedStepId = 0;
-  #snapshotBuffer = new ArrayBuffer(1024);
+  #snapshotBuffer = new ArrayBuffer(2048);
   #snapshots = new MessageTimelineBuffer(
     this.#snapshotBuffer,
+    7,
     this.#payloadMap,
   );
   addSnapshot(type: MessageType, payload: AnyMessagePayload) {
