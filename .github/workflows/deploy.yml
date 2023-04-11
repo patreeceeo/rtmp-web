@@ -25,7 +25,9 @@ jobs:
         run: ./scripts/build-server.sh
 
       - name: Export variables to use in this workflow
-        run: ./scripts/export-vars.sh
+        run: |
+          source ./scripts/common.sh
+          echo "active_project=\"$active_project\"" >> $GITHUB_ENV
 
       - name: Upload to Deno Deploy
         uses: denoland/deployctl@v1
