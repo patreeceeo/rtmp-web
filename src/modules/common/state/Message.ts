@@ -126,10 +126,33 @@ export class MessageStateApi {
     end = this.#sidNow,
   ): Generator<[MessageType, AnyMessagePayload]> {
     for (
-      const snapshot of this.#snapshotsByCommandStepCreated.slice(start, end)
+      const snapshot of this.#snapshotsByCommandStepCreated.slice(
+        start,
+        end,
+      )
     ) {
       yield snapshot;
     }
+  }
+
+  enableStats() {
+    this.#commandsByStepCreated.enableStats();
+    this.#commandsByStepReceived.enableStats();
+    this.#snapshotsByStepCreated.enableStats();
+    this.#snapshotsByCommandStepCreated.enableStats();
+  }
+
+  logStats() {
+    console.log(
+      "bytes consumed by commands",
+      this.#commandsByStepCreated.bytesConsumed +
+        this.#commandsByStepReceived.bytesConsumed,
+    );
+    console.log(
+      "bytes consumed by snapshots",
+      this.#snapshotsByStepCreated.bytesConsumed +
+        this.#snapshotsByCommandStepCreated.bytesConsumed,
+    );
   }
 }
 

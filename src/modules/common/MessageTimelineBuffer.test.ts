@@ -40,14 +40,14 @@ Deno.test("MessageTimelineBuffer happy path", () => {
 
   // should retreive multiple for given timeIndex
   assertEquals(toArray(mapPayloadNid(mq.at(0))), [0, 1, 2]);
-  assertEquals(mq.byteOffset, 3 * messageByteLength);
+  assertEquals(mq.bufferByteOffset, 3 * messageByteLength);
 
   // should be idempotent
   assertEquals(toArray(mapPayloadNid(mq.at(0))), [0, 1, 2]);
 
   insert(mq, 1, 3);
   assertEquals(toArray(mapPayloadNid(mq.at(1))), [3]);
-  assertEquals(mq.byteOffset, 4 * messageByteLength);
+  assertEquals(mq.bufferByteOffset, 4 * messageByteLength);
 
   // earlier items should still be there
   assertEquals(toArray(mapPayloadNid(mq.at(0))), [0, 1, 2]);
@@ -56,13 +56,13 @@ Deno.test("MessageTimelineBuffer happy path", () => {
   insert(mq, 2, 5);
   // At this point, the reported byteLength is actually longer than the underlying buffer
   // This is because it's a circular buffer
-  assertEquals(mq.byteOffset, 6 * messageByteLength);
+  assertEquals(mq.bufferByteOffset, 6 * messageByteLength);
 
   assertEquals(toArray(mapPayloadNid(mq.slice(1, 2))), [3, 4, 5]);
 
   // non-sequential insert still writes to the buffer sequentially
   insert(mq, 12, 6);
-  assertEquals(mq.byteOffset, 7 * messageByteLength);
+  assertEquals(mq.bufferByteOffset, 7 * messageByteLength);
 
   // non-sequential insert still writes to the buffer sequentially
   insert(mq, 2, 7);
@@ -135,4 +135,84 @@ Deno.test("MessageTimelineBuffer overflow by adding too many messages accross mu
     2,
     2,
   ]);
+});
+
+Deno.test("MessageTimelineBuffer bytesConsumed one timeIndex", () => {
+  // Each "nil" message requires 5 bytes
+  const messageByteLength = 5;
+  const maxTimeSteps = 4;
+  const bufferByteLength = messageByteLength * maxTimeSteps;
+  const mq = new MessageTimelineBuffer(
+    new ArrayBuffer(bufferByteLength),
+    maxTimeSteps,
+    payloadMap,
+  );
+  mq.enableStats();
+
+  assertEquals(mq.bytesCapacity, bufferByteLength);
+  assertEquals(mq.bytesConsumed, 0);
+
+  insert(mq, 0, 0);
+
+  assertEquals(mq.bytesConsumed, 5);
+
+  insert(mq, 0, 0);
+
+  assertEquals(mq.bytesConsumed, 10);
+
+  insert(mq, 0, 0);
+
+  assertEquals(mq.bytesConsumed, 15);
+
+  insert(mq, 0, 0);
+
+  assertEquals(mq.bytesConsumed, 20);
+
+  insert(mq, 0, 0);
+
+  assertEquals(mq.bytesConsumed, 20);
+
+  insert(mq, 0, 0);
+
+  assertEquals(mq.bytesConsumed, 20);
+});
+
+Deno.test("MessageTimelineBuffer bytesConsumed multi timeIndex", () => {
+  // Each "nil" message requires 5 bytes
+  const messageByteLength = 5;
+  const maxTimeSteps = 4;
+  const bufferByteLength = messageByteLength * maxTimeSteps;
+  const mq = new MessageTimelineBuffer(
+    new ArrayBuffer(bufferByteLength),
+    maxTimeSteps,
+    payloadMap,
+  );
+  mq.enableStats();
+
+  assertEquals(mq.bytesCapacity, bufferByteLength);
+  assertEquals(mq.bytesConsumed, 0);
+
+  insert(mq, 0, 0);
+
+  assertEquals(mq.bytesConsumed, 5);
+
+  insert(mq, 1, 0);
+
+  assertEquals(mq.bytesConsumed, 10);
+
+  insert(mq, 2, 0);
+
+  assertEquals(mq.bytesConsumed, 15);
+
+  insert(mq, 3, 0);
+
+  assertEquals(mq.bytesConsumed, 20);
+
+  insert(mq, 4, 0);
+
+  assertEquals(mq.bytesConsumed, 20);
+
+  insert(mq, 5, 0);
+
+  assertEquals(mq.bytesConsumed, 20);
 });

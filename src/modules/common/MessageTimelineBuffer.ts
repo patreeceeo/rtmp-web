@@ -14,9 +14,13 @@ class Bucket {
   constructor(public timeIndex: number) {}
 }
 
+// Idea: Use ECS or seperate typed arrays to store each type of value in messages instead of writing the entirety of each message to a single buffer. It might help use memory more efficiently by addressing fragmentation and may help with performance in general by reducing copying, but might be more complicated??
+
 export class MessageTimelineBuffer {
   #view: DataViewMovable;
   #buckets: Array<Bucket>;
+  #byteOffsetMin = 0;
+  #statsEnabled = false;
   constructor(
     buf: ArrayBufferLike,
     readonly maxTimeSteps: number,
@@ -25,6 +29,14 @@ export class MessageTimelineBuffer {
     this.#view = new DataViewMovable(buf, { isCircular: true });
     /** map timeIndex to positions in the buffer */
     this.#buckets = Array.from(new Array(maxTimeSteps), () => new Bucket(0));
+  }
+
+  enableStats() {
+    this.#statsEnabled = true;
+  }
+
+  disableStats() {
+    this.#statsEnabled = false;
   }
 
   insert<Type extends MessageType>(
@@ -43,13 +55,23 @@ export class MessageTimelineBuffer {
     for (const bucket of this.#buckets) {
       const offsetsLeftBehind = filter(
         bucket.bufferOffsets.values(),
-        (offset) => startOffset - offset >= this.byteLength,
+        (offset) => startOffset - offset >= this.bufferByteLength,
       );
       for (const offset of offsetsLeftBehind) {
         bucket.bufferOffsets.delete(offset);
       }
     }
     bucket.bufferOffsets.add(startOffset);
+
+    if (this.#statsEnabled) {
+      let min = Infinity;
+      for (const bucket of this.#buckets) {
+        for (const offset of bucket.bufferOffsets.values()) {
+          min = Math.min(min, offset);
+        }
+      }
+      this.#byteOffsetMin = min;
+    }
   }
 
   has(timeIndex: number) {
@@ -85,12 +107,21 @@ export class MessageTimelineBuffer {
     }
   }
 
-  get byteLength() {
+  get bufferByteLength() {
     return this.#view.byteLength;
   }
 
-  get byteOffset() {
+  get bufferByteOffset() {
+    this.#view.bytesRemaining;
     return this.#view.byteOffset;
+  }
+
+  get bytesCapacity() {
+    return this.#view.byteLength;
+  }
+
+  get bytesConsumed() {
+    return this.#view.byteOffset - this.#byteOffsetMin;
   }
 
   get __buckets__() {
