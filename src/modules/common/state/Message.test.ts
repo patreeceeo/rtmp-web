@@ -23,7 +23,7 @@ function addMessages(
   state.addSnapshot(MessageType.nil, msg, sidReceivedAt);
 }
 
-function assertMessageNidsByStepCreated(
+function assertMessageNidsForClient(
   state: MessageStateApi,
   start: number,
   end: number,
@@ -39,7 +39,7 @@ function assertMessageNidsByStepCreated(
   );
 }
 
-function assertMessageNidsByStepReceived(
+function assertMessageNidsForServer(
   state: MessageStateApi,
   start: number,
   end: number,
@@ -72,14 +72,14 @@ Deno.test("get messages created in most recent step", () => {
   addMessages(state, 2, 0);
   addMessages(state, 3, 0);
 
-  assertMessageNidsByStepCreated(state, 0, 0, [1, 2, 3]);
+  assertMessageNidsForClient(state, 0, 0, [1, 2, 3]);
 
-  assertMessageNidsByStepCreated(state, 0, 0, [1, 2, 3]);
+  assertMessageNidsForClient(state, 0, 0, [1, 2, 3]);
 
-  assertMessageNidsByStepCreated(state, 1, 1, []);
+  assertMessageNidsForClient(state, 1, 1, []);
 
   addMessages(state, 4, 1);
-  assertMessageNidsByStepCreated(state, 1, 1, [4]);
+  assertMessageNidsForClient(state, 1, 1, [4]);
 });
 
 Deno.test("get commands created between given steps", () => {
@@ -94,11 +94,11 @@ Deno.test("get commands created between given steps", () => {
 
   addMessages(state, 3, 3);
 
-  assertMessageNidsByStepCreated(state, 1, 3, [1, 2, 2, 3]);
+  assertMessageNidsForClient(state, 1, 3, [1, 2, 2, 3]);
 
-  assertMessageNidsByStepCreated(state, 2, 3, [2, 2, 3]);
+  assertMessageNidsForClient(state, 2, 3, [2, 2, 3]);
 
-  assertMessageNidsByStepCreated(state, 3, 3, [3]);
+  assertMessageNidsForClient(state, 3, 3, [3]);
 });
 
 Deno.test("get commands received at different step than when created", () => {
@@ -113,9 +113,9 @@ Deno.test("get commands received at different step than when created", () => {
 
   addMessages(state, 3, 3, 1);
 
-  assertMessageNidsByStepReceived(state, 0, 0, []);
-  assertMessageNidsByStepReceived(state, 1, 1, [3]);
-  assertMessageNidsByStepReceived(state, 2, 2, [0]);
-  assertMessageNidsByStepReceived(state, 3, 3, [2]);
-  assertMessageNidsByStepReceived(state, 4, 4, [1, 2]);
+  assertMessageNidsForServer(state, 0, 0, []);
+  assertMessageNidsForServer(state, 1, 1, [3]);
+  assertMessageNidsForServer(state, 2, 2, [0]);
+  assertMessageNidsForServer(state, 3, 3, [2]);
+  assertMessageNidsForServer(state, 4, 4, [1, 2]);
 });
