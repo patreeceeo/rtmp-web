@@ -11,7 +11,11 @@ import { sendIfOpen } from "../../common/socket.ts";
 export const ClientNetworkSystem: SystemLoader = () => {
   function exec() {
     // TODO if there are no commands to send, maybe we don't need to increment step ID?
-    for (const [type, payload] of MessageState.getCommands()) {
+    for (
+      const [type, payload] of MessageState.getCommandsByStepCreated(
+        MessageState.currentStep,
+      )
+    ) {
       sendMessageToServer(
         type,
         payload,

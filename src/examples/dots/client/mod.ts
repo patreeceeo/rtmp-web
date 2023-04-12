@@ -50,7 +50,7 @@ export class DotsClientApp extends ClientApp {
         handlePlayerRemoved(server, payload as PlayerRemove);
         break;
       default:
-        MessageState.insertSnapshot(type, payload);
+        MessageState.addSnapshot(type, payload);
     }
   }
   handleIdle(): void {

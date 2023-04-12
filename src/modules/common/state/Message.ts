@@ -1,11 +1,9 @@
 import {
   AnyMessagePayload,
   createPayloadMap,
-  MessagePlayloadByType,
   MessageType,
 } from "../../common/Message.ts";
 import { MessageTimelineBuffer } from "../MessageTimelineBuffer.ts";
-import { isClient } from "~/common/env.ts";
 
 /**
  * What is this ugly monster? It's covering multiple seperate but intimately related
@@ -22,12 +20,17 @@ import { isClient } from "~/common/env.ts";
 export class MessageStateApi {
   #payloadMap = createPayloadMap();
   #commandBuffer = new ArrayBuffer(2048);
-  #commands = new MessageTimelineBuffer(
+  #commandsByStepCreated = new MessageTimelineBuffer(
     this.#commandBuffer,
     7,
     this.#payloadMap,
   );
-  #sid = 0;
+  #commandsByStepReceived = new MessageTimelineBuffer(
+    this.#commandBuffer,
+    7,
+    this.#payloadMap,
+  );
+  #sidNow = 0;
   #lastSentStepId = 0;
 
   /** Increment the ID number used to identify executions of the fixed pipeline.
@@ -35,11 +38,11 @@ export class MessageStateApi {
    * number to exceed Number.MAX_SAFE_INTEGER
    */
   incrementStepId() {
-    this.#sid++;
+    this.#sidNow++;
   }
 
-  get lastStepId() {
-    return this.#sid;
+  get currentStep() {
+    return this.#sidNow;
   }
 
   get lastSentStepId() {
@@ -54,67 +57,74 @@ export class MessageStateApi {
     return this.#lastReceivedStepId;
   }
 
-  addCommand(type: MessageType, payload: AnyMessagePayload) {
-    if (payload.sid !== this.#sid && isClient) {
-      // TODO should sid become parameter to writeMessage?
-      throw new Error(
-        `Step ID of pushed message does not match current step ID. Offender: ${
-          JSON.stringify(
-            payload,
-          )
-        }, current Step ID: ${this.#sid}`,
-      );
-    }
-    this.#commands.insert(this.#sid, type, payload);
+  addCommand(
+    type: MessageType,
+    payload: AnyMessagePayload,
+    sidReceivedAt = this.#sidNow,
+  ) {
+    this.#commandsByStepReceived.insert(sidReceivedAt, type, payload);
+    this.#commandsByStepCreated.insert(payload.sid, type, payload);
   }
 
-  *getCommands(
-    start = this.#sid,
-    end = this.#sid,
-    filter: <Type extends MessageType>(
-      type: Type,
-      payload: MessagePlayloadByType[Type],
-    ) => boolean = (_type, _payload) => true,
+  *getCommandsByStepCreated(
+    start = this.#sidNow,
+    end = start,
   ): Generator<[MessageType, AnyMessagePayload]> {
-    for (const snapshot of this.#commands.slice(start, end)) {
-      if (filter.apply(null, snapshot)) {
-        yield snapshot;
-      }
+    for (const command of this.#commandsByStepCreated.slice(start, end)) {
+      yield command;
+    }
+  }
+
+  *getCommandsByStepReceived(
+    start = this.#sidNow,
+    end = start,
+  ): Generator<[MessageType, AnyMessagePayload]> {
+    for (const command of this.#commandsByStepReceived.slice(start, end)) {
+      yield command;
     }
   }
 
   #lastReceivedStepId = 0;
   #snapshotBuffer = new ArrayBuffer(2048);
-  #snapshots = new MessageTimelineBuffer(
+  #snapshotsByStepCreated = new MessageTimelineBuffer(
     this.#snapshotBuffer,
     7,
     this.#payloadMap,
   );
-  addSnapshot(type: MessageType, payload: AnyMessagePayload) {
-    this.#snapshots.insert(this.#sid, type, payload);
+  #snapshotsByCommandStepCreated = new MessageTimelineBuffer(
+    this.#snapshotBuffer,
+    7,
+    this.#payloadMap,
+  );
+
+  addSnapshot(
+    type: MessageType,
+    payload: AnyMessagePayload,
+    sidCreatedAt = this.#sidNow,
+  ) {
+    this.#snapshotsByStepCreated.insert(sidCreatedAt, type, payload);
+    this.#snapshotsByCommandStepCreated.insert(payload.sid, type, payload);
     this.#lastReceivedStepId = payload.sid;
   }
 
-  insertSnapshot(type: MessageType, payload: AnyMessagePayload) {
-    this.#snapshots.insert(payload.sid, type, payload);
-    this.#lastReceivedStepId = payload.sid;
-  }
-
-  getSnapshots(
-    start = this.#sid,
-    end = this.#sid,
-    filter: <Type extends MessageType>(
-      type: Type,
-      payload: MessagePlayloadByType[Type],
-    ) => boolean = (_type, _payload) => true,
-  ): Array<[MessageType, AnyMessagePayload]> {
-    const result = [];
-    for (const snapshot of this.#snapshots.slice(start, end)) {
-      if (filter.apply(null, snapshot)) {
-        result.push(snapshot);
-      }
+  *getSnapshotsByStepCreated(
+    start = this.#sidNow,
+    end = this.#sidNow,
+  ): Generator<[MessageType, AnyMessagePayload]> {
+    for (const snapshot of this.#snapshotsByStepCreated.slice(start, end)) {
+      yield snapshot;
     }
-    return result;
+  }
+
+  *getSnapshotsByCommandStepCreated(
+    start = this.#sidNow,
+    end = this.#sidNow,
+  ): Generator<[MessageType, AnyMessagePayload]> {
+    for (
+      const snapshot of this.#snapshotsByCommandStepCreated.slice(start, end)
+    ) {
+      yield snapshot;
+    }
   }
 }
 

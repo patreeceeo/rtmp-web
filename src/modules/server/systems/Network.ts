@@ -24,7 +24,7 @@ export const NetworkSystem: SystemLoader<[Options]> = (opts) => {
           PlayerState.deletePlayer(playerEid);
           broadcastMessage(
             MessageType.playerRemoved,
-            new PlayerRemove(nid!, MessageState.lastStepId),
+            new PlayerRemove(nid!, MessageState.currentStep),
             {
               includeClientsBeingRemoved: true,
             },
@@ -39,7 +39,11 @@ export const NetworkSystem: SystemLoader<[Options]> = (opts) => {
       }
     }
 
-    for (const [type, payload] of MessageState.getSnapshots()) {
+    for (
+      const [type, payload] of MessageState.getSnapshotsByStepCreated(
+        MessageState.currentStep,
+      )
+    ) {
       broadcastMessage(
         type,
         payload,

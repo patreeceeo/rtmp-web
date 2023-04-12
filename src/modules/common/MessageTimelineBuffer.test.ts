@@ -19,7 +19,7 @@ function insert(mq: MessageTimelineBuffer, index: number, nid: number) {
   mq.insert(index, ...item);
 }
 function mapPayloadNid(iter: Iterable<[unknown, AnyMessagePayload]>) {
-  return map(iter, ([_, payload]) => payload.nid);
+  return map(map(iter, 1) as Iterable<AnyMessagePayload>, "nid");
 }
 
 Deno.test("MessageTimelineBuffer happy path", () => {

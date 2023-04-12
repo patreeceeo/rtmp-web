@@ -12,14 +12,17 @@ import { MessageState } from "~/common/state/Message.ts";
 import { clampLine } from "../../common/math.ts";
 import { TweenState, TweenType } from "../state/Tween.ts";
 import { EntityId } from "../../common/state/mod.ts";
+import { filter } from "../../common/Iterable.ts";
 
 // TODO use polymorphism to make system code more generic
 function exec() {
   const lastReceivedSid = MessageState.lastReceivedStepId;
-  const remoteEntitySnapshots = MessageState.getSnapshots(
-    lastReceivedSid,
-    lastReceivedSid,
-    (_type, payload) => !ClientNetworkState.isLocal(payload.nid),
+  const remoteEntitySnapshots = filter(
+    MessageState.getSnapshotsByCommandStepCreated(
+      lastReceivedSid,
+      lastReceivedSid,
+    ),
+    ([_type, payload]) => !ClientNetworkState.isLocal(payload.nid),
   );
 
   for (const [type, payload] of remoteEntitySnapshots) {

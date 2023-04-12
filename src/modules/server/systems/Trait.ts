@@ -8,7 +8,7 @@ function exec() {
   for (const type of TraitState.getTypes()) {
     const Trait = TraitState.getType(type);
     const commands = filter(
-      MessageState.getCommands(),
+      MessageState.getCommandsByStepReceived(MessageState.currentStep),
       ([commandType]) => commandType === Trait.commandType,
     );
     const snapshots = flattenMaybes(

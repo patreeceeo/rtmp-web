@@ -3,6 +3,7 @@ import { MessagePlayloadByType, MessageType } from "~/common/Message.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { TraitState } from "../../common/state/Trait.ts";
+import { filter } from "../../common/Iterable.ts";
 
 function exec() {
   const lastReceivedSid = MessageState.lastReceivedStepId;
@@ -40,27 +41,30 @@ function reconcile<
 ) {
   const lastReceivedSid = MessageState.lastReceivedStepId;
   const lastSentSid = MessageState.lastSentStepId;
-  const snapshots = MessageState.getSnapshots(
-    lastReceivedSid,
-    lastReceivedSid,
-    (type, payload) =>
+  const snapshots = filter(
+    MessageState.getSnapshotsByCommandStepCreated(
+      lastReceivedSid,
+      lastReceivedSid,
+    ),
+    ([type, payload]) =>
       ClientNetworkState.isLocal(payload.nid) &&
-      // deno-lint-ignore no-explicit-any
-      (type as any) === snapshotType,
+      type === snapshotType,
   );
 
+  let snapshotCount = 0;
   for (const [_type, payload] of snapshots) {
     applySnapshot(payload as MessagePlayloadByType[SnapshotType]);
+    snapshotCount++;
   }
-  if (snapshots.length > 0) {
-    for (
-      const [_type, payload] of MessageState.getCommands(
+  if (snapshotCount > 0) {
+    const commandsByType = filter(
+      MessageState.getCommandsByStepCreated(
         lastReceivedSid + 1,
         lastSentSid,
-        // deno-lint-ignore no-explicit-any
-        (type) => (type as any) === commandType,
-      )
-    ) {
+      ),
+      ([type]) => type === commandType,
+    );
+    for (const [_type, payload] of commandsByType) {
       applyCommand(payload as MessagePlayloadByType[CommandType]);
     }
   }
