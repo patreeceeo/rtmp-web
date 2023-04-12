@@ -23,6 +23,9 @@ import { LevelState } from "~/common/state/LevelState.ts";
 import { InputSystem } from "../../../modules/client/Input.ts";
 import { TraitState, TraitType } from "~/common/state/Trait.ts";
 import { ReconcileSystem } from "../../../modules/client/systems/Reconcile.ts";
+import { useClient } from "hot_mod/dist/client/mod.js";
+
+useClient(import.meta, "ws://localhost:12321");
 
 const payloadMap = createPayloadMap();
 
