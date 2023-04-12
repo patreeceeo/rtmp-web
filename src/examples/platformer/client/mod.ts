@@ -27,6 +27,15 @@ import { useClient } from "hot_mod/dist/client/mod.js";
 
 useClient(import.meta, "ws://localhost:12321");
 
+if (import.meta.hot) {
+  // Tell HMR framework what to do when this module or any of
+  // it's dependencies change
+  import.meta.hot.accept([], () => {
+    // Just reload the page for now
+    location.reload();
+  });
+}
+
 const payloadMap = createPayloadMap();
 
 OutputState.canvas.resolution.copy(LevelState.dimensions);
