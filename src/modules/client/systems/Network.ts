@@ -7,17 +7,26 @@ import {
 } from "../../common/Message.ts";
 import { ClientNetworkState } from "../state/Network.ts";
 import { sendIfOpen } from "../../common/socket.ts";
+import { invariant } from "../../common/Error.ts";
 
 export const ClientNetworkSystem: SystemLoader = () => {
   function exec() {
     // TODO if there are no commands to send, maybe we don't need to increment step ID?
-    for (const [type, payload] of MessageState.getCommands()) {
+    for (
+      const [type, payload] of MessageState.getCommandsByStepCreated(
+        MessageState.currentStep,
+      )
+    ) {
       sendMessageToServer(
         type,
         payload,
       );
-      MessageState.lastSentStepId = payload.sid;
+      invariant(
+        MessageState.currentStep === payload.sid,
+        "only send commands created in the current step",
+      );
     }
+    MessageState.lastSentStepId = MessageState.currentStep;
     MessageState.incrementStepId();
   }
   return { exec };

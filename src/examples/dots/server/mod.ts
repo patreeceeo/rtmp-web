@@ -51,7 +51,7 @@ class DotsServerApp implements ServerApp {
         addedPlayer.position,
         true,
         playerNid,
-        MessageState.lastStepId,
+        MessageState.currentStep,
       ),
     );
 
@@ -62,7 +62,7 @@ class DotsServerApp implements ServerApp {
         addedPlayer.position,
         false,
         playerNid,
-        MessageState.lastStepId,
+        MessageState.currentStep,
       ),
       { exclude: ws },
     );
@@ -78,7 +78,7 @@ class DotsServerApp implements ServerApp {
             player.position,
             false,
             ServerNetworkState.getId(eid)!,
-            MessageState.lastStepId,
+            MessageState.currentStep,
           ),
         );
       }
@@ -93,7 +93,7 @@ class DotsServerApp implements ServerApp {
       PlayerState.deletePlayer(eid!);
       broadcastMessage(
         MessageType.playerRemoved,
-        new PlayerRemove(nid, MessageState.lastStepId),
+        new PlayerRemove(nid, MessageState.currentStep),
       );
     }
   }

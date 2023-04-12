@@ -88,7 +88,7 @@ class WasdMoveTrait
     }
     if (dx !== 0 || dy !== 0) {
       reVec2.set(dx, dy);
-      return Just(new PlayerMove(reVec2, this.#nid, MessageState.lastStepId));
+      return Just(new PlayerMove(reVec2, this.#nid, MessageState.currentStep));
     }
     return Nothing();
   }
@@ -166,7 +166,7 @@ class ColorChangeTrait
         new ColorChange(
           this.#player.color,
           this.#nid!,
-          MessageState.lastStepId,
+          MessageState.currentStep,
         ),
       );
     }
@@ -176,7 +176,7 @@ class ColorChangeTrait
         new ColorChange(
           this.#player.color,
           this.#nid!,
-          MessageState.lastStepId,
+          MessageState.currentStep,
         ),
       );
     }

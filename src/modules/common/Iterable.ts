@@ -11,8 +11,11 @@ export function* filter<T>(
 
 export function* map<A, B>(
   iter: Iterable<A>,
-  transform: (a: A) => B,
+  fnOrProperty: ((a: A) => B) | keyof A,
 ): Generator<B> {
+  const transform = typeof fnOrProperty !== "function"
+    ? (el: A) => el[fnOrProperty] as B
+    : fnOrProperty as ((a: A) => B);
   for (const el of iter) {
     yield transform(el);
   }
@@ -21,5 +24,23 @@ export function* map<A, B>(
 export function forEach<T>(iter: Iterable<T>, fn: (t: T) => void) {
   for (const el of iter) {
     fn(el);
+  }
+}
+
+export function toArray<T>(iter: Iterable<T>, arr = [] as Array<T>) {
+  for (const el of iter) {
+    arr.push(el);
+  }
+  return arr;
+}
+
+export function* flatten<A, B>(
+  iter: Iterable<A>,
+  fn: (a: A) => Iterable<B>,
+): Iterable<B> {
+  for (const el of iter) {
+    for (const subEl of fn(el)) {
+      yield subEl;
+    }
   }
 }

@@ -23,6 +23,18 @@ import { LevelState } from "~/common/state/LevelState.ts";
 import { InputSystem } from "../../../modules/client/Input.ts";
 import { TraitState, TraitType } from "~/common/state/Trait.ts";
 import { ReconcileSystem } from "../../../modules/client/systems/Reconcile.ts";
+import { useClient } from "hot_mod/dist/client/mod.js";
+
+useClient(import.meta, "ws://localhost:12321");
+
+if (import.meta.hot) {
+  // Tell HMR framework what to do when this module or any of
+  // it's dependencies change
+  import.meta.hot.accept([], () => {
+    // Just reload the page for now
+    location.reload();
+  });
+}
 
 const payloadMap = createPayloadMap();
 
@@ -50,7 +62,7 @@ export class DotsClientApp extends ClientApp {
         handlePlayerRemoved(server, payload as PlayerRemove);
         break;
       default:
-        MessageState.insertSnapshot(type, payload);
+        MessageState.addSnapshot(type, payload);
     }
   }
   handleIdle(): void {

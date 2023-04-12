@@ -24,7 +24,7 @@ export const NetworkSystem: SystemLoader<[Options]> = (opts) => {
           PlayerState.deletePlayer(playerEid);
           broadcastMessage(
             MessageType.playerRemoved,
-            new PlayerRemove(nid!, MessageState.lastStepId),
+            new PlayerRemove(nid!, MessageState.currentStep),
             {
               includeClientsBeingRemoved: true,
             },
@@ -39,7 +39,14 @@ export const NetworkSystem: SystemLoader<[Options]> = (opts) => {
       }
     }
 
-    for (const [type, payload] of MessageState.getSnapshots()) {
+    for (
+      const [type, payload] of MessageState.getSnapshotsByStepCreated(
+        MessageState.currentStep,
+      )
+    ) {
+      // `payload.sid` is the stepId of the command to which this snapshot is responding,
+      // not MessageState.currentStep, which will deviate from the corresponding value
+      // on the client
       broadcastMessage(
         type,
         payload,
