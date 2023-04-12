@@ -7,6 +7,7 @@ import {
 } from "../../common/Message.ts";
 import { ClientNetworkState } from "../state/Network.ts";
 import { sendIfOpen } from "../../common/socket.ts";
+import { invariant } from "../../common/Error.ts";
 
 export const ClientNetworkSystem: SystemLoader = () => {
   function exec() {
@@ -20,8 +21,12 @@ export const ClientNetworkSystem: SystemLoader = () => {
         type,
         payload,
       );
-      MessageState.lastSentStepId = payload.sid;
+      invariant(
+        MessageState.currentStep === payload.sid,
+        "only send commands created in the current step",
+      );
     }
+    MessageState.lastSentStepId = MessageState.currentStep;
     MessageState.incrementStepId();
   }
   return { exec };

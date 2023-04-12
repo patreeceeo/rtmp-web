@@ -44,6 +44,9 @@ export const NetworkSystem: SystemLoader<[Options]> = (opts) => {
         MessageState.currentStep,
       )
     ) {
+      // `payload.sid` is the stepId of the command to which this snapshot is responding,
+      // not MessageState.currentStep, which will deviate from the corresponding value
+      // on the client
       broadcastMessage(
         type,
         payload,

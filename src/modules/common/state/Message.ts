@@ -5,6 +5,10 @@ import {
 } from "../../common/Message.ts";
 import { MessageTimelineBuffer } from "../MessageTimelineBuffer.ts";
 
+// TODO make these values dynamic. The slower the network the bigger they need to be.
+const MAX_LAG = 23;
+const BUFFER_SIZE_BYTES = Math.pow(2, 15); // 32 KB
+
 /**
  * What is this ugly monster? It's covering multiple seperate but intimately related
  * concerns:
@@ -19,15 +23,15 @@ import { MessageTimelineBuffer } from "../MessageTimelineBuffer.ts";
  */
 export class MessageStateApi {
   #payloadMap = createPayloadMap();
-  #commandBuffer = new ArrayBuffer(2048);
+  #commandBuffer = new ArrayBuffer(BUFFER_SIZE_BYTES);
   #commandsByStepCreated = new MessageTimelineBuffer(
     this.#commandBuffer,
-    7,
+    MAX_LAG,
     this.#payloadMap,
   );
   #commandsByStepReceived = new MessageTimelineBuffer(
     this.#commandBuffer,
-    7,
+    MAX_LAG,
     this.#payloadMap,
   );
   #sidNow = 0;
@@ -85,15 +89,15 @@ export class MessageStateApi {
   }
 
   #lastReceivedStepId = 0;
-  #snapshotBuffer = new ArrayBuffer(2048);
+  #snapshotBuffer = new ArrayBuffer(BUFFER_SIZE_BYTES);
   #snapshotsByStepCreated = new MessageTimelineBuffer(
     this.#snapshotBuffer,
-    7,
+    MAX_LAG,
     this.#payloadMap,
   );
   #snapshotsByCommandStepCreated = new MessageTimelineBuffer(
     this.#snapshotBuffer,
-    7,
+    MAX_LAG,
     this.#payloadMap,
   );
 
@@ -104,7 +108,8 @@ export class MessageStateApi {
   ) {
     this.#snapshotsByStepCreated.insert(sidCreatedAt, type, payload);
     this.#snapshotsByCommandStepCreated.insert(payload.sid, type, payload);
-    this.#lastReceivedStepId = payload.sid;
+    // Get the max, in case they're received out of order
+    this.#lastReceivedStepId = Math.max(payload.sid, this.#lastReceivedStepId);
   }
 
   *getSnapshotsByStepCreated(

@@ -109,9 +109,12 @@ Deno.test("get commands received at different step than when created", () => {
   addMessages(state, 1, 1, 4);
 
   addMessages(state, 2, 2, 3);
-  addMessages(state, 2, 2, 4);
 
   addMessages(state, 3, 3, 1);
+
+  addMessages(state, 2, 2, 4);
+
+  assertEquals(state.lastReceivedStepId, 3);
 
   assertMessageNidsForServer(state, 0, 0, []);
   assertMessageNidsForServer(state, 1, 1, [3]);

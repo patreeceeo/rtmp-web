@@ -19,8 +19,8 @@ function exec() {
   const lastReceivedSid = MessageState.lastReceivedStepId;
   const remoteEntitySnapshots = filter(
     MessageState.getSnapshotsByCommandStepCreated(
-      lastReceivedSid,
-      lastReceivedSid,
+      lastReceivedSid - 1,
+      lastReceivedSid - 1,
     ),
     ([_type, payload]) => !ClientNetworkState.isLocal(payload.nid),
   );
