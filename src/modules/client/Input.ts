@@ -2,19 +2,20 @@ import { InputState } from "../common/state/Input.ts";
 import { SystemLoader } from "../common/systems/mod.ts";
 import { OutputState } from "./state/Output.ts";
 
+// TODO move to ./systems
 function exec() {
-  if (InputState.pointerPositionIsDirty) {
-    const { pointerPosition, canvasPointerPosition } = InputState;
+  if (InputState.mousePositionIsDirty) {
+    const { mousePosition, mousePositionOnCanvas } = InputState;
     const {
       canvas: { resolution, clientRect },
     } = OutputState;
     const xScale = resolution.x / clientRect.width;
     const yScale = resolution.y / clientRect.height;
-    canvasPointerPosition.set(
-      (pointerPosition.x - clientRect.left) * xScale,
-      (pointerPosition.y - clientRect.top) * yScale,
+    mousePositionOnCanvas.set(
+      (mousePosition.x - clientRect.left) * xScale,
+      (mousePosition.y - clientRect.top) * yScale,
     );
-    InputState.pointerPositionIsDirty = false;
+    InputState.mousePositionIsDirty = false;
   }
 }
 export const InputSystem: SystemLoader = () => {

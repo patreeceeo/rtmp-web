@@ -16,6 +16,7 @@ import { Vec2 } from "../Vec2.ts";
 import { NetworkState } from "./Network.ts";
 import { clampLine, getDistanceSquared } from "../math.ts";
 import { Just, Maybe, Nothing } from "../Maybe.ts";
+import { Button } from "../Button.ts";
 
 export enum TraitType {
   wasdMove,
@@ -68,20 +69,20 @@ class WasdMoveTrait
     const { x, y } = this.#player.position;
     let dx = 0,
       dy = 0;
-    if (InputState.isKeyPressed("KeyA") && x > this.#player.width) {
+    if (InputState.isButtonPressed(Button.KeyA) && x > this.#player.width) {
       dx = -1 * velocity * Time.delta;
     }
-    if (InputState.isKeyPressed("KeyW") && y > this.#player.height) {
+    if (InputState.isButtonPressed(Button.KeyW) && y > this.#player.height) {
       dy = -1 * velocity * Time.delta;
     }
     if (
-      InputState.isKeyPressed("KeyS") &&
+      InputState.isButtonPressed(Button.KeyS) &&
       y < LevelState.dimensions.y - this.#player.height
     ) {
       dy = velocity * Time.delta;
     }
     if (
-      InputState.isKeyPressed("KeyD") &&
+      InputState.isButtonPressed(Button.KeyD) &&
       x < LevelState.dimensions.x - this.#player.width
     ) {
       dx = velocity * Time.delta;
@@ -158,7 +159,7 @@ class ColorChangeTrait
     this.#player = PlayerState.getPlayer(this.eid);
   }
   getCommandMaybe() {
-    if (InputState.isKeyPressed("KeyQ")) {
+    if (InputState.isButtonPressed(Button.KeyQ)) {
       this.#player.color = this.#player.color === 0
         ? 6
         : this.#player.color - 1;
@@ -170,7 +171,7 @@ class ColorChangeTrait
         ),
       );
     }
-    if (InputState.isKeyPressed("KeyE")) {
+    if (InputState.isButtonPressed(Button.KeyE)) {
       this.#player.color = (this.#player.color + 1) % 6;
       return Just(
         new ColorChange(

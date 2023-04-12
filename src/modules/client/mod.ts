@@ -48,14 +48,16 @@ export function startClient(app: ClientApp) {
   });
 
   window.onkeydown = (e) => {
-    InputState.setKeyPressed(e.code);
+    // deno-lint-ignore no-explicit-any
+    InputState.setButtonPressed(e.code as any);
   };
   window.onkeyup = (e) => {
-    InputState.setKeyReleased(e.code);
+    // deno-lint-ignore no-explicit-any
+    InputState.setButtonReleased(e.code as any);
   };
   window.onmousemove = (e) => {
-    InputState.pointerPosition.set(e.clientX, e.clientY);
-    InputState.pointerPositionIsDirty = true;
+    InputState.mousePosition.set(e.clientX, e.clientY);
+    InputState.mousePositionIsDirty = true;
   };
   window.onblur = () => app.handleIdle();
 }
