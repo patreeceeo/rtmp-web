@@ -20,7 +20,7 @@ import { TraitSystem } from "~/client/systems/Trait.ts";
 import { OutputState } from "~/client/state/Output.ts";
 import { OutputSystem } from "~/client/systems/Output.ts";
 import { LevelState } from "~/common/state/LevelState.ts";
-import { InputSystem } from "../../../modules/client/Input.ts";
+import { InputSystem } from "../../../modules/client/systems/Input.ts";
 import { TraitState, TraitType } from "~/common/state/Trait.ts";
 import { ReconcileSystem } from "../../../modules/client/systems/Reconcile.ts";
 import { useClient } from "hot_mod/dist/client/mod.js";

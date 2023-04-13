@@ -1,8 +1,7 @@
-import { InputState } from "../common/state/Input.ts";
-import { SystemLoader } from "../common/systems/mod.ts";
-import { OutputState } from "./state/Output.ts";
+import { InputState } from "~/common/state/Input.ts";
+import { SystemLoader } from "~/common/systems/mod.ts";
+import { OutputState } from "../state/Output.ts";
 
-// TODO move to ./systems
 function exec() {
   if (InputState.mousePositionIsDirty) {
     const { mousePosition, mousePositionOnCanvas } = InputState;
