@@ -1,51 +1,43 @@
+import { Button } from "../Button.ts";
 import { Vec2 } from "../Vec2.ts";
 
-// TODO move to client
-export interface Input {
+export interface ButtonState {
   pressTime: number;
   releaseTime: number;
 }
-type _InputState = Map<string, Input>;
-// TODO key/button/axis enum
 class InputStateApi {
-  #state: _InputState = new Map();
-  pointerPosition = new Vec2();
-  pointerPositionIsDirty = false;
-  canvasPointerPosition = new Vec2();
-  #idKey(code: KeyboardEvent["code"]): string {
-    return `kbd:${code}`;
-  }
-  #initInput(id: string) {
-    this.#state.set(id, {
+  #buttonStateMap: Map<Button, ButtonState> = new Map();
+  mousePosition = new Vec2();
+  mousePositionIsDirty = false;
+  mousePositionOnCanvas = new Vec2();
+  #initInput(button: Button) {
+    this.#buttonStateMap.set(button, {
       pressTime: 0,
       releaseTime: 0,
     });
   }
-  isKeyPressed(code: KeyboardEvent["code"]): boolean {
-    const id = this.#idKey(code);
-    if (this.#state.has(id)) {
-      const keyState = this.#state.get(id);
+  isButtonPressed(button: Button): boolean {
+    if (this.#buttonStateMap.has(button)) {
+      const keyState = this.#buttonStateMap.get(button);
       return keyState!.pressTime > keyState!.releaseTime;
     } else {
       return false;
     }
   }
-  setKeyPressed(code: KeyboardEvent["code"]): void {
-    const id = this.#idKey(code);
-    if (!this.#state.has(id)) {
-      this.#initInput(id);
+  setButtonPressed(button: Button): void {
+    if (!this.#buttonStateMap.has(button)) {
+      this.#initInput(button);
     }
-    this.#state.get(id)!.pressTime = performance.now();
+    this.#buttonStateMap.get(button)!.pressTime = performance.now();
   }
-  setKeyReleased(code: KeyboardEvent["code"]): void {
-    const id = this.#idKey(code);
-    if (!this.#state.has(id)) {
-      this.#initInput(id);
+  setButtonReleased(button: Button): void {
+    if (!this.#buttonStateMap.has(button)) {
+      this.#initInput(button);
     }
-    this.#state.get(id)!.releaseTime = performance.now();
+    this.#buttonStateMap.get(button)!.releaseTime = performance.now();
   }
   reset() {
-    this.#state.clear();
+    this.#buttonStateMap.clear();
   }
 }
 export const InputState = new InputStateApi();
