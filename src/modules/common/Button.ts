@@ -3,9 +3,11 @@
  * Using KeyCode because it maps 1-1 to physical buttons. KeyboardEvent["key"] will depend on whether modifiers are pressed. Will it be confusing if players are using an alternative keyboard layout, since KeyCode does not take layout into consideration? TODO provide a way for users to remap keys in their settings and display a message letting users know.
  */
 export enum Button {
-  Left = "MouseLeft",
-  Middle = "MouseMiddle",
-  Right = "MouseRight",
+  Mouse0 = "Mouse0",
+  Mouse1 = "Mouse1",
+  Mouse2 = "Mouse2",
+  Mouse3 = "Mouse3",
+  Mouse4 = "Mouse3",
   // Alphanumeric keys
   "Digit0" = "Digit0",
   "Digit1" = "Digit1",
@@ -90,4 +92,15 @@ export enum Button {
   "CapsLock" = "CapsLock",
   "NumLock" = "NumLock",
   "ScrollLock" = "ScrollLock",
+}
+
+const mouseButtons = [
+  Button.Mouse0,
+  Button.Mouse1,
+  Button.Mouse2,
+  Button.Mouse3,
+  Button.Mouse4,
+];
+export function mouseButton(n: number) {
+  return mouseButtons[n];
 }

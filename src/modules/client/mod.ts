@@ -1,3 +1,4 @@
+import { mouseButton } from "../common/Button.ts";
 import { InputState } from "../common/state/Input.ts";
 import { ClientNetworkState } from "./state/Network.ts";
 import { OutputState } from "./state/Output.ts";
@@ -58,6 +59,12 @@ export function startClient(app: ClientApp) {
   window.onmousemove = (e) => {
     InputState.mousePosition.set(e.clientX, e.clientY);
     InputState.mousePositionIsDirty = true;
+  };
+  window.onmousedown = (e) => {
+    InputState.setButtonPressed(mouseButton(e.button));
+  };
+  window.onmouseup = (e) => {
+    InputState.setButtonReleased(mouseButton(e.button));
   };
   window.onblur = () => app.handleIdle();
 }
