@@ -1,16 +1,15 @@
 import { ClientNetworkState } from "../../client/state/Network.ts";
-import { MessagePlayloadByType, MessageType } from "~/common/Message.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { TraitState } from "../../common/state/Trait.ts";
 import { filter } from "../../common/Iterable.ts";
+import { IPayloadAny } from "../../common/Message.ts";
 
 function exec() {
   const lastReceivedSid = MessageState.lastReceivedStepId;
   const lastSentSid = MessageState.lastSentStepId;
   if (lastReceivedSid < lastSentSid) {
-    for (const type of TraitState.getTypes()) {
-      const Trait = TraitState.getType(type);
+    for (const Trait of TraitState.getTypes()) {
       reconcile(
         Trait.snapshotType,
         Trait.commandType,
@@ -30,43 +29,43 @@ function exec() {
  * commands that have been sent since the corresponding command of the most recently
  * received snapshot.
  */
-function reconcile<
-  SnapshotType extends MessageType,
-  CommandType extends MessageType,
->(
-  snapshotType: SnapshotType,
-  commandType: CommandType,
-  applySnapshot: (payload: MessagePlayloadByType[SnapshotType]) => void,
-  applyCommand: (payload: MessagePlayloadByType[CommandType]) => void,
+function reconcile(
+  snapshotType: number,
+  commandType: number,
+  applySnapshot: (payload: IPayloadAny) => void,
+  applyCommand: (payload: IPayloadAny) => void,
 ) {
   const lastReceivedSid = MessageState.lastReceivedStepId;
-  const lastSentSid = MessageState.lastSentStepId;
-  const snapshots = filter(
-    MessageState.getSnapshotsByCommandStepCreated(
-      lastReceivedSid,
-      lastReceivedSid,
-    ),
-    ([type, payload]) =>
-      ClientNetworkState.isLocal(payload.nid) &&
-      type === snapshotType,
-  );
-
-  let snapshotCount = 0;
-  for (const [_type, payload] of snapshots) {
-    applySnapshot(payload as MessagePlayloadByType[SnapshotType]);
-    snapshotCount++;
-  }
-  if (snapshotCount > 0) {
-    const commandsByType = filter(
-      MessageState.getCommandsByStepCreated(
-        lastReceivedSid + 1,
-        lastSentSid,
+  if (lastReceivedSid > MessageState.lastHandledStepId) {
+    const lastSentSid = MessageState.lastSentStepId;
+    const snapshots = filter(
+      MessageState.getSnapshotsByCommandStepCreated(
+        lastReceivedSid,
+        lastReceivedSid,
       ),
-      ([type]) => type === commandType,
+      ([type, payload]) =>
+        ClientNetworkState.isLocal(payload.nid) &&
+        type === snapshotType,
     );
-    for (const [_type, payload] of commandsByType) {
-      applyCommand(payload as MessagePlayloadByType[CommandType]);
+
+    let snapshotCount = 0;
+    for (const [_type, payload] of snapshots) {
+      applySnapshot(payload);
+      snapshotCount++;
     }
+    if (snapshotCount > 0) {
+      const commandsByType = filter(
+        MessageState.getCommandsByStepCreated(
+          lastReceivedSid + 1,
+          lastSentSid,
+        ),
+        ([type]) => type === commandType,
+      );
+      for (const [_type, payload] of commandsByType) {
+        applyCommand(payload);
+      }
+    }
+    MessageState.lastHandledStepId = lastReceivedSid;
   }
 }
 

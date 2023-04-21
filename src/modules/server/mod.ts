@@ -5,15 +5,16 @@ import {
   dirname as getDirName,
   extname as getExtension,
 } from "path";
-import {
-  AnyMessagePayload,
-  MessagePlayloadByType,
-  MessageType,
-  serializeMessage,
-} from "../common/Message.ts";
 import { BadRequestResponse, NotFoundResponse } from "../common/Response.ts";
 import { broadcast, sendIfOpen } from "../common/socket.ts";
 import { Client, ServerNetworkState } from "./state/Network.ts";
+import {
+  IMessageDef,
+  IPayloadAny,
+  IWritePayload,
+  MAX_MESSAGE_BYTE_LENGTH,
+} from "../common/Message.ts";
+import { DataViewMovable } from "../common/DataView.ts";
 
 const rootDir = Deno.cwd();
 
@@ -51,6 +52,7 @@ export function startServer(app: ServerApp) {
       socket.onopen = (socketEvent) => {
         const clientNid = ServerNetworkState.createId();
         const client = new Client(clientNid, socket);
+        // console.log("socket open, client nid", clientNid)
 
         ServerNetworkState.setClient(client);
         client.lastActiveTime = performance.now();
@@ -113,29 +115,55 @@ async function isFilePath(path: string) {
   }
 }
 
+const buffer = new ArrayBuffer(MAX_MESSAGE_BYTE_LENGTH);
+const view = new DataViewMovable(buffer);
+
 interface AllBroacastOptions {
   /** Don't send to this socket */
   exclude: WebSocket;
   includeClientsBeingRemoved: boolean;
 }
-export function broadcastMessage(
-  type: MessageType,
-  payload: AnyMessagePayload,
+
+export function broadcastData(
+  data: DataView | ArrayBuffer,
   options: Partial<AllBroacastOptions> = {},
 ) {
   const includeClientsBeingRemoved =
     options?.includeClientsBeingRemoved === true ? true : false;
   broadcast(
     ServerNetworkState.getClientSockets(includeClientsBeingRemoved),
-    serializeMessage(type, payload),
+    data,
     options.exclude,
   );
 }
-
-export function sendMessageToClient<Type extends MessageType>(
-  client: WebSocket,
-  type: Type,
-  payload: MessagePlayloadByType[Type],
+export function broadcastMessage<P extends IPayloadAny>(
+  MsgDef: IMessageDef<P>,
+  writePayload: IWritePayload<P>,
+  options: Partial<AllBroacastOptions> = {},
 ) {
-  sendIfOpen(client, serializeMessage(type, payload));
+  MsgDef.write(view, 0, writePayload);
+  broadcastData(
+    buffer,
+    options,
+  );
+}
+
+// TODO replace type and payload paramters with values of MaybeAddMessageParameters and write to a data view then pass that to sendIfOpen
+export function sendMessageToClient<P extends IPayloadAny>(
+  client: WebSocket,
+  MsgDef: IMessageDef<P>,
+  writePayload: IWritePayload<P>,
+) {
+  MsgDef.write(view, 0, writePayload);
+  sendIfOpen(client, buffer);
+}
+
+const testBuffer = new ArrayBuffer(4);
+const testView = new DataView(testBuffer, 0);
+let testSid = 0;
+export function sendTest() {
+  testView.setUint8(0, 0);
+  testView.setUint16(0, testSid);
+  testSid++;
+  broadcastData(testView);
 }

@@ -1,30 +1,38 @@
-import { AnyMessagePayload } from "~/common/Message.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { AnyTraitConstructor, TraitState } from "~/common/state/Trait.ts";
-import { isJust, Just, Maybe, unboxJust } from "../../common/Maybe.ts";
+import { ITraitConstructorAny, TraitState } from "~/common/state/Trait.ts";
+import { isJust, Maybe, unboxJust } from "../../common/Maybe.ts";
+import { IMessageDef, IWritePayload } from "../../common/Message.ts";
+import { IPayloadAny } from "../../common/Message.ts";
 
 function exec() {
   const traitCommandMaybes: Array<
-    [AnyTraitConstructor, Maybe<AnyMessagePayload>]
+    [
+      ITraitConstructorAny,
+      Maybe<[IMessageDef<IPayloadAny>, IWritePayload<IPayloadAny>]>,
+    ]
   > = [];
   for (const trait of TraitState.getAll()) {
-    traitCommandMaybes.push([
-      TraitState.getType(trait.type),
-      trait.getCommandMaybe(),
+    traitCommandMaybes.push([trait.getType(), trait.getCommandMaybe()]);
+  }
+
+  const traitCommands: Array<
+    [
+      ITraitConstructorAny,
+      [IMessageDef<IPayloadAny>, IWritePayload<IPayloadAny>],
+    ]
+  > = traitCommandMaybes
+    .filter(([_t, m]) => isJust(m))
+    .map((
+      [t, m],
+    ) => [
+      t,
+      unboxJust(m) as [IMessageDef<IPayloadAny>, IWritePayload<IPayloadAny>],
     ]);
-  }
 
-  const traitCommands: Array<[AnyTraitConstructor, AnyMessagePayload]> =
-    traitCommandMaybes
-      .filter(([_t, p]) => isJust(p))
-      .map(([t, p]) => [t, unboxJust(p as Just<AnyMessagePayload>)]);
-
-  for (const [Trait, payload] of traitCommands) {
+  for (const [Trait, [msgType, write]] of traitCommands) {
+    const payload = MessageState.addCommand(msgType, write);
     Trait.applyCommand(payload);
-  }
-  for (const [Trait, payload] of traitCommands) {
-    MessageState.addCommand(Trait.commandType, payload);
   }
 }
 

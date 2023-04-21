@@ -44,3 +44,5 @@ export function* flatten<A, B>(
     }
   }
 }
+
+export const emtpyIterable = (new Set()).values();
