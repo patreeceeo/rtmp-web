@@ -1,10 +1,3 @@
-import {
-  createPayloadMap,
-  MessageType,
-  parseMessage,
-  PlayerAdd,
-  PlayerRemove,
-} from "~/common/Message.ts";
 import "../mod.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { TimeSystem } from "~/common/systems/Time.ts";
@@ -20,14 +13,13 @@ import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { TraitSystem } from "../../../modules/server/systems/Trait.ts";
 import { LevelState } from "../../../modules/common/state/LevelState.ts";
-
-const payloadMap = createPayloadMap();
+import { getRandomIntBetween } from "../../../modules/common/random.ts";
+import { PlayerAdd, PlayerRemove } from "../common/message.ts";
+import { DataViewMovable } from "../../../modules/common/DataView.ts";
+import { TraitState } from "../../../modules/common/state/Trait.ts";
+import { WasdMoveTrait } from "../common/traits.ts";
 
 const idleTimeout = 60;
-
-function getRandomInt(min: number, max: number) {
-  return Math.round(Math.random() * max) + min;
-}
 
 class DotsServerApp implements ServerApp {
   idleTimeout = idleTimeout;
@@ -38,49 +30,40 @@ class DotsServerApp implements ServerApp {
     client.addNetworkId(playerNid);
 
     addedPlayer.position.set(
-      getRandomInt(0, LevelState.dimensions.x),
-      getRandomInt(0, LevelState.dimensions.y),
+      getRandomIntBetween(0, LevelState.dimensions.x),
+      getRandomIntBetween(0, LevelState.dimensions.y),
     );
-    addedPlayer.color = getRandomInt(0, 6);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
+    TraitState.add(new WasdMoveTrait(addedPlayer.eid));
 
-    sendMessageToClient(
-      ws,
-      MessageType.playerAdded,
-      new PlayerAdd(
-        addedPlayer.position,
-        true,
-        playerNid,
-        MessageState.currentStep,
-      ),
-    );
-
+    sendMessageToClient(ws, PlayerAdd, (p) => {
+      p.position.copy(addedPlayer.position);
+      p.isLocal = true;
+      p.nid = playerNid;
+      p.sid = MessageState.currentStep;
+    });
     // Tell other clients about added player
     broadcastMessage(
-      MessageType.playerAdded,
-      new PlayerAdd(
-        addedPlayer.position,
-        false,
-        playerNid,
-        MessageState.currentStep,
-      ),
+      PlayerAdd,
+      (p) => {
+        p.position.copy(addedPlayer.position);
+        p.isLocal = false;
+        p.nid = playerNid;
+        p.sid = MessageState.currentStep;
+      },
       { exclude: ws },
     );
 
-    // Catch up
+    // Catch up new client on current state of the world
     for (const eid of PlayerState.getEntityIds()) {
       const player = PlayerState.getPlayer(eid);
       if (eid !== addedPlayer.eid) {
-        sendMessageToClient(
-          ws,
-          MessageType.playerAdded,
-          new PlayerAdd(
-            player.position,
-            false,
-            ServerNetworkState.getId(eid)!,
-            MessageState.currentStep,
-          ),
-        );
+        sendMessageToClient(ws, PlayerAdd, (p) => {
+          p.position.copy(player.position);
+          p.isLocal = false;
+          p.nid = ServerNetworkState.getId(eid)!;
+          p.sid = MessageState.currentStep;
+        });
       }
     }
   }
@@ -92,8 +75,11 @@ class DotsServerApp implements ServerApp {
       const eid = ServerNetworkState.getEntityId(nid);
       PlayerState.deletePlayer(eid!);
       broadcastMessage(
-        MessageType.playerRemoved,
-        new PlayerRemove(nid, MessageState.currentStep),
+        PlayerRemove,
+        (p) => {
+          p.nid = nid;
+          p.sid = MessageState.currentStep;
+        },
       );
     }
   }
@@ -103,15 +89,15 @@ class DotsServerApp implements ServerApp {
   }
 
   handleMessage(_client: WebSocket, message: MessageEvent) {
-    const [type, payload] = parseMessage(message.data, payloadMap);
-    MessageState.addCommand(type, payload);
+    const view = new DataViewMovable(message.data);
+    MessageState.copyCommandFrom(view);
   }
 }
 
 const pipeline = new Pipeline([
   TimeSystem(),
   TraitSystem(),
-  NetworkSystem({ idleTimeout }),
+  NetworkSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] }),
 ] as Array<SystemPartial>);
 pipeline.start(80);
 startServer(new DotsServerApp());

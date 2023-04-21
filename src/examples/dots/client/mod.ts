@@ -1,10 +1,3 @@
-import {
-  createPayloadMap,
-  MessageType,
-  parseMessage,
-  PlayerAdd,
-  PlayerRemove,
-} from "~/common/Message.ts";
 import "../mod.ts";
 import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
@@ -15,16 +8,19 @@ import { ClientNetworkState } from "~/client/state/Network.ts";
 import { ClientNetworkSystem } from "~/client/systems/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { TweenSystem } from "~/client/systems/Tween.ts";
-import { TweenState, TweenType } from "~/client/state/Tween.ts";
+import { TweenState } from "~/client/state/Tween.ts";
 import { TraitSystem } from "~/client/systems/Trait.ts";
 import { OutputState } from "~/client/state/Output.ts";
 import { OutputSystem } from "~/client/systems/Output.ts";
 import { LevelState } from "~/common/state/LevelState.ts";
 import { InputSystem } from "../../../modules/client/systems/Input.ts";
-import { TraitState, TraitType } from "~/common/state/Trait.ts";
+import { TraitState } from "~/common/state/Trait.ts";
 import { ReconcileSystem } from "../../../modules/client/systems/Reconcile.ts";
-
-const payloadMap = createPayloadMap();
+import { readMessage } from "../../../modules/common/Message.ts";
+import { DataViewMovable } from "../../../modules/common/DataView.ts";
+import { IPlayerAdd, IPlayerRemove, MsgType } from "../common/messages.ts";
+import { ColorChangeTrait, WasdMoveTrait } from "../common/traits.ts";
+import { ColorTween, PositionTween } from "../common/tweens.ts";
 
 OutputState.canvas.resolution.copy(LevelState.dimensions);
 
@@ -40,17 +36,19 @@ export class DotsClientApp extends ClientApp {
   }
   // deno-lint-ignore no-explicit-any
   handleMessage(server: WebSocket, event: MessageEvent<any>): void {
-    const [type, payload] = parseMessage(event.data, payloadMap);
+    const view = new DataViewMovable(event.data);
+    const [type, payload] = readMessage(view, 0);
 
     switch (type) {
-      case MessageType.playerAdded:
-        handlePlayerAdded(server, payload as PlayerAdd);
+      case MsgType.playerAdded:
+        handlePlayerAdded(server, payload as IPlayerAdd);
         break;
-      case MessageType.playerRemoved:
-        handlePlayerRemoved(server, payload as PlayerRemove);
+      case MsgType.playerRemoved:
+        handlePlayerRemoved(server, payload as IPlayerRemove);
         break;
       default:
-        MessageState.addSnapshot(type, payload);
+        // TODO payload gets read twice
+        MessageState.copySnapshotFrom(view);
     }
   }
   handleIdle(): void {
@@ -60,21 +58,22 @@ export class DotsClientApp extends ClientApp {
 
 function handlePlayerAdded(
   _server: WebSocket,
-  { isLocal, nid, position }: PlayerAdd,
+  { isLocal, nid, position }: IPlayerAdd,
 ) {
   // TODO player system
   const player = PlayerState.createPlayer();
   console.log("player nid:", nid);
   player.position.copy(position);
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
-  TweenState.add(player.eid, TweenType.position);
-  TweenState.add(player.eid, TweenType.color);
+  // TODO only add tweens if player is NOT local?
+  TweenState.add(new PositionTween(player.eid));
+  TweenState.add(new ColorTween(player.eid));
   if (isLocal) {
-    TraitState.add(player.eid, TraitType.wasdMove);
-    TraitState.add(player.eid, TraitType.colorChange);
+    TraitState.add(new WasdMoveTrait(player.eid));
+    TraitState.add(new ColorChangeTrait(player.eid));
   }
 }
-function handlePlayerRemoved(_server: WebSocket, playerRemove: PlayerRemove) {
+function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
   // TODO player system
   const eid = ClientNetworkState.getEntityId(playerRemove.nid)!;
   PlayerState.deletePlayer(eid);

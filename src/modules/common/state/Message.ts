@@ -1,9 +1,12 @@
 import {
-  AnyMessagePayload,
-  createPayloadMap,
-  MessageType,
+  copyMessage,
+  IMessageDef,
+  IPayloadAny,
+  MAX_MESSAGE_BYTE_LENGTH,
+  readMessage,
 } from "../../common/Message.ts";
-import { MessageTimelineBuffer } from "../MessageTimelineBuffer.ts";
+import { DataViewMovable } from "../DataView.ts";
+import { SetRing } from "../SetRing.ts";
 
 // TODO make these values dynamic. The slower the network the bigger they need to be.
 const MAX_LAG = 23;
@@ -20,26 +23,25 @@ const BUFFER_SIZE_BYTES = Math.pow(2, 15); // 32 KB
  * - Storing the last snapshot message received from the server
  *
  * Feels like there should be another level of abstractions that encapsulates some aspects of this, making this class simpler and/or this should be broken up into smaller classes.
+ * TODO rename to CommandSnapshotState
  */
 export class MessageStateApi {
-  #payloadMap = createPayloadMap();
+  // TODO maybe there should only be one buffer for all commands, snapshots, etc
   #commandBuffer = new ArrayBuffer(BUFFER_SIZE_BYTES);
-  #commandsByStepCreated = new MessageTimelineBuffer(
-    this.#commandBuffer,
-    MAX_LAG,
-    this.#payloadMap,
-  );
-  #commandsByStepReceived = new MessageTimelineBuffer(
-    this.#commandBuffer,
-    MAX_LAG,
-    this.#payloadMap,
-  );
+  #commandBufferView = new DataViewMovable(this.#commandBuffer, {
+    isCircular: true,
+  });
+  #commandBufferByteOffset = 0;
+  #commandsByStepCreated = new SetRing(MAX_LAG, BUFFER_SIZE_BYTES);
+  #commandsByStepReceived = new SetRing(MAX_LAG, BUFFER_SIZE_BYTES);
   #sidNow = 0;
   #lastSentStepId = 0;
+  lastHandledStepId = 0;
 
   /** Increment the ID number used to identify executions of the fixed pipeline.
    * Note: even if called every milisecond, it would take ~571,233 years for this
    * number to exceed Number.MAX_SAFE_INTEGER
+   * TODO use performance.now()
    */
   incrementStepId() {
     this.#sidNow++;
@@ -61,98 +63,180 @@ export class MessageStateApi {
     return this.#lastReceivedStepId;
   }
 
-  addCommand(
-    type: MessageType,
-    payload: AnyMessagePayload,
+  addCommand<P extends IPayloadAny>(
+    MsgDef: IMessageDef<P>,
+    writePayload: (p: P) => void,
     sidReceivedAt = this.#sidNow,
   ) {
-    this.#commandsByStepReceived.insert(sidReceivedAt, type, payload);
-    this.#commandsByStepCreated.insert(payload.sid, type, payload);
+    const byteOffset = this.#commandBufferByteOffset;
+    const payload = MsgDef.write(
+      this.#commandBufferView,
+      byteOffset,
+      writePayload,
+    );
+    this.#recordCommandMetadata(MsgDef.byteLength, sidReceivedAt, payload.sid);
+    return payload;
+  }
+
+  #recordCommandMetadata(
+    byteLength: number,
+    sidReceivedAt: number,
+    sidPayload: number,
+  ) {
+    const byteOffset = this.#commandBufferByteOffset;
+    this.#commandBufferByteOffset += byteLength;
+    this.#commandsByStepReceived.add(sidReceivedAt, byteOffset);
+    this.#commandsByStepCreated.add(sidPayload, byteOffset);
+  }
+
+  copyCommandFrom(
+    view: DataViewMovable,
+    byteOffset = 0,
+    sidReceivedAt = this.#sidNow,
+  ) {
+    const MsgDef = copyMessage(
+      view,
+      byteOffset,
+      this.#commandBufferView,
+      this.#commandBufferByteOffset,
+    );
+    const [_type, payload] = readMessage(view, byteOffset);
+    this.#recordCommandMetadata(MsgDef.byteLength, sidReceivedAt, payload.sid);
+  }
+
+  *getCommandDataViewsByStepCreated(
+    start = this.#sidNow,
+    end = start,
+  ) {
+    for (
+      const byteOffset of this.#commandsByStepCreated.sliceValues(start, end)
+    ) {
+      yield new DataView(
+        this.#commandBuffer,
+        byteOffset,
+        MAX_MESSAGE_BYTE_LENGTH,
+      );
+    }
   }
 
   *getCommandsByStepCreated(
     start = this.#sidNow,
     end = start,
-  ): Generator<[MessageType, AnyMessagePayload]> {
-    for (const command of this.#commandsByStepCreated.slice(start, end)) {
-      yield command;
+  ) {
+    for (
+      const byteOffset of this.#commandsByStepCreated.sliceValues(start, end)
+    ) {
+      yield readMessage(this.#commandBufferView, byteOffset);
     }
   }
 
   *getCommandsByStepReceived(
     start = this.#sidNow,
     end = start,
-  ): Generator<[MessageType, AnyMessagePayload]> {
-    for (const command of this.#commandsByStepReceived.slice(start, end)) {
-      yield command;
+  ) {
+    for (
+      const byteOffset of this.#commandsByStepReceived.sliceValues(start, end)
+    ) {
+      yield readMessage(this.#commandBufferView, byteOffset);
     }
   }
 
   #lastReceivedStepId = 0;
   #snapshotBuffer = new ArrayBuffer(BUFFER_SIZE_BYTES);
-  #snapshotsByStepCreated = new MessageTimelineBuffer(
-    this.#snapshotBuffer,
+  #snapshotBufferView = new DataViewMovable(this.#snapshotBuffer, {
+    isCircular: true,
+  });
+  #snapshotBufferByteOffset = 0;
+  #snapshotsByStepCreated = new SetRing(
     MAX_LAG,
-    this.#payloadMap,
+    BUFFER_SIZE_BYTES,
   );
-  #snapshotsByCommandStepCreated = new MessageTimelineBuffer(
-    this.#snapshotBuffer,
+  #snapshotsByCommandStepCreated = new SetRing(
     MAX_LAG,
-    this.#payloadMap,
+    BUFFER_SIZE_BYTES,
   );
 
-  addSnapshot(
-    type: MessageType,
-    payload: AnyMessagePayload,
+  addSnapshot<P extends IPayloadAny>(
+    MsgDef: IMessageDef<P>,
+    writePayload: (p: P) => void,
     sidCreatedAt = this.#sidNow,
   ) {
-    this.#snapshotsByStepCreated.insert(sidCreatedAt, type, payload);
-    this.#snapshotsByCommandStepCreated.insert(payload.sid, type, payload);
+    const byteOffset = this.#snapshotBufferByteOffset;
+    const payload = MsgDef.write(
+      this.#snapshotBufferView,
+      byteOffset,
+      writePayload,
+    );
+    this.#recordSnapshotMetadata(MsgDef.byteLength, sidCreatedAt, payload.sid);
+    return payload;
+  }
+
+  #recordSnapshotMetadata(
+    byteLength: number,
+    sidCreatedAt: number,
+    sidPayload: number,
+  ) {
+    const byteOffset = this.#snapshotBufferByteOffset;
+    this.#snapshotBufferByteOffset += byteLength;
+    this.#snapshotsByStepCreated.add(sidCreatedAt, byteOffset);
+    this.#snapshotsByCommandStepCreated.add(sidPayload, byteOffset);
     // Get the max, in case they're received out of order
-    this.#lastReceivedStepId = Math.max(payload.sid, this.#lastReceivedStepId);
+    this.#lastReceivedStepId = Math.max(sidPayload, this.#lastReceivedStepId);
+  }
+
+  copySnapshotFrom(
+    view: DataViewMovable,
+    byteOffset = 0,
+    sidCreatedAt = this.#sidNow,
+  ) {
+    const MsgDef = copyMessage(
+      view,
+      byteOffset,
+      this.#snapshotBufferView,
+      this.#snapshotBufferByteOffset,
+    );
+    const [_type, payload] = readMessage(view, byteOffset);
+    this.#recordSnapshotMetadata(MsgDef.byteLength, sidCreatedAt, payload.sid);
+  }
+
+  *getSnapshotDataViewsByStepCreated(
+    start = this.#sidNow,
+    end = start,
+  ) {
+    for (
+      const byteOffset of this.#snapshotsByStepCreated.sliceValues(start, end)
+    ) {
+      yield new DataView(
+        this.#snapshotBuffer,
+        byteOffset,
+        MAX_MESSAGE_BYTE_LENGTH,
+      );
+    }
   }
 
   *getSnapshotsByStepCreated(
     start = this.#sidNow,
-    end = this.#sidNow,
-  ): Generator<[MessageType, AnyMessagePayload]> {
-    for (const snapshot of this.#snapshotsByStepCreated.slice(start, end)) {
-      yield snapshot;
+    end = start,
+  ) {
+    for (
+      const byteOffset of this.#snapshotsByStepCreated.sliceValues(start, end)
+    ) {
+      yield readMessage(this.#snapshotBufferView, byteOffset);
     }
   }
 
   *getSnapshotsByCommandStepCreated(
     start = this.#sidNow,
-    end = this.#sidNow,
-  ): Generator<[MessageType, AnyMessagePayload]> {
+    end = start,
+  ) {
     for (
-      const snapshot of this.#snapshotsByCommandStepCreated.slice(
+      const byteOffset of this.#snapshotsByCommandStepCreated.sliceValues(
         start,
         end,
       )
     ) {
-      yield snapshot;
+      yield readMessage(this.#snapshotBufferView, byteOffset);
     }
-  }
-
-  enableStats() {
-    this.#commandsByStepCreated.enableStats();
-    this.#commandsByStepReceived.enableStats();
-    this.#snapshotsByStepCreated.enableStats();
-    this.#snapshotsByCommandStepCreated.enableStats();
-  }
-
-  logStats() {
-    console.log(
-      "bytes consumed by commands",
-      this.#commandsByStepCreated.bytesConsumed +
-        this.#commandsByStepReceived.bytesConsumed,
-    );
-    console.log(
-      "bytes consumed by snapshots",
-      this.#snapshotsByStepCreated.bytesConsumed +
-        this.#snapshotsByCommandStepCreated.bytesConsumed,
-    );
   }
 }
 

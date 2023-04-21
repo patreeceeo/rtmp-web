@@ -1,392 +1,117 @@
 import { DataViewMovable } from "./DataView.ts";
 import {
-  BinaryObjectAdaptor,
-  boolAdaptor,
-  networkIdAdaptor,
-  uint16Adaptor,
-  uint8Adaptor,
-  vec2Adaptor,
-} from "./BinaryAdaptor.ts";
-import { NetworkId } from "./state/Network.ts";
-import { ColorId, PoseType } from "./state/Player.ts";
-import { Vec2 } from "./Vec2.ts";
+  asPlainObject,
+  createBufferProxyObjectConstructor,
+  IBufferProxyObjectConstructor,
+  IBufferProxyObjectSpec,
+} from "./BufferValue.ts";
+import { invariant } from "./Error.ts";
 
-export interface IPayload {
-  sid: number;
-  nid: number;
-  write(buf: DataViewMovable): void;
+export const MAX_MESSAGE_BYTE_LENGTH = 32; // arbitrary, seems like plenty for now
+
+// deno-lint-ignore no-explicit-any
+export type IPayloadAny = Record<string, any>;
+
+export interface IMessageDef<P> {
+  type: number;
+  byteLength: number;
+  write(
+    view: DataViewMovable,
+    byteOffset: number,
+    writePayload: IWritePayload<P>,
+  ): P;
 }
 
-export interface IPayloadMutable extends IPayload {
-  read(buf: DataViewMovable): void;
-  copy(payload: this): void;
+export type IMessageDefAny = IMessageDef<IPayloadAny>;
+
+export interface IWritePayload<P> {
+  (payload: P): void;
 }
 
-const nilAdaptor = new BinaryObjectAdaptor<NilPayload>([
-  ["sid", uint16Adaptor],
-  ["nid", networkIdAdaptor],
-]);
-
-export class NilPayload implements IPayload {
-  constructor(readonly nid: NetworkId, readonly sid: number) {}
-  write(buf: DataViewMovable): void {
-    nilAdaptor.write(buf, this);
-  }
-}
-
-export class NilPayloadMutable extends NilPayload implements IPayloadMutable {
-  constructor(public nid: NetworkId, public sid: number) {
-    super(nid, sid);
-  }
-  read(buf: DataViewMovable): void {
-    nilAdaptor.read(buf, this);
-  }
-  copy(source: NilPayloadMutable) {
-    this.nid = source.nid;
-    this.sid = source.sid;
-  }
-}
-
-const playerMoveAdaptor = new BinaryObjectAdaptor<PlayerMove>([
-  ["sid", uint16Adaptor],
-  ["delta", vec2Adaptor],
-  ["nid", networkIdAdaptor],
-]);
-
-export class PlayerMove implements IPayload {
+class MessageDef<P extends IPayloadAny> implements IMessageDef<P> {
+  byteLength: number;
   constructor(
-    readonly delta: Vec2,
-    readonly nid: NetworkId,
-    readonly sid: number,
-  ) {}
-  write(buf: DataViewMovable): void {
-    playerMoveAdaptor.write(buf, this);
-  }
-}
-
-export class PlayerMoveMutable extends PlayerMove implements IPayloadMutable {
-  constructor(public delta: Vec2, public nid: NetworkId, public sid: number) {
-    super(delta, nid, sid);
-  }
-  read(buf: DataViewMovable): void {
-    playerMoveAdaptor.read(buf, this);
-  }
-  copy(move: PlayerMove) {
-    this.delta.copy(move.delta);
-    this.nid = move.nid;
-    this.sid = move.sid;
-  }
-}
-
-const playerAddAdaptor = new BinaryObjectAdaptor<PlayerAdd>([
-  ["sid", uint16Adaptor],
-  ["position", vec2Adaptor],
-  // TODO why does Deno type checker take issue with this?
-  // deno-lint-ignore no-explicit-any
-  ["isLocal", boolAdaptor as any],
-  ["nid", networkIdAdaptor],
-]);
-
-export class PlayerAdd implements IPayload {
-  constructor(
-    readonly position: Vec2,
-    readonly isLocal: boolean,
-    readonly nid: NetworkId,
-    readonly sid: number,
-  ) {}
-  write(buf: DataViewMovable): void {
-    playerAddAdaptor.write(buf, this);
-  }
-}
-
-export class PlayerAddMutable extends PlayerAdd implements IPayloadMutable {
-  constructor(
-    public position: Vec2,
-    public isLocal: boolean,
-    public nid: NetworkId,
-    public sid: number,
+    readonly type: number,
+    readonly Payload: IBufferProxyObjectConstructor<P>,
   ) {
-    super(position, isLocal, nid, sid);
+    this.byteLength = Payload.byteLength + 1;
+    invariant(
+      this.byteLength <= MAX_MESSAGE_BYTE_LENGTH,
+      `message type ${type} exceeds the maximum length by ${
+        this.byteLength - MAX_MESSAGE_BYTE_LENGTH
+      } bytes`,
+    );
   }
-  read(buf: DataViewMovable): void {
-    playerAddAdaptor.read(buf, this);
-  }
-  copy(source: PlayerAdd) {
-    this.isLocal = source.isLocal;
-    this.nid = source.nid;
-    this.sid = source.sid;
-  }
-}
-
-const playerSnapshotAdaptor = new BinaryObjectAdaptor<PlayerSnapshot>([
-  ["sid", uint16Adaptor],
-  ["position", vec2Adaptor],
-  ["pose", uint8Adaptor],
-  ["nid", networkIdAdaptor],
-]);
-export class PlayerSnapshot implements IPayload {
-  constructor(
-    readonly position: Vec2,
-    readonly pose: PoseType,
-    readonly nid: NetworkId,
-    readonly sid: number,
-  ) {}
-  write(buf: DataViewMovable): void {
-    playerSnapshotAdaptor.write(buf, this);
+  write(
+    view: DataViewMovable,
+    byteOffset: number,
+    writePayload: IWritePayload<P>,
+  ): P {
+    view.setUint8(byteOffset, this.type);
+    const payload = new this.Payload(view, byteOffset + 1);
+    writePayload(payload);
+    const { bytesRemaining } = payload.meta;
+    // TODO
+    invariant(
+      bytesRemaining === 0,
+      `Payload should be completely written. There are ${bytesRemaining} bytes remaining`,
+    );
+    return payload;
   }
 }
 
-export class PlayerSnapshotMutable extends PlayerSnapshot
-  implements IPayloadMutable {
-  constructor(
-    public position: Vec2,
-    readonly pose: PoseType,
-    public nid: NetworkId,
-    public sid: number,
-  ) {
-    super(position, pose, nid, sid);
-  }
-  read(buf: DataViewMovable): void {
-    playerSnapshotAdaptor.read(buf, this);
-  }
-  copy(source: PlayerSnapshot) {
-    this.position.copy(source.position);
-    this.nid = source.nid;
-  }
+const messageDefsByType: Array<IMessageDefAny> = [];
+
+export function defMessageType<P extends IPayloadAny>(
+  // TODO use opaque type?
+  type: number,
+  spec: IBufferProxyObjectSpec<P>,
+): IMessageDef<P> {
+  const Payload = createBufferProxyObjectConstructor(spec);
+  const def = new MessageDef(type, Payload);
+  invariant(!(type in messageDefsByType), `redefining message type ${type}`);
+  messageDefsByType[type] = def;
+  return def;
 }
 
-const playerRemoveAdaptor = new BinaryObjectAdaptor<PlayerRemove>([
-  ["sid", uint16Adaptor],
-  ["nid", networkIdAdaptor],
-]);
-
-export class PlayerRemove implements IPayload {
-  constructor(
-    readonly nid: NetworkId,
-    readonly sid: number,
-  ) {}
-  write(buf: DataViewMovable): void {
-    playerRemoveAdaptor.write(buf, this);
-  }
+export function reset() {
+  messageDefsByType.length = 0;
 }
 
-export class PlayerRemoveMutable extends PlayerRemove
-  implements IPayloadMutable {
-  constructor(
-    public nid: NetworkId,
-    public sid: number,
-  ) {
-    super(nid, sid);
-  }
-  read(buf: DataViewMovable): void {
-    playerRemoveAdaptor.read(buf, this);
-  }
-  copy(source: PlayerRemove) {
-    this.nid = source.nid;
-  }
+export function getMessageDef(type: number) {
+  return messageDefsByType[type];
 }
 
-const colorChangeAdaptor = new BinaryObjectAdaptor<ColorChange>([
-  ["sid", uint16Adaptor],
-  ["color", uint16Adaptor],
-  ["nid", networkIdAdaptor],
-]);
+export function readMessage<P extends IPayloadAny = IPayloadAny>(
+  view: DataViewMovable,
+  byteOffset: number,
+): [number, P] {
+  const type = readMessageType(view, byteOffset);
+  const def = getMessageDef(type) as MessageDef<P>;
 
-export class ColorChange implements IPayload {
-  constructor(
-    readonly color: ColorId,
-    readonly nid: NetworkId,
-    readonly sid: number,
-  ) {}
-  write(buf: DataViewMovable): void {
-    colorChangeAdaptor.write(buf, this);
-  }
+  return [
+    type,
+    asPlainObject(new def.Payload(view, byteOffset + 1, { readOnly: true })),
+  ];
 }
 
-export class ColorChangeMutable extends ColorChange implements IPayloadMutable {
-  constructor(
-    public color: ColorId,
-    public nid: NetworkId,
-    public sid: number,
-  ) {
-    super(color, nid, sid);
-  }
-  read(buf: DataViewMovable): void {
-    colorChangeAdaptor.read(buf, this);
-  }
-  copy(source: ColorChange) {
-    this.color = source.color;
-  }
+function readMessageType(view: DataViewMovable, byteOffset: number): number {
+  return view.getUint8(byteOffset);
 }
 
-export enum MessageType {
-  nil,
-  playerAdded,
-  playerSnapshot,
-  playerRemoved,
-  playerMoved,
-  colorChange,
-}
-export type MessagePlayloadByType = {
-  [MessageType.nil]: NilPayload;
-  [MessageType.playerAdded]: PlayerAdd;
-  [MessageType.playerSnapshot]: PlayerSnapshot;
-  [MessageType.playerRemoved]: PlayerRemove;
-  [MessageType.playerMoved]: PlayerMove;
-  [MessageType.colorChange]: ColorChange;
-};
-export type MessageMutablePlayloadByType = {
-  [MessageType.nil]: NilPayloadMutable;
-  [MessageType.playerAdded]: PlayerAddMutable;
-  [MessageType.playerSnapshot]: PlayerSnapshotMutable;
-  [MessageType.playerRemoved]: PlayerRemoveMutable;
-  [MessageType.playerMoved]: PlayerMoveMutable;
-  [MessageType.colorChange]: ColorChangeMutable;
-};
-
-export interface IMessage<Type extends MessageType> {
-  type: Type;
-  payload: MessagePlayloadByType[Type];
-}
-
-/** TODO deprecate? */
-export class Message<Type extends MessageType> implements IMessage<Type> {
-  constructor(
-    readonly type: Type,
-    readonly payload: MessagePlayloadByType[Type],
-  ) {
-  }
-  write(buf: DataViewMovable): void {
-    writeMessage(buf, this.type, this.payload);
-  }
-}
-
-export function writeMessage<Type extends MessageType>(
-  buf: DataViewMovable,
-  type: Type,
-  payload: MessagePlayloadByType[Type],
+export function copyMessage(
+  src: DataViewMovable,
+  srcByteOffset: number,
+  dest: DataViewMovable,
+  destByteOffset: number,
 ) {
-  buf.writeUint8(type);
-  payload.write(buf);
-}
-
-export interface IMessageMutable<Type extends MessageType>
-  extends IMessage<Type> {
-  payload: MessageMutablePlayloadByType[Type];
-  read(buf: DataViewMovable): void;
-  set(type: MessageType, payload: AnyMessagePayload): void;
-}
-
-export function createPayloadMap(): MessageMutablePlayloadByType {
-  return {
-    [MessageType.nil]: new NilPayloadMutable(0 as NetworkId, 0),
-    [MessageType.playerAdded]: new PlayerAddMutable(
-      new Vec2(),
-      false,
-      0 as NetworkId,
-      0,
-    ),
-    [MessageType.playerSnapshot]: new PlayerSnapshotMutable(
-      new Vec2(),
-      PoseType.facingLeft,
-      0 as NetworkId,
-      0,
-    ),
-    [MessageType.playerRemoved]: new PlayerRemoveMutable(0 as NetworkId, 0),
-    [MessageType.playerMoved]: new PlayerMoveMutable(
-      new Vec2(),
-      0 as NetworkId,
-      0,
-    ),
-    [MessageType.colorChange]: new ColorChangeMutable(
-      ColorId.BLUE,
-      0 as NetworkId,
-      0,
-    ),
-  };
-}
-
-const payloadMap = createPayloadMap();
-
-/** TODO deprecate */
-export class MessageMutable<Type extends MessageType> extends Message<Type>
-  implements IMessageMutable<Type> {
-  constructor(
-    public type: Type,
-    public payload: MessageMutablePlayloadByType[Type],
-  ) {
-    super(type, payload);
+  const type = readMessageType(src, srcByteOffset);
+  const MsgDef = getMessageDef(type);
+  for (let byteIndex = 0; byteIndex < MsgDef.byteLength; byteIndex++) {
+    dest.setUint8(
+      destByteOffset + byteIndex,
+      src.getUint8(srcByteOffset + byteIndex),
+    );
   }
-  read(buf: DataViewMovable): void {
-    const [type, payload] = readMessage(buf, payloadMap);
-    this.type = type as Type;
-    // deno-lint-ignore no-explicit-any
-    this.payload = payload as any;
-  }
-  set<NewType extends MessageType>(
-    type: NewType,
-    payload: MessagePlayloadByType[NewType],
-  ) {
-    // TODO this is one of those cases where typescript seems to mostly
-    // just get in the way..?
-    const msg = this as unknown as IMessageMutable<NewType>;
-    msg.type = type;
-    msg.payload = payloadMap[type];
-    // deno-lint-ignore no-explicit-any
-    msg.payload.copy(payload as any);
-  }
-}
-
-export function readMessage<Type extends MessageType>(
-  buf: DataViewMovable,
-  payloadMap: MessageMutablePlayloadByType,
-): [Type, MessagePlayloadByType[Type]] {
-  const type = buf.readUint8() as Type;
-  const initialOffset = buf.byteOffset;
-  if (type in payloadMap) {
-    const payload = payloadMap[type];
-    payload.read(buf);
-    return [type, payload];
-  }
-  buf.jump(initialOffset);
-  throw new Error("Did not find a payload for type " + type);
-}
-
-export function* readMessages(
-  n: number,
-  buf: DataViewMovable,
-  payloadMap: MessageMutablePlayloadByType,
-  options: { rewind?: boolean } = {},
-): Generator<[MessageType, AnyMessagePayload]> {
-  let remaining = n;
-  const initialByteOffset = buf.byteOffset;
-  while (remaining > 0) {
-    yield readMessage(buf, payloadMap);
-    remaining--;
-  }
-  if (options.rewind) {
-    buf.jump(initialByteOffset);
-  }
-}
-
-export type IAnyMessage = IMessage<MessageType>;
-export type IAnyMessageMutable = IMessageMutable<MessageType>;
-export type AnyMessagePayload = MessagePlayloadByType[MessageType];
-
-const resusedBuffer = new DataViewMovable(new ArrayBuffer(128));
-export function parseMessage<Type extends MessageType>(
-  serializedData: ArrayBuffer,
-  payloadMap: MessageMutablePlayloadByType,
-): [Type, MessagePlayloadByType[Type]] {
-  const buf = new DataViewMovable(serializedData);
-  return readMessage(buf, payloadMap);
-}
-
-export function serializeMessage<Type extends MessageType>(
-  type: Type,
-  payload: MessagePlayloadByType[Type],
-): ArrayBufferLike {
-  writeMessage(resusedBuffer, type, payload);
-  resusedBuffer.reset();
-  return resusedBuffer.buffer;
+  return MsgDef;
 }

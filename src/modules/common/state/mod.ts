@@ -1,5 +1,4 @@
 import * as ECS from "bitecs";
-import { filter, map } from "../Iterable.ts";
 
 export interface OpaqueType<T extends string> {
   readonly __opaqueType: T;

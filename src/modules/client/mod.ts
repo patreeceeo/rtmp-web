@@ -25,6 +25,7 @@ export function startClient(app: ClientApp) {
     };
 
     socket.onmessage = (e) => {
+      // console.log("received raw data", new Uint8Array(e.data))
       app.handleMessage(socket, e);
     };
 

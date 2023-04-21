@@ -1,7 +1,12 @@
 import * as ECS from "bitecs";
 import { EntityId } from "./state/mod.ts";
 
-export class Vec2 {
+export interface IVec2 {
+  x: number;
+  y: number;
+}
+
+export class Vec2 implements IVec2 {
   constructor(public x = 0, public y = 0) {}
   set(x: number, y: number) {
     this.x = x;
@@ -21,7 +26,7 @@ export class Vec2 {
     this.y += d.y;
   }
 
-  get snapshot() {
+  get snapshot(): IVec2 {
     return { x: this.x, y: this.y };
   }
 

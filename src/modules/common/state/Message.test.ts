@@ -1,15 +1,20 @@
 import { MessageStateApi } from "./Message.ts";
 import { assertEquals } from "asserts";
-import {
-  AnyMessagePayload,
-  MessageType,
-  NilPayload,
-} from "../../common/Message.ts";
-import { networkId } from "../../common/state/Network.ts";
+import { defMessageType, IPayloadAny } from "../../common/Message.ts";
 import { map, toArray } from "../Iterable.ts";
+import { PrimitiveType } from "../BufferValue.ts";
 
-function mapPayloadNid(iter: Iterable<[unknown, AnyMessagePayload]>) {
-  return map(map(iter, 1) as Iterable<AnyMessagePayload>, "nid");
+interface ITestPayload {
+  sid: number;
+  nid: number;
+}
+const TestMsg = defMessageType<ITestPayload>(0, {
+  sid: PrimitiveType.Uint8,
+  nid: PrimitiveType.Uint8,
+});
+
+function mapPayloadNid(iter: Iterable<[unknown, IPayloadAny]>) {
+  return map(map(iter, 1) as Iterable<ITestPayload>, "nid");
 }
 
 function addMessages(
@@ -18,9 +23,12 @@ function addMessages(
   sidCreatedAt: number,
   sidReceivedAt: number = sidCreatedAt,
 ) {
-  const msg = new NilPayload(networkId(nid), sidCreatedAt);
-  state.addCommand(MessageType.nil, msg, sidReceivedAt);
-  state.addSnapshot(MessageType.nil, msg, sidReceivedAt);
+  const fillPayload = (pl: ITestPayload) => {
+    pl.sid = sidCreatedAt;
+    pl.nid = nid;
+  };
+  state.addCommand(TestMsg, fillPayload, sidReceivedAt);
+  state.addSnapshot(TestMsg, fillPayload, sidReceivedAt);
 }
 
 function assertMessageNidsForClient(
