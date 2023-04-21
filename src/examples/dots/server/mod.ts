@@ -14,9 +14,8 @@ import { MessageState } from "~/common/state/Message.ts";
 import { TraitSystem } from "../../../modules/server/systems/Trait.ts";
 import { LevelState } from "../../../modules/common/state/LevelState.ts";
 import { getRandomIntBetween } from "../../../modules/common/random.ts";
-import { IPlayerRemove, PlayerAdd, PlayerRemove } from "../common/messages.ts";
+import { PlayerAdd, PlayerRemove } from "../common/messages.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
-import { NetworkId } from "../../../modules/common/NetworkApi.ts";
 
 const idleTimeout = 60;
 

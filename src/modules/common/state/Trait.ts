@@ -6,7 +6,7 @@ export type MaybeAddMessageParameters<P extends IPayloadAny> = Maybe<
   [IMessageDef<P>, IWritePayload<P>]
 >;
 
-interface TraitConstructor<
+interface ITraitConstructor<
   CommandPayload extends IPayloadAny,
   SnapshotPayload extends IPayloadAny,
 > {
@@ -19,48 +19,54 @@ interface TraitConstructor<
   commandType: number;
   snapshotType: number;
 }
-export type TraitConstructorAny = TraitConstructor<IPayloadAny, IPayloadAny>;
+export type ITraitConstructorAny = ITraitConstructor<IPayloadAny, IPayloadAny>;
 
 export interface Trait<
   CommandPayload extends IPayloadAny,
   SnapshotPayload extends IPayloadAny,
 > {
   readonly entityId: EntityId;
-  getType(): TraitConstructor<CommandPayload, SnapshotPayload>;
+  getType(): ITraitConstructor<CommandPayload, SnapshotPayload>;
   getCommandMaybe(): MaybeAddMessageParameters<CommandPayload>;
 }
 export type TraitAny = Trait<IPayloadAny, IPayloadAny>;
 
 class TraitStateApi {
-  #map = new Map<TraitConstructorAny, Record<EntityId, TraitAny>>();
-  add<CommandType extends IPayloadAny, SnapshotType extends IPayloadAny>(
-    trait: Trait<CommandType, SnapshotType>,
+  #instanceMap = new Map<ITraitConstructorAny, Record<EntityId, TraitAny>>();
+  #getEntityMap<C extends IPayloadAny, P extends IPayloadAny>(
+    type: ITraitConstructor<C, P>,
   ) {
-    const type = trait.constructor as TraitConstructorAny;
-    const entityMap = this.#map.get(type) || {};
+    return this.#instanceMap.get(type as ITraitConstructorAny) || {};
+  }
+  add<CommandType extends IPayloadAny, SnapshotType extends IPayloadAny>(
+    type: ITraitConstructor<CommandType, SnapshotType>,
+    eid: EntityId,
+  ) {
+    const trait = new type(eid);
+    const entityMap = this.#getEntityMap(type);
     entityMap[trait.entityId] = trait as TraitAny;
-    this.#map.set(type, entityMap);
+    this.#instanceMap.set(type as ITraitConstructorAny, entityMap);
   }
   deleteEntity(eid: EntityId) {
-    for (const map of Object.entries(this.#map)) {
+    for (const map of Object.entries(this.#instanceMap)) {
       delete map[eid];
     }
   }
   *getAll() {
-    for (const map of this.#map.values()) {
+    for (const map of this.#instanceMap.values()) {
       for (const trait of Object.values(map)) {
         yield trait;
       }
     }
   }
-  getTypes(): Iterable<TraitConstructorAny> {
-    return this.#map.keys();
+  getTypes(): Iterable<ITraitConstructorAny> {
+    return this.#instanceMap.keys();
   }
   getTrait<
     CommandPayload extends IPayloadAny,
     SnapshotPayload extends IPayloadAny,
-  >(type: TraitConstructor<CommandPayload, SnapshotPayload>, eid: EntityId) {
-    return this.#map.get(type as TraitConstructorAny)![
+  >(type: ITraitConstructor<CommandPayload, SnapshotPayload>, eid: EntityId) {
+    return this.#instanceMap.get(type as ITraitConstructorAny)![
       eid
     ] as Trait<CommandPayload, SnapshotPayload>;
   }

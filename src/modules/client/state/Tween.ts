@@ -23,11 +23,11 @@ class TweenStateApi {
   #instanceMap: Map<ITweenConstructor<any, any>, Record<EntityId, Tween<any>>> =
     new Map();
   #messageTypeMap: Array<Set<ITweenConstructor<unknown, unknown>>> = [];
-  #getEntityMap<T>(type: ITweenConstructor<T, unknown>) {
+  #getEntityMap<T, S>(type: ITweenConstructor<T, S>) {
     return this.#instanceMap.get(type) || {};
   }
-  #getTweenType<T>(tween: Tween<T>) {
-    return tween.constructor as ITweenConstructor<T, unknown>;
+  #getTweenType<T, S>(tween: Tween<T>) {
+    return tween.constructor as ITweenConstructor<T, S>;
   }
   // TODO change this to take a ITweenConstructor and an EntityId so that there's static type checking for the tween's constructor
   add<T, S>(type: ITweenConstructor<T, S>, eid: EntityId) {

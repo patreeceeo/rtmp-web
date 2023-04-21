@@ -34,7 +34,7 @@ class DotsServerApp implements ServerApp {
       getRandomIntBetween(0, LevelState.dimensions.y),
     );
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
-    TraitState.add(new WasdMoveTrait(addedPlayer.eid));
+    TraitState.add(WasdMoveTrait, addedPlayer.eid);
 
     sendMessageToClient(ws, PlayerAdd, (p) => {
       p.position.copy(addedPlayer.position);

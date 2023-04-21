@@ -69,8 +69,8 @@ function handlePlayerAdded(
   TweenState.add(PositionTween, player.eid);
   TweenState.add(ColorTween, player.eid);
   if (isLocal) {
-    TraitState.add(new WasdMoveTrait(player.eid));
-    TraitState.add(new ColorChangeTrait(player.eid));
+    TraitState.add(WasdMoveTrait, player.eid);
+    TraitState.add(ColorChangeTrait, player.eid);
   }
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
