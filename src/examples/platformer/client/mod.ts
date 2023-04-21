@@ -79,8 +79,8 @@ function handlePlayerAdded(
   player.position.copy(position);
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
   // TODO only add tweens if player is NOT local?
-  TweenState.add(new PositionTween(player.eid));
-  TweenState.add(new PoseTween(player.eid));
+  TweenState.add(PositionTween, player.eid);
+  TweenState.add(PoseTween, player.eid);
   if (isLocal) {
     TraitState.add(new WasdMoveTrait(player.eid));
   }

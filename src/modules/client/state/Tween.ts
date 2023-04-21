@@ -30,8 +30,8 @@ class TweenStateApi {
     return tween.constructor as ITweenConstructor<T, unknown>;
   }
   // TODO change this to take a ITweenConstructor and an EntityId so that there's static type checking for the tween's constructor
-  add<T>(tween: Tween<T>) {
-    const type = this.#getTweenType(tween);
+  add<T, S>(type: ITweenConstructor<T, S>, eid: EntityId) {
+    const tween = new type(eid);
     const entityMap = this.#getEntityMap(type);
     entityMap[tween.eid] = tween;
     this.#instanceMap.set(type, entityMap);
