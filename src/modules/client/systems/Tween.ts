@@ -9,8 +9,9 @@ function exec() {
   const lastReceivedSid = MessageState.lastReceivedStepId;
   const remoteEntitySnapshots = filter(
     MessageState.getSnapshotsByCommandStepCreated(
-      lastReceivedSid - 1,
-      lastReceivedSid - 1,
+      // TODO(bug) using lastReceivedSid - 1 here causes erratic movement
+      lastReceivedSid,
+      lastReceivedSid,
     ),
     ([_type, payload]) => !ClientNetworkState.isLocal(payload.nid),
   );
