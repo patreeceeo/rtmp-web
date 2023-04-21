@@ -31,9 +31,9 @@ class DataViewMovable extends DataView {
    */
   #byteOffset: number = super.byteOffset;
 
-  #maybeCircularGet(
+  #maybeCircularGet<T extends number | bigint>(
     fieldLength: number,
-    getter: (byteOffset: number, littleEndian?: boolean) => number,
+    getter: (byteOffset: number, littleEndian?: boolean) => T,
     fieldOffset: number,
     littleEndian?: boolean,
   ) {
@@ -49,11 +49,11 @@ class DataViewMovable extends DataView {
     }
   }
 
-  #maybeCircularSet(
+  #maybeCircularSet<T extends number | bigint>(
     fieldLength: number,
-    setter: (byteOffset: number, value: number, littleEndian?: boolean) => void,
+    setter: (byteOffset: number, value: T, littleEndian?: boolean) => void,
     fieldOffset: number,
-    value: number,
+    value: T,
     littleEndian?: boolean,
   ) {
     const circularOffset = fieldOffset % this.byteLength;
@@ -380,6 +380,62 @@ class DataViewMovable extends DataView {
   }
 
   /**
+   * Gets an unsigned integer.
+   * @param byteOffset The byte offset.
+   * @param littleEndian If the value is little endian.
+   * @returns The value.
+   */
+  getBigUint64(byteOffset: number, littleEndian?: boolean): bigint {
+    return this.#maybeCircularGet(
+      8,
+      super.getBigUint64,
+      byteOffset,
+      littleEndian,
+    );
+  }
+
+  /**
+   * Reads the next unsigned integer.
+   * @param littleEndian If the value is little endian.
+   * @returns The value.
+   */
+  readBigUint64(littleEndian?: boolean): bigint {
+    const value = this.getBigUint64(this.#byteOffset, littleEndian);
+    this.#byteOffset += 8;
+    return value;
+  }
+
+  /**
+   * Sets an unsigned integer.
+   * @param byteOffset The byte offset.
+   * @param value The value.
+   * @param littleEndian If the value is little endian.
+   */
+  setBigUint64(
+    byteOffset: number,
+    value: bigint,
+    littleEndian?: boolean,
+  ): void {
+    this.#maybeCircularSet(
+      8,
+      super.setBigUint64,
+      byteOffset,
+      value,
+      littleEndian,
+    );
+  }
+
+  /**
+   * Writes the next signed integer.
+   * @param value The value.
+   * @param littleEndian If the value is little endian.
+   */
+  writeBigInt64(value: bigint, littleEndian?: boolean): void {
+    this.setBigUint64(this.#byteOffset, value, littleEndian);
+    this.#byteOffset += 8;
+  }
+
+  /**
    * Gets a float.
    * @param byteOffset The byte offset.
    * @param littleEndian If the value is little endian.
@@ -481,85 +537,5 @@ class DataViewMovable extends DataView {
   writeFloat64(value: number, littleEndian?: boolean): void {
     this.setFloat64(this.#byteOffset, value, littleEndian);
     this.#byteOffset += 8;
-  }
-
-  /**
-   * Gets an signed long.
-   * @param byteOffset The byte offset.
-   * @param littleEndian If the value is little endian.
-   * @returns The value.
-   */
-  getBigInt64(byteOffset: number, littleEndian?: boolean): bigint {
-    if (this.isCircular) throw new Error("Not implemented");
-    return super.getBigInt64(byteOffset % this.byteLength, littleEndian);
-  }
-
-  /**
-   * Reads the next signed long.
-   * @param littleEndian If the value is little endian.
-   * @returns The value.
-   */
-  readBigInt64(littleEndian?: boolean): bigint {
-    const value = this.getBigInt64(this.#byteOffset, littleEndian);
-    this.#byteOffset += 8;
-    return value;
-  }
-
-  /**
-   * Sets a signed long.
-   * @param byteOffset The byte offset.
-   * @param value The value.
-   * @param littleEndian If the value is little endian.
-   */
-  setBigInt64(byteOffset: number, value: bigint, littleEndian?: boolean): void {
-    if (this.isCircular) throw new Error("Not implemented");
-    super.setBigInt64(byteOffset % this.byteLength, value, littleEndian);
-  }
-
-  /**
-   * Writes the next signed long.
-   * @param value The value.
-   * @param littleEndian If the value is little endian.
-   */
-  writeBigInt64(value: bigint, littleEndian?: boolean): void {
-    this.setBigInt64(this.#byteOffset, value, littleEndian);
-    this.#byteOffset += 8;
-  }
-
-  /**
-   * Gets an unsigned long.
-   * @param byteOffset The byte offset.
-   * @param littleEndian If the value is little endian.
-   * @returns The value.
-   */
-  getBigUint64(byteOffset: number, littleEndian?: boolean): bigint {
-    if (this.isCircular) throw new Error("Not implemented");
-    return super.getBigUint64(byteOffset % this.byteLength, littleEndian);
-  }
-
-  /**
-   * Reads the next unsigned long.
-   * @param littleEndian If the value is little endian.
-   * @returns The value.
-   */
-  readBigUint64(littleEndian?: boolean): bigint {
-    const value = this.getBigUint64(this.#byteOffset, littleEndian);
-    this.#byteOffset += 8;
-    return value;
-  }
-
-  /**
-   * Sets an unsigned long.
-   * @param byteOffset The byte offset.
-   * @param value The value.
-   * @param littleEndian If the value is little endian.
-   */
-  setBigUint64(
-    byteOffset: number,
-    value: bigint,
-    littleEndian?: boolean,
-  ): void {
-    if (this.isCircular) throw new Error("Not implemented");
-    super.setBigUint64(byteOffset % this.byteLength, value, littleEndian);
   }
 }

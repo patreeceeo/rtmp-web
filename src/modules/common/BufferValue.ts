@@ -63,6 +63,15 @@ class Int16Box implements IBufferPrimativeBox<number> {
     buf.setInt16(offset, value);
   }
 }
+class BigUint64Box implements IBufferPrimativeBox<bigint> {
+  byteLength = 2;
+  read(buf: DataViewMovable, offset: number): bigint {
+    return buf.getBigUint64(offset);
+  }
+  write(buf: DataViewMovable, offset: number, value: bigint): void {
+    buf.setBigUint64(offset, value);
+  }
+}
 class Float64Box implements IBufferPrimativeBox<number> {
   byteLength = 8;
   read(buf: DataViewMovable, offset: number): number {
@@ -70,6 +79,15 @@ class Float64Box implements IBufferPrimativeBox<number> {
   }
   write(buf: DataViewMovable, offset: number, value: number): void {
     buf.setFloat64(offset, value);
+  }
+}
+class StepIdBox implements IBufferPrimativeBox<number> {
+  byteLength = 8;
+  read(buf: DataViewMovable, offset: number): number {
+    return Number(buf.getBigUint64(offset));
+  }
+  write(buf: DataViewMovable, offset: number, value: number): void {
+    buf.setBigUint64(offset, BigInt(value));
   }
 }
 class NetworkIdBox implements IBufferPrimativeBox<NetworkId> {
@@ -90,7 +108,9 @@ export const PrimitiveType = {
   Uint8: new Uint8Box(),
   Uint16: new Uint16Box(),
   Int16: new Int16Box(),
+  BigUint64: new BigUint64Box(),
   Float64: new Float64Box(),
+  StepId: new StepIdBox(),
   NetworkId: new NetworkIdBox(),
 };
 

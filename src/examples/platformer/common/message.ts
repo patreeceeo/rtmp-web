@@ -26,7 +26,7 @@ interface INilPayload {
 
 const NilPayloadSpec: IBufferProxyObjectSpec<INilPayload> = {
   nid: PrimitiveType.NetworkId,
-  sid: PrimitiveType.Uint16,
+  sid: PrimitiveType.StepId,
 };
 
 defMessageType<INilPayload>(MsgType.nil, NilPayloadSpec);

@@ -6,11 +6,12 @@ import {
   readMessage,
 } from "../../common/Message.ts";
 import { DataViewMovable } from "../DataView.ts";
+import { invariant } from "../Error.ts";
 import { SetRing } from "../SetRing.ts";
 
 // TODO make these values dynamic. The slower the network the bigger they need to be.
 const MAX_LAG = 23;
-const BUFFER_SIZE_BYTES = Math.pow(2, 15); // 32 KB
+const BUFFER_SIZE_BYTES = Math.pow(2, 10); // 32 KB
 
 /**
  * What is this ugly monster? It's covering multiple seperate but intimately related
@@ -113,7 +114,7 @@ export class MessageStateApi {
     ) {
       yield getDataView(
         this.#commandBuffer,
-        byteOffset,
+        byteOffset % BUFFER_SIZE_BYTES,
       );
     }
   }
@@ -179,8 +180,9 @@ export class MessageStateApi {
     this.#snapshotBufferByteOffset += byteLength;
     this.#snapshotsByStepCreated.add(sidCreatedAt, byteOffset);
     this.#snapshotsByCommandStepCreated.add(sidPayload, byteOffset);
-    // Get the max, in case they're received out of order
-    this.#lastReceivedStepId = Math.max(sidPayload, this.#lastReceivedStepId);
+    // TODO maybe this should be a map keyed by NetworkId because each client joins
+    // at a different time
+    this.#lastReceivedStepId = sidPayload;
   }
 
   copySnapshotFrom(
@@ -207,7 +209,7 @@ export class MessageStateApi {
     ) {
       yield getDataView(
         this.#snapshotBuffer,
-        byteOffset,
+        byteOffset % BUFFER_SIZE_BYTES,
       );
     }
   }
@@ -242,6 +244,10 @@ export const MessageState = new MessageStateApi();
 
 const tempBuffer = new ArrayBuffer(MAX_MESSAGE_BYTE_LENGTH);
 export function getDataView(buffer: ArrayBuffer, byteOffset: number): DataView {
+  invariant(
+    byteOffset < buffer.byteLength,
+    "byteOffset exceeds length of buffer",
+  );
   const byteLength = MAX_MESSAGE_BYTE_LENGTH;
   if (byteOffset + byteLength <= buffer.byteLength) {
     return new DataView(buffer, byteOffset, byteLength);

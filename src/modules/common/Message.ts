@@ -79,6 +79,10 @@ export function reset() {
 }
 
 export function getMessageDef(type: number) {
+  invariant(
+    type in messageDefsByType,
+    `Could not find a message definition for type ${type}`,
+  );
   return messageDefsByType[type];
 }
 

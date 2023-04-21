@@ -126,7 +126,7 @@ Deno.test("get commands received at different step than when created", () => {
 
   addMessages(state, 2, 2, 4);
 
-  assertEquals(state.lastReceivedStepId, 3);
+  assertEquals(state.lastReceivedStepId, 2);
 
   assertMessageNidsForServer(state, 0, 0, []);
   assertMessageNidsForServer(state, 1, 1, [3]);
@@ -144,18 +144,15 @@ Deno.test("getDataView can wrap around to beginning of buffer", () => {
     view.setUint8(i, i);
   }
 
-  const result = getDataView(buffer, 7);
-  // values should be shifted to the left by 7
-  for (let i = 0; i < result.byteLength - 7; i++) {
-    assertEquals(result.getUint8(i), i + 7);
-  }
-  // 7 values from beginning should be at the end
-  for (let i = 0; i < 7; i++) {
-    assertEquals(result.getUint8(result.byteLength - 7 + i), i);
-  }
-
-  const result2 = getDataView(buffer, MAX_MESSAGE_BYTE_LENGTH);
-  for (let i = 0; i < result2.byteLength; i++) {
-    assertEquals(result.getUint8(i), i);
+  for (let start = 0; start < MAX_MESSAGE_BYTE_LENGTH; start++) {
+    const result = getDataView(buffer, start);
+    // values should be shifted to the left by `start`
+    for (let i = 0; i < result.byteLength - start; i++) {
+      assertEquals(result.getUint8(i), i + start);
+    }
+    // `start` values from beginning should be at the end
+    for (let i = 0; i < start; i++) {
+      assertEquals(result.getUint8(result.byteLength - start + i), i);
+    }
   }
 });
