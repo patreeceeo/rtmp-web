@@ -111,10 +111,9 @@ export class MessageStateApi {
     for (
       const byteOffset of this.#commandsByStepCreated.sliceValues(start, end)
     ) {
-      yield new DataView(
+      yield getDataView(
         this.#commandBuffer,
         byteOffset,
-        MAX_MESSAGE_BYTE_LENGTH,
       );
     }
   }
@@ -206,10 +205,9 @@ export class MessageStateApi {
     for (
       const byteOffset of this.#snapshotsByStepCreated.sliceValues(start, end)
     ) {
-      yield new DataView(
+      yield getDataView(
         this.#snapshotBuffer,
         byteOffset,
-        MAX_MESSAGE_BYTE_LENGTH,
       );
     }
   }
@@ -241,3 +239,29 @@ export class MessageStateApi {
 }
 
 export const MessageState = new MessageStateApi();
+
+const tempBuffer = new ArrayBuffer(MAX_MESSAGE_BYTE_LENGTH);
+export function getDataView(buffer: ArrayBuffer, byteOffset: number): DataView {
+  const byteLength = MAX_MESSAGE_BYTE_LENGTH;
+  if (byteOffset + byteLength <= buffer.byteLength) {
+    return new DataView(buffer, byteOffset, byteLength);
+  } else {
+    const newView = new DataView(tempBuffer);
+    const originalView = new DataView(buffer);
+
+    let newIndex = 0;
+    for (let i = byteOffset; i < buffer.byteLength; i++, newIndex++) {
+      newView.setUint8(newIndex, originalView.getUint8(i));
+    }
+
+    for (
+      let i = 0;
+      i < byteOffset + byteLength - buffer.byteLength;
+      i++, newIndex++
+    ) {
+      newView.setUint8(newIndex, originalView.getUint8(i));
+    }
+
+    return newView;
+  }
+}
