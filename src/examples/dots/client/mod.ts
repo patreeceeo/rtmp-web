@@ -65,12 +65,12 @@ function handlePlayerAdded(
   console.log("player nid:", nid);
   player.position.copy(position);
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
-  // TODO only add tweens if player is NOT local?
-  TweenState.add(PositionTween, player.eid);
-  TweenState.add(ColorTween, player.eid);
   if (isLocal) {
     TraitState.add(WasdMoveTrait, player.eid);
     TraitState.add(ColorChangeTrait, player.eid);
+  } else {
+    TweenState.add(PositionTween, player.eid);
+    TweenState.add(ColorTween, player.eid);
   }
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
