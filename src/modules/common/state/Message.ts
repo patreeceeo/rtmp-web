@@ -250,15 +250,15 @@ export function getDataView(buffer: ArrayBuffer, byteOffset: number): DataView {
     const originalView = new DataView(buffer);
 
     let newIndex = 0;
-    for (let i = byteOffset; i < buffer.byteLength; i++, newIndex++) {
+    for (
+      let i = byteOffset;
+      i < buffer.byteLength && newIndex < byteLength;
+      i++, newIndex++
+    ) {
       newView.setUint8(newIndex, originalView.getUint8(i));
     }
 
-    for (
-      let i = 0;
-      i < byteOffset + byteLength - buffer.byteLength;
-      i++, newIndex++
-    ) {
+    for (let i = 0; newIndex < byteLength; i++, newIndex++) {
       newView.setUint8(newIndex, originalView.getUint8(i));
     }
 

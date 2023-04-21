@@ -153,4 +153,9 @@ Deno.test("getDataView can wrap around to beginning of buffer", () => {
   for (let i = 0; i < 7; i++) {
     assertEquals(result.getUint8(result.byteLength - 7 + i), i);
   }
+
+  const result2 = getDataView(buffer, MAX_MESSAGE_BYTE_LENGTH);
+  for (let i = 0; i < result2.byteLength; i++) {
+    assertEquals(result.getUint8(i), i);
+  }
 });
