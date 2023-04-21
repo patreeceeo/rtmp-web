@@ -1,5 +1,10 @@
 import { filter } from "./Iterable.ts";
 
+class SetRingItem {
+  set: Set<number> = new Set();
+  constructor(public key: number) {}
+}
+
 /**
  * An abstract data structure with the following properties:
  * - maps a number key to a set of number values
@@ -7,50 +12,41 @@ import { filter } from "./Iterable.ts";
  * - allows the values to be within the range L - Y to Y, where L is the largest value and Y is a controlled variable. If a value larger than L is added, then that becomes the new value of L and any values outside the range are discarded.
  */
 export class SetRing {
-  #map: Array<Set<number>>;
-  #knownKeys: Array<number> = [];
+  #map: Array<SetRingItem>;
   #largestValue = 0;
   #smallestKey = Infinity;
-  #largestKey = 0;
   constructor(
     readonly maxKeys: number,
     readonly maxValueDiff: number,
     readonly debug = false,
   ) {
-    this.#map = Array.from(new Array(maxKeys), () => new Set());
+    this.#map = Array.from(new Array(maxKeys), () => new SetRingItem(0));
   }
   #mapKey(key: number) {
     return key >= 0 ? key % this.maxKeys : this.maxKeys + (key % this.maxKeys);
   }
   add(key: number, value: number) {
+    // TODO if the struct at the mapped key's key doesn't equal key then clear its set and update its key
     const mapKey = this.#mapKey(key);
-    if (key > this.#largestKey) {
-      this.#smallestKey = key - this.maxKeys + 1;
-      this.#largestKey = key;
-    } else {
-      // TODO(regression test) there was a bug relating to this value only being updated in #trimKeysFor
-      this.#smallestKey = Math.min(this.#smallestKey, key);
+    const item = this.#map[mapKey]!;
+    if (item.key !== key) {
+      item.set.clear();
+      item.key = key;
     }
-    if (mapKey in this.#knownKeys && this.#knownKeys[mapKey] !== key) {
-      this.#trimKeysFor(key);
-    }
-    this.#knownKeys[mapKey] = key;
-    const set = this.#map[mapKey]!;
-    set.add(value);
+    item.set.add(value);
     if (value > this.#largestValue) {
       this.#largestValue = value;
       this.#trimValues();
     }
     if (this.debug) {
-      console.log("added", { key, value, set });
+      console.log("added", { key, value, set: item.set });
     }
   }
   has(key: number) {
-    const set = this.#map[this.#mapKey(key)];
+    const item = this.#map[this.#mapKey(key)];
     // console.log("has?", key, "# of values", set.size, "smallest key", this.#smallestKey, "maxKey", this.#smallestKey + this.maxKeys)
     if (
-      set.size > 0 && key >= this.#smallestKey &&
-      key < this.#smallestKey + this.maxKeys
+      item.key === key
     ) {
       // this.debug && console.log("has", key)
       return true;
@@ -60,7 +56,7 @@ export class SetRing {
           "not a key:",
           key,
           "# of values",
-          set.size,
+          item.set.size,
           "smallest key",
           this.#smallestKey,
           "maxKey",
@@ -70,12 +66,12 @@ export class SetRing {
     }
   }
   *keys() {
-    for (const mapKey of this.#map.keys()) {
-      yield mapKey + this.#smallestKey;
+    for (const item of this.#map) {
+      yield item.key;
     }
   }
   values(key: number) {
-    return this.#map[this.#mapKey(key)]!.values();
+    return this.#map[this.#mapKey(key)].set.values();
   }
   *sliceValues(
     startKey: number,
@@ -101,17 +97,14 @@ export class SetRing {
       key++;
     }
   }
-  #trimKeysFor(key: number) {
-    this.#map[this.#mapKey(key)].clear();
-  }
   #trimValues() {
-    for (const set of this.#map) {
+    for (const item of this.#map) {
       const valuesToDiscard = filter(
-        set.values(),
+        item.set.values(),
         (value) => this.#largestValue - value > this.maxValueDiff,
       );
       for (const offset of valuesToDiscard) {
-        set.delete(offset);
+        item.set.delete(offset);
       }
     }
   }

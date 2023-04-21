@@ -50,12 +50,10 @@ function reconcile(
 
     let snapshotCount = 0;
     for (const [_type, payload] of snapshots) {
-      // console.log("apply snapshot", payload.meta.pojo)
       applySnapshot(payload);
       snapshotCount++;
     }
     if (snapshotCount > 0) {
-      // console.log("getting commands from", lastReceivedSid + 1, "to", lastSentSid)
       const commandsByType = filter(
         MessageState.getCommandsByStepCreated(
           lastReceivedSid + 1,
@@ -64,7 +62,6 @@ function reconcile(
         ([type]) => type === commandType,
       );
       for (const [_type, payload] of commandsByType) {
-        // console.log("apply command", payload.meta.pojo)
         applyCommand(payload);
       }
     }

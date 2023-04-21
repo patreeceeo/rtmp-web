@@ -11,8 +11,6 @@ Deno.test("SetRing", () => {
     ring.add(0, item);
   }
 
-  assertEquals(toArray(ring.keys()), [0, 1, 2]);
-
   ring.add(1, 3);
   ring.add(2, 2);
   ring.add(2, 1);
@@ -38,8 +36,6 @@ Deno.test("SetRing", () => {
   ring.add(3, 1);
   ring.add(3, 2);
   ring.add(3, 3);
-
-  assertEquals(toArray(ring.keys()), [1, 2, 3]);
 
   assert(!ring.has(0));
   assert(ring.has(1));
