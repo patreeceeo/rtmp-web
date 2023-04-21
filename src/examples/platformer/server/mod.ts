@@ -19,7 +19,7 @@ import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { TraitState } from "../../../modules/common/state/Trait.ts";
 import { WasdMoveTrait } from "../common/traits.ts";
 
-const idleTimeout = 60;
+const idleTimeout = 300;
 
 class DotsServerApp implements ServerApp {
   idleTimeout = idleTimeout;

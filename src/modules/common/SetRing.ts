@@ -11,6 +11,7 @@ export class SetRing {
   #knownKeys: Array<number> = [];
   #largestValue = 0;
   #smallestKey = Infinity;
+  #largestKey = 0;
   constructor(
     readonly maxKeys: number,
     readonly maxValueDiff: number,
@@ -23,6 +24,13 @@ export class SetRing {
   }
   add(key: number, value: number) {
     const mapKey = this.#mapKey(key);
+    if (key > this.#largestKey) {
+      this.#smallestKey = key - this.maxKeys + 1;
+      this.#largestKey = key;
+    } else {
+      // TODO(regression test) there was a bug relating to this value only being updated in #trimKeysFor
+      this.#smallestKey = Math.min(this.#smallestKey, key);
+    }
     if (mapKey in this.#knownKeys && this.#knownKeys[mapKey] !== key) {
       this.#trimKeysFor(key);
     }
@@ -33,8 +41,6 @@ export class SetRing {
       this.#largestValue = value;
       this.#trimValues();
     }
-    // TODO(regression test) there was a bug relating to this value only being updated in #trimKeysFor
-    this.#smallestKey = Math.min(this.#smallestKey, key);
     if (this.debug) {
       console.log("added", { key, value, set });
     }
@@ -49,7 +55,17 @@ export class SetRing {
       // this.debug && console.log("has", key)
       return true;
     } else {
-      // this.debug && console.log("no has", key, "# of values", set.size, "smallest key", this.#smallestKey, "maxKey", this.#smallestKey + this.maxKeys)
+      this.debug &&
+        console.log(
+          "not a key:",
+          key,
+          "# of values",
+          set.size,
+          "smallest key",
+          this.#smallestKey,
+          "maxKey",
+          this.#smallestKey + this.maxKeys,
+        );
       return false;
     }
   }
@@ -86,7 +102,6 @@ export class SetRing {
     }
   }
   #trimKeysFor(key: number) {
-    this.#smallestKey = key - this.maxKeys + 1;
     this.#map[this.#mapKey(key)].clear();
   }
   #trimValues() {
