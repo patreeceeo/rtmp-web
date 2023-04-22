@@ -12,7 +12,8 @@ export function networkId(nid: number) {
 export interface INetworkState {
   entityMap: Map<NetworkId, EntityId>;
   reverseMap: Map<EntityId, NetworkId>;
-  localEntities: Set<EntityId>;
+  localIds: Set<NetworkId>;
+  remoteIds: Set<NetworkId>;
 }
 
 export class NetworkStateApi {
@@ -20,7 +21,8 @@ export class NetworkStateApi {
     return {
       entityMap: new Map(),
       reverseMap: new Map(),
-      localEntities: new Set(),
+      localIds: new Set(),
+      remoteIds: new Set(),
     };
   }
 
@@ -36,23 +38,24 @@ export class NetworkStateApi {
     const eid = this.#state.entityMap.get(nid)!;
     this.#state.entityMap.delete(nid);
     this.#state.reverseMap.delete(eid);
-    this.#state.localEntities.delete(eid);
+    this.#state.localIds.delete(nid);
   }
 
   setNetworkEntity(nid: NetworkId, eid: EntityId, isLocal: boolean) {
     this.#state.entityMap.set(nid, eid);
     this.#state.reverseMap.set(eid, nid);
     if (isLocal) {
-      this.#state.localEntities.add(eid);
+      this.#state.localIds.add(nid);
+    } else {
+      this.#state.remoteIds.add(nid);
     }
   }
 
-  isLocalEntity(eid: EntityId) {
-    return this.#state.localEntities.has(eid);
+  getLocalIds() {
+    return this.#state.localIds.values();
   }
 
-  isLocal(nid: NetworkId) {
-    const eid = this.getEntityId(nid);
-    return this.isLocalEntity(eid!);
+  getRemoteIds() {
+    return this.#state.remoteIds.values();
   }
 }

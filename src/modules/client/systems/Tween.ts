@@ -6,33 +6,33 @@ import { TweenState } from "../state/Tween.ts";
 import { filter } from "../../common/Iterable.ts";
 
 function exec() {
-  const lastReceivedSid = MessageState.lastReceivedStepId;
-  const remoteEntitySnapshots = filter(
-    MessageState.getSnapshotsByCommandStepCreated(
-      // TODO(bug) using lastReceivedSid - 1 here causes erratic movement
-      lastReceivedSid,
-      lastReceivedSid,
-    ),
-    ([_type, payload]) => !ClientNetworkState.isLocal(payload.nid),
-  );
+  for (const nid of ClientNetworkState.getRemoteIds()) {
+    const lastReceivedSid = MessageState.getLastReceivedStepId(nid);
+    const remoteEntitySnapshots = filter(
+      MessageState.getSnapshotsByCommandStepCreated(
+        // TODO(bug) using lastReceivedSid - 1 here causes erratic movement
+        lastReceivedSid,
+        lastReceivedSid,
+      ),
+      ([_type, payload]) => payload.nid === nid,
+    );
 
-  for (const [msgType, payload] of remoteEntitySnapshots) {
-    const eid = ClientNetworkState.getEntityId(payload.nid)!;
-    for (const type of TweenState.mapMessageType(msgType)) {
-      const tween = TweenState.get(type, eid);
-      if (tween !== undefined) {
-        TweenState.activate(
-          tween,
-          type.extractData(payload),
-        );
+    for (const [msgType, payload] of remoteEntitySnapshots) {
+      const eid = ClientNetworkState.getEntityId(payload.nid)!;
+      for (const type of TweenState.mapMessageType(msgType)) {
+        const tween = TweenState.get(type, eid);
+        if (tween !== undefined) {
+          TweenState.activate(tween, type.extractData(payload));
+        }
       }
     }
-  }
 
-  for (const type of TweenState.getTypes()) {
-    for (const tween of TweenState.getActive(type)) {
-      tween.exec(Time.delta);
+    for (const type of TweenState.getTypes()) {
+      for (const tween of TweenState.getActive(type)) {
+        tween.exec(Time.delta);
+      }
     }
+    MessageState.setLastHandledStepId(nid, lastReceivedSid);
   }
 }
 
