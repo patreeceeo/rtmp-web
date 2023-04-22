@@ -7,6 +7,7 @@ import {
 } from "../../common/Message.ts";
 import { DataViewMovable } from "../DataView.ts";
 import { invariant } from "../Error.ts";
+import { NetworkId } from "../NetworkApi.ts";
 import { SetRing } from "../SetRing.ts";
 
 // TODO make these values dynamic. The slower the network the bigger they need to be.
@@ -37,7 +38,8 @@ export class MessageStateApi {
   #commandsByStepReceived = new SetRing(MAX_LAG, BUFFER_SIZE_BYTES);
   #sidNow = 0;
   #lastSentStepId = 0;
-  lastHandledStepId = 0;
+  #lastReceivedStepIdMap: Array<number> = [];
+  #lastHandledStepIdMap: Array<number> = [];
 
   /** Increment the ID number used to identify executions of the fixed pipeline.
    * Note: even if called every milisecond, it would take ~571,233 years for this
@@ -60,8 +62,14 @@ export class MessageStateApi {
     this.#lastSentStepId = sid;
   }
 
-  get lastReceivedStepId() {
-    return this.#lastReceivedStepId;
+  getLastReceivedStepId(nid: NetworkId) {
+    return this.#lastReceivedStepIdMap[nid];
+  }
+  getLastHandledStepId(nid: NetworkId) {
+    return this.#lastHandledStepIdMap[nid];
+  }
+  setLastHandledStepId(nid: NetworkId, sid: number) {
+    return this.#lastHandledStepIdMap[nid] = sid;
   }
 
   addCommand<P extends IPayloadAny>(
@@ -141,7 +149,6 @@ export class MessageStateApi {
     }
   }
 
-  #lastReceivedStepId = 0;
   #snapshotBuffer = new ArrayBuffer(BUFFER_SIZE_BYTES);
   #snapshotBufferView = new DataViewMovable(this.#snapshotBuffer, {
     isCircular: true,
@@ -167,7 +174,12 @@ export class MessageStateApi {
       byteOffset,
       writePayload,
     );
-    this.#recordSnapshotMetadata(MsgDef.byteLength, sidCreatedAt, payload.sid);
+    this.#recordSnapshotMetadata(
+      MsgDef.byteLength,
+      sidCreatedAt,
+      payload.sid,
+      payload.nid,
+    );
     return payload;
   }
 
@@ -175,6 +187,7 @@ export class MessageStateApi {
     byteLength: number,
     sidCreatedAt: number,
     sidPayload: number,
+    nid: NetworkId,
   ) {
     const byteOffset = this.#snapshotBufferByteOffset;
     this.#snapshotBufferByteOffset += byteLength;
@@ -182,7 +195,7 @@ export class MessageStateApi {
     this.#snapshotsByCommandStepCreated.add(sidPayload, byteOffset);
     // TODO maybe this should be a map keyed by NetworkId because each client joins
     // at a different time
-    this.#lastReceivedStepId = sidPayload;
+    this.#lastReceivedStepIdMap[nid] = sidPayload;
   }
 
   copySnapshotFrom(
@@ -197,7 +210,12 @@ export class MessageStateApi {
       this.#snapshotBufferByteOffset,
     );
     const [_type, payload] = readMessage(view, byteOffset);
-    this.#recordSnapshotMetadata(MsgDef.byteLength, sidCreatedAt, payload.sid);
+    this.#recordSnapshotMetadata(
+      MsgDef.byteLength,
+      sidCreatedAt,
+      payload.sid,
+      payload.nid,
+    );
   }
 
   *getSnapshotDataViewsByStepCreated(
