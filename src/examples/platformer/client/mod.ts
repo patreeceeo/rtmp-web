@@ -14,7 +14,7 @@ import { TweenSystem } from "~/client/systems/Tween.ts";
 import { TweenState } from "~/client/state/Tween.ts";
 import { TraitSystem } from "~/client/systems/Trait.ts";
 import { OutputState } from "~/client/state/Output.ts";
-import { OutputSystem } from "~/client/systems/Output.ts";
+// import { OutputSystem } from "~/client/systems/Output.ts";
 import { LevelState } from "~/common/state/LevelState.ts";
 import { InputSystem } from "../../../modules/client/systems/Input.ts";
 import { TraitState } from "~/common/state/Trait.ts";
@@ -109,10 +109,10 @@ const pipeline = new Pipeline([
 
 startClient(new DotsClientApp());
 pipeline.start(80);
-const outputSystem = await OutputSystem();
+// const outputSystem = await OutputSystem();
 
 function startAnimationPipeline() {
-  outputSystem.exec!();
+  // outputSystem.exec!();
   requestAnimationFrame(startAnimationPipeline);
 }
 startAnimationPipeline();
