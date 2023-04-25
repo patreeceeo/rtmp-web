@@ -23,6 +23,10 @@ import { readMessage } from "../../../modules/common/Message.ts";
 import { WasdMoveTrait } from "../common/traits.ts";
 import { PoseTween, PositionTween } from "../common/tweens.ts";
 
+window.onerror = (_event, source, lineno, colno, error) => {
+  console.log({ error, source, lineno, colno });
+};
+
 useClient(import.meta, "ws://localhost:12321");
 
 if (import.meta.hot) {
