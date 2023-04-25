@@ -52,9 +52,8 @@ export async function buildModule(
     }
     Deno.writeTextFile(outPath, result);
   } catch (e) {
-    if (options.catchErrors) {
-      console.error("while building", inPath, e);
-    } else {
+    console.error("while building", inPath, e);
+    if (!options.catchErrors) {
       throw e;
     }
   } finally {
