@@ -1,0 +1,9 @@
+
+{
+  "imports": {
+    "async": "/public/vendor/async/mod.js",
+    "hot_mod/": "https://deno.land/x/hot_mod/",
+    "bitecs": "https://deno.land/x/bitecs/index.mjs",
+    "~/": "/public/modules/"
+  }
+}
