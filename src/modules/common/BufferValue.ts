@@ -84,10 +84,10 @@ class Float64Box implements IBufferPrimativeBox<number> {
 class StepIdBox implements IBufferPrimativeBox<number> {
   byteLength = 8;
   read(buf: DataViewMovable, offset: number): number {
-    return Number(buf.getBigUint64(offset));
+    return buf.getFloat64(offset);
   }
   write(buf: DataViewMovable, offset: number, value: number): void {
-    buf.setBigUint64(offset, BigInt(value));
+    buf.setFloat64(offset, value);
   }
 }
 class NetworkIdBox implements IBufferPrimativeBox<NetworkId> {
