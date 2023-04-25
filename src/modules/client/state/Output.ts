@@ -3,6 +3,7 @@ import { Vec2 } from "~/common/Vec2.ts";
 
 // TODO key/button/axis enum
 class OutputStateApi {
+  isDirty = true;
   ready = deferred<void>();
   canvas = {
     clientRect: new DOMRect(),
