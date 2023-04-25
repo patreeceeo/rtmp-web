@@ -29,7 +29,10 @@ export const OutputSystem: SystemLoader = async () => {
     throw new Error("Failed to get canvas rendering context");
   }
   function exec() {
-    drawPlayers();
+    if (OutputState.isDirty) {
+      drawPlayers();
+      OutputState.isDirty = false;
+    }
   }
   return { exec };
 };
