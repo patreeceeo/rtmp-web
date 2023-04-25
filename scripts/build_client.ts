@@ -6,8 +6,8 @@ import { addModuleEventHandler, sleep } from "~/dev_common/mod.ts";
 const outDir = Deno.args[0];
 const inPaths = Deno.args[1].split(",");
 const replaceImportMapPath = Deno.args[2];
-const watchMode = Deno.args[3] === "--watch";
-const inlineSourcemap = Deno.args[4] === "--inline-sourcemap";
+const watchMode = Deno.args.indexOf("--watch") > 2;
+const inlineSourcemap = Deno.args.indexOf("--inline-sourcemap") > 2;
 
 const buildOptions = {
   catchErrors: watchMode,
