@@ -17,6 +17,7 @@ interface BuildOptions {
   catchErrors?: boolean;
   replaceImports?: boolean;
   importMapPath?: string;
+  sourcemap?: esbuild.TransformOptions["sourcemap"];
 }
 
 export async function buildModules(
@@ -29,17 +30,22 @@ export async function buildModules(
   }
 }
 
-await init;
 export async function buildModule(
   outDir: string,
   inPath: string,
   options: BuildOptions = {},
 ) {
+  await init;
   try {
     const outPath = getOutPath(outDir, inPath);
     Deno.mkdir(dirname(outPath), { recursive: true });
     const ts = await Deno.readTextFile(inPath);
-    const esBuildResult = await esbuild.transform(ts, { loader: "ts" });
+    const esBuildResult = await esbuild.transform(ts, {
+      loader: "ts",
+      sourcefile: basename(inPath),
+      sourcemap: options.sourcemap,
+      target: ["safari14"],
+    });
     let result = esBuildResult.code;
     if (options.replaceImports) {
       const importMap = JSON.parse(
@@ -49,9 +55,8 @@ export async function buildModule(
     }
     Deno.writeTextFile(outPath, result);
   } catch (e) {
-    if (options.catchErrors) {
-      console.error("while building", inPath, e);
-    } else {
+    console.error("while building", inPath, e);
+    if (!options.catchErrors) {
       throw e;
     }
   } finally {

@@ -56,7 +56,7 @@ if [ -d "src/examples/$active_project/assets" ]; then
   assert_ok cp "src/examples/$active_project/assets" ./public/assets -a
 fi
 
-screen -S esbuild -d -m ./scripts/build_client.ts "public" "$(join_array , $client_sub_module_rel_paths)" import_map_client.json --watch
+screen -S esbuild -d -m ./scripts/build_client.ts "public" "$(join_array , $client_sub_module_rel_paths)" import_map_client.json --watch --inline-sourcemap
 
 screen -S dev_server -d -m deno run --allow-net --allow-read --watch "src/modules/dev_server/mod.ts"
 

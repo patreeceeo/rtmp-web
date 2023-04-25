@@ -2,7 +2,7 @@ import "../mod.ts";
 import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { TimeSystem } from "~/common/systems/Time.ts";
-import { Pipeline, SystemPartial } from "~/common/systems/mod.ts";
+import { Pipeline, System, SystemPartial } from "~/common/systems/mod.ts";
 import { ClientApp, startClient } from "~/client/mod.ts";
 import { ClientNetworkState } from "~/client/state/Network.ts";
 import { ClientNetworkSystem } from "~/client/systems/Network.ts";
@@ -93,10 +93,11 @@ const pipeline = new Pipeline([
 
 startClient(new DotsClientApp());
 pipeline.start(80);
-const outputSystem = await OutputSystem();
 
-function startAnimationPipeline() {
-  outputSystem.exec!();
-  requestAnimationFrame(startAnimationPipeline);
-}
-startAnimationPipeline();
+(OutputSystem() as Promise<Partial<System>>).then((outputSystem) => {
+  function startAnimationPipeline() {
+    outputSystem.exec!();
+    requestAnimationFrame(startAnimationPipeline);
+  }
+  startAnimationPipeline();
+});
