@@ -1,11 +1,8 @@
-window.onerror = (_event, source, lineno, colno, error) => {
-  console.log({ error, source, lineno, colno });
-};
 import "../mod.ts";
 import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { TimeSystem } from "~/common/systems/Time.ts";
-import { Pipeline, SystemPartial } from "~/common/systems/mod.ts";
+import { Pipeline, System, SystemPartial } from "~/common/systems/mod.ts";
 import { ClientApp, startClient } from "~/client/mod.ts";
 import { ClientNetworkState } from "~/client/state/Network.ts";
 import { ClientNetworkSystem } from "~/client/systems/Network.ts";
@@ -14,7 +11,7 @@ import { TweenSystem } from "~/client/systems/Tween.ts";
 import { TweenState } from "~/client/state/Tween.ts";
 import { TraitSystem } from "~/client/systems/Trait.ts";
 import { OutputState } from "~/client/state/Output.ts";
-// import { OutputSystem } from "~/client/systems/Output.ts";
+import { OutputSystem } from "~/client/systems/Output.ts";
 import { LevelState } from "~/common/state/LevelState.ts";
 import { InputSystem } from "../../../modules/client/systems/Input.ts";
 import { TraitState } from "~/common/state/Trait.ts";
@@ -109,10 +106,11 @@ const pipeline = new Pipeline([
 
 startClient(new DotsClientApp());
 pipeline.start(80);
-// const outputSystem = await OutputSystem();
 
-function startAnimationPipeline() {
-  // outputSystem.exec!();
-  requestAnimationFrame(startAnimationPipeline);
-}
-startAnimationPipeline();
+(OutputSystem() as Promise<Partial<System>>).then((outputSystem) => {
+  function startAnimationPipeline() {
+    outputSystem.exec!();
+    requestAnimationFrame(startAnimationPipeline);
+  }
+  startAnimationPipeline();
+});

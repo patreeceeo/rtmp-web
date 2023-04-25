@@ -39,7 +39,10 @@ export async function buildModule(
     const outPath = getOutPath(outDir, inPath);
     Deno.mkdir(dirname(outPath), { recursive: true });
     const ts = await Deno.readTextFile(inPath);
-    const esBuildResult = await esbuild.transform(ts, { loader: "ts" });
+    const esBuildResult = await esbuild.transform(ts, {
+      loader: "ts",
+      target: ["safari14"],
+    });
     let result = esBuildResult.code;
     if (options.replaceImports) {
       const importMap = JSON.parse(
