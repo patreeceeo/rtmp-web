@@ -1,3 +1,6 @@
+window.onerror = (_event, source, lineno, colno, error) => {
+  console.log({ error, source, lineno, colno });
+};
 import "../mod.ts";
 import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
@@ -22,10 +25,6 @@ import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { readMessage } from "../../../modules/common/Message.ts";
 import { WasdMoveTrait } from "../common/traits.ts";
 import { PoseTween, PositionTween } from "../common/tweens.ts";
-
-window.onerror = (_event, source, lineno, colno, error) => {
-  console.log({ error, source, lineno, colno });
-};
 
 useClient(import.meta, "ws://localhost:12321");
 
