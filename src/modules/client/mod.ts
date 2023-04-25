@@ -44,7 +44,7 @@ export function startClient(app: ClientApp) {
 
   // In case load event already happened
   setTimeout(() => {
-    if (!ClientNetworkState.isReady) {
+    if (!ClientNetworkState.isReady()) {
       handleLoad();
     }
   });
