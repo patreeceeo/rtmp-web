@@ -17,6 +17,7 @@ interface BuildOptions {
   catchErrors?: boolean;
   replaceImports?: boolean;
   importMapPath?: string;
+  sourcemap?: esbuild.TransformOptions["sourcemap"];
 }
 
 export async function buildModules(
@@ -41,6 +42,8 @@ export async function buildModule(
     const ts = await Deno.readTextFile(inPath);
     const esBuildResult = await esbuild.transform(ts, {
       loader: "ts",
+      sourcefile: basename(inPath),
+      sourcemap: options.sourcemap,
       target: ["safari14"],
     });
     let result = esBuildResult.code;

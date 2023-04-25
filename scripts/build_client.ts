@@ -6,13 +6,17 @@ import { addModuleEventHandler, sleep } from "~/dev_common/mod.ts";
 const outDir = Deno.args[0];
 const inPaths = Deno.args[1].split(",");
 const replaceImportMapPath = Deno.args[2];
-const watchMode = Deno.args[Deno.args.length - 1] === "--watch";
+const watchMode = Deno.args[3] === "--watch";
+const inlineSourcemap = Deno.args[4] === "--inline-sourcemap";
 
-await buildModules(outDir, inPaths, {
+const buildOptions = {
   catchErrors: watchMode,
   replaceImports: replaceImportMapPath !== null,
   importMapPath: replaceImportMapPath,
-});
+  sourcemap: inlineSourcemap ? "inline" as const : false,
+};
+
+await buildModules(outDir, inPaths, buildOptions);
 
 function getTimeString() {
   const d = new Date();
@@ -22,11 +26,7 @@ function getTimeString() {
 if (watchMode) {
   addModuleEventHandler(["create", "modify"], (inPaths) => {
     for (const inPath of inPaths) {
-      buildModule(outDir, inPath, {
-        catchErrors: true,
-        replaceImports: replaceImportMapPath !== null,
-        importMapPath: replaceImportMapPath,
-      });
+      buildModule(outDir, inPath, buildOptions);
       console.log(`[${getTimeString()}] built ${inPath}`);
     }
   }, ["src"]);
