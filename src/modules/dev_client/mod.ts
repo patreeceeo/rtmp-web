@@ -29,12 +29,12 @@ export async function buildModules(
   }
 }
 
-await init;
 export async function buildModule(
   outDir: string,
   inPath: string,
   options: BuildOptions = {},
 ) {
+  await init;
   try {
     const outPath = getOutPath(outDir, inPath);
     Deno.mkdir(dirname(outPath), { recursive: true });
