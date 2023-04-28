@@ -1,11 +1,14 @@
 import { ClientNetworkState } from "../../client/state/Network.ts";
-import { SystemLoader } from "../../common/systems/mod.ts";
+import {
+  ISystemExecutionContext,
+  SystemLoader,
+} from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { TraitState } from "../../common/state/Trait.ts";
 import { filter, map } from "../../common/Iterable.ts";
 import { IPayloadAny } from "../../common/Message.ts";
 
-function exec() {
+function exec(context: ISystemExecutionContext) {
   for (const nid of ClientNetworkState.getLocalIds()) {
     const lastReceivedSid = MessageState.getLastReceivedStepId(nid);
     const lastSentSid = MessageState.lastSentStepId;
@@ -35,7 +38,13 @@ function exec() {
           ),
           ([_type, payload]) => payload,
         );
-        reconcile(snapshots, commands, Trait.applySnapshot, Trait.applyCommand);
+        reconcile(
+          snapshots,
+          commands,
+          Trait.applySnapshot,
+          Trait.applyCommand,
+          context,
+        );
       }
       MessageState.setLastHandledStepId(nid, lastReceivedSid);
     }
@@ -57,17 +66,24 @@ function reconcile<
 >(
   snapshots: Iterable<SnapshotPayload>,
   commands: Iterable<CommandPayload>,
-  applySnapshot: (payload: IPayloadAny) => void,
-  applyCommand: (payload: IPayloadAny) => void,
+  applySnapshot: (
+    payload: IPayloadAny,
+    context: ISystemExecutionContext,
+  ) => void,
+  applyCommand: (
+    payload: IPayloadAny,
+    context: ISystemExecutionContext,
+  ) => void,
+  context: ISystemExecutionContext,
 ) {
   let snapshotCount = 0;
   for (const payload of snapshots) {
-    applySnapshot(payload);
+    applySnapshot(payload, context);
     snapshotCount++;
   }
   if (snapshotCount > 0) {
     for (const payload of commands) {
-      applyCommand(payload);
+      applyCommand(payload, context);
     }
   }
 }

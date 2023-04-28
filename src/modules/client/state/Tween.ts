@@ -1,6 +1,7 @@
 import { emtpyIterable } from "../../common/Iterable.ts";
 import { defaultWorld, EntityId } from "../../common/state/mod.ts";
 import * as ECS from "bitecs";
+import { ISystemExecutionContext } from "../../common/systems/mod.ts";
 
 export interface ITweenConstructor<T, S> {
   new (eid: EntityId): Tween<T>;
@@ -14,7 +15,7 @@ export interface Tween<Type> {
   readonly eid: EntityId;
   setEnd(data: Type): void;
   readonly end: Type;
-  exec(timeDelta: number): void;
+  exec(context: ISystemExecutionContext): void;
 }
 
 class TweenStateApi {

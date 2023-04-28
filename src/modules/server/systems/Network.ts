@@ -1,7 +1,6 @@
 import { IMessageDef, IPayloadAny } from "~/common/Message.ts";
 import { PlayerState } from "~/common/state/Player.ts";
-import { Time } from "~/common/state/Time.ts";
-import { SystemLoader } from "~/common/systems/mod.ts";
+import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { broadcastData, broadcastMessage } from "../mod.ts";
 import { ServerNetworkState } from "../state/Network.ts";
@@ -25,9 +24,9 @@ interface Options {
 
 export const NetworkSystem: SystemLoader<[Options]> = (opts) => {
   const idleTimeout = opts?.idleTimeout || 60;
-  function exec() {
+  function exec({ elapsedTime }: ISystemExecutionContext) {
     for (const client of ServerNetworkState.getClients()) {
-      const inactiveTime = Time.elapsed - client.lastActiveTime;
+      const inactiveTime = elapsedTime - client.lastActiveTime;
       if (inactiveTime > idleTimeout * 1000 && !client.isBeingRemoved) {
         client.isBeingRemoved = true;
         for (const nid of client.getNetworkIds()) {

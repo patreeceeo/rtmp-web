@@ -1,11 +1,14 @@
-import { SystemLoader } from "../../common/systems/mod.ts";
+import {
+  ISystemExecutionContext,
+  SystemLoader,
+} from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { ITraitConstructorAny, TraitState } from "~/common/state/Trait.ts";
 import { isJust, Maybe, unboxJust } from "../../common/Maybe.ts";
 import { IMessageDef, IWritePayload } from "../../common/Message.ts";
 import { IPayloadAny } from "../../common/Message.ts";
 
-function exec() {
+function exec(context: ISystemExecutionContext) {
   const traitCommandMaybes: Array<
     [
       ITraitConstructorAny,
@@ -13,7 +16,7 @@ function exec() {
     ]
   > = [];
   for (const trait of TraitState.getAll()) {
-    traitCommandMaybes.push([trait.getType(), trait.getCommandMaybe()]);
+    traitCommandMaybes.push([trait.getType(), trait.getCommandMaybe(context)]);
   }
 
   const traitCommands: Array<
@@ -32,7 +35,7 @@ function exec() {
 
   for (const [Trait, [msgType, write]] of traitCommands) {
     const payload = MessageState.addCommand(msgType, write);
-    Trait.applyCommand(payload);
+    Trait.applyCommand(payload, context);
   }
 }
 

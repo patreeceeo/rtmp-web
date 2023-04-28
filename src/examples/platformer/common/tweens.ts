@@ -4,6 +4,8 @@ import { PlayerState, PoseType } from "../../../modules/common/state/Player.ts";
 import { EntityId } from "../../../modules/common/state/mod.ts";
 import * as ECS from "bitecs";
 import { IPlayerSnapshot, MsgType } from "./message.ts";
+import { clampLine } from "../../../modules/common/math.ts";
+import { ISystemExecutionContext } from "../../../modules/common/systems/mod.ts";
 
 export class PositionTween implements Tween<Vec2> {
   static readonly store = ECS.defineComponent(Vec2Type);
@@ -24,16 +26,16 @@ export class PositionTween implements Tween<Vec2> {
   get end(): Vec2 {
     return this.#end;
   }
-  exec(timeDelta: number) {
+  exec({ deltaTime }: ISystemExecutionContext) {
     const player = PlayerState.getPlayer(this.eid);
     if (player) {
       // TODO rethink
-      // const mid = clampLine(
-      //   player.position,
-      //   this.end,
-      //   player.MAX_VELOCITY * timeDelta,
-      // );
-      // player.position.copy(mid);
+      const mid = clampLine(
+        player.position,
+        this.end,
+        player.MAX_VELOCITY * deltaTime,
+      );
+      player.position.copy(mid);
     }
   }
 }

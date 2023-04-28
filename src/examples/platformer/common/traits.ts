@@ -9,7 +9,6 @@ import {
   PlayerState,
   PoseType,
 } from "../../../modules/common/state/Player.ts";
-import { Time } from "../../../modules/common/state/Time.ts";
 import { EntityId } from "../../../modules/common/state/mod.ts";
 import { Vec2 } from "~/common/Vec2.ts";
 import { MaybeAddMessageParameters, Trait } from "~/common/state/Trait.ts";
@@ -21,6 +20,7 @@ import {
 } from "./message.ts";
 import { MessageState } from "../../../modules/common/state/Message.ts";
 import { clampLine, getDistanceSquared } from "../../../modules/common/math.ts";
+import { ISystemExecutionContext } from "../../../modules/common/systems/mod.ts";
 
 const origin = Object.freeze(new Vec2(0, 0));
 const reVec2 = new Vec2();
@@ -37,28 +37,28 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
   getType() {
     return this.constructor as (typeof WasdMoveTrait);
   }
-  getCommandMaybe() {
+  getCommandMaybe({ deltaTime }: ISystemExecutionContext) {
     const velocity = this.#player.MAX_VELOCITY;
     const { x, y } = this.#player.position;
     let dx = 0,
       dy = 0;
     if (InputState.isButtonPressed(Button.KeyA) && x > this.#player.width) {
-      dx = -1 * velocity * Time.delta;
+      dx = -1 * velocity * deltaTime;
     }
     if (InputState.isButtonPressed(Button.KeyW) && y > this.#player.height) {
-      dy = -1 * velocity * Time.delta;
+      dy = -1 * velocity * deltaTime;
     }
     if (
       InputState.isButtonPressed(Button.KeyS) &&
       y < LevelState.dimensions.y - this.#player.height
     ) {
-      dy = velocity * Time.delta;
+      dy = velocity * deltaTime;
     }
     if (
       InputState.isButtonPressed(Button.KeyD) &&
       x < LevelState.dimensions.x - this.#player.width
     ) {
-      dx = velocity * Time.delta;
+      dx = velocity * deltaTime;
     }
     if (dx !== 0 || dy !== 0) {
       reVec2.set(dx, dy);
@@ -79,12 +79,12 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
     delta,
     nid,
     sid,
-  }: IPlayerMove) {
+  }: IPlayerMove, { elapsedTime }: ISystemExecutionContext) {
     const eid = NetworkState.getEntityId(nid);
     // TODO filter out invalid commands
     if (PlayerState.hasPlayer(eid!)) {
       const player = PlayerState.getPlayer(eid!);
-      const timeSinceLastMove = Time.elapsed * player.lastActiveTime;
+      const timeSinceLastMove = elapsedTime * player.lastActiveTime;
       const pose = delta.x == 0
         ? player.pose
         : delta.x > 0
@@ -118,7 +118,10 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
         : PoseType.facingLeft;
     }
   }
-  static applySnapshot({ nid, pose, position }: IPlayerSnapshot) {
+  static applySnapshot(
+    { nid, pose, position }: IPlayerSnapshot,
+    { elapsedTime }: ISystemExecutionContext,
+  ) {
     const eid = NetworkState.getEntityId(nid)!;
     // TODO filter out invalid snapshots
     if (PlayerState.hasPlayer(eid)) {
@@ -127,7 +130,7 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
       player.position.copy(position);
       player.pose = pose;
       // TODO what if lastActiveTime is changed by more than just moving?
-      player.lastActiveTime = Time.elapsed;
+      player.lastActiveTime = elapsedTime;
     } else {
       console.warn(`Requested moving unknown player with nid ${nid}`);
     }

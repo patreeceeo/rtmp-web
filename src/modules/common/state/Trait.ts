@@ -1,6 +1,7 @@
 import { EntityId } from "./mod.ts";
 import { Maybe } from "../Maybe.ts";
 import { IMessageDef, IPayloadAny, IWritePayload } from "../Message.ts";
+import { ISystemExecutionContext } from "../systems/mod.ts";
 
 export type MaybeAddMessageParameters<P extends IPayloadAny> = Maybe<
   [IMessageDef<P>, IWritePayload<P>]
@@ -11,10 +12,14 @@ interface ITraitConstructor<
   SnapshotPayload extends IPayloadAny,
 > {
   new (eid: EntityId): Trait<CommandPayload, SnapshotPayload>;
-  applyCommand(payload: CommandPayload): void;
-  applySnapshot(payload: SnapshotPayload): void;
+  applyCommand(payload: CommandPayload, context: ISystemExecutionContext): void;
+  applySnapshot(
+    payload: SnapshotPayload,
+    context: ISystemExecutionContext,
+  ): void;
   getSnapshotMaybe(
     command: CommandPayload,
+    context: ISystemExecutionContext,
   ): MaybeAddMessageParameters<SnapshotPayload>;
   commandType: number;
   snapshotType: number;
@@ -27,7 +32,9 @@ export interface Trait<
 > {
   readonly entityId: EntityId;
   getType(): ITraitConstructor<CommandPayload, SnapshotPayload>;
-  getCommandMaybe(): MaybeAddMessageParameters<CommandPayload>;
+  getCommandMaybe(
+    context: ISystemExecutionContext,
+  ): MaybeAddMessageParameters<CommandPayload>;
 }
 export type TraitAny = Trait<IPayloadAny, IPayloadAny>;
 

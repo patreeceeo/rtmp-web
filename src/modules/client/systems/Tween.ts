@@ -1,11 +1,13 @@
 import { ClientNetworkState } from "../../client/state/Network.ts";
-import { Time } from "../../common/state/Time.ts";
-import { SystemLoader } from "../../common/systems/mod.ts";
+import {
+  ISystemExecutionContext,
+  SystemLoader,
+} from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { TweenState } from "../state/Tween.ts";
 import { filter } from "../../common/Iterable.ts";
 
-function exec() {
+function exec(context: ISystemExecutionContext) {
   for (const nid of ClientNetworkState.getRemoteIds()) {
     const lastReceivedSid = MessageState.getLastReceivedStepId(nid);
     const remoteEntitySnapshots = filter(
@@ -29,7 +31,7 @@ function exec() {
 
     for (const type of TweenState.getTypes()) {
       for (const tween of TweenState.getActive(type)) {
-        tween.exec(Time.delta);
+        tween.exec(context);
       }
     }
     MessageState.setLastHandledStepId(nid, lastReceivedSid);

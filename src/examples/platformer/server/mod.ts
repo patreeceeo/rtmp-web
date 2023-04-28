@@ -1,8 +1,11 @@
 import "../mod.ts";
 import { PlayerState } from "~/common/state/Player.ts";
-import { TimeSystem } from "~/common/systems/Time.ts";
 import { NetworkSystem } from "~/server/systems/Network.ts";
-import { Pipeline, SystemPartial } from "~/common/systems/mod.ts";
+import {
+  FixedIntervalDriver,
+  Pipeline,
+  SystemPartial,
+} from "~/common/systems/mod.ts";
 import {
   broadcastMessage,
   sendMessageToClient,
@@ -74,13 +77,10 @@ class DotsServerApp implements ServerApp {
     for (const nid of client.getNetworkIds()) {
       const eid = ServerNetworkState.getEntityId(nid);
       PlayerState.deletePlayer(eid!);
-      broadcastMessage(
-        PlayerRemove,
-        (p) => {
-          p.nid = nid;
-          p.sid = MessageState.currentStep;
-        },
-      );
+      broadcastMessage(PlayerRemove, (p) => {
+        p.nid = nid;
+        p.sid = MessageState.currentStep;
+      });
     }
   }
 
@@ -94,10 +94,12 @@ class DotsServerApp implements ServerApp {
   }
 }
 
-const pipeline = new Pipeline([
-  TimeSystem(),
-  TraitSystem(),
-  NetworkSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] }),
-] as Array<SystemPartial>);
-pipeline.start(80);
+const pipeline = new Pipeline(
+  [
+    TraitSystem(),
+    NetworkSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] }),
+  ] as Array<SystemPartial>,
+  new FixedIntervalDriver(80),
+);
+pipeline.start();
 startServer(new DotsServerApp());
