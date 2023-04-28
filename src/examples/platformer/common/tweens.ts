@@ -1,6 +1,5 @@
 import { Tween } from "../../../modules/client/state/Tween.ts";
 import { Vec2, Vec2Type } from "../../../modules/common/Vec2.ts";
-import { clampLine } from "../../../modules/common/math.ts";
 import { PlayerState, PoseType } from "../../../modules/common/state/Player.ts";
 import { EntityId } from "../../../modules/common/state/mod.ts";
 import * as ECS from "bitecs";
