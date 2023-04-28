@@ -28,12 +28,13 @@ export class PositionTween implements Tween<Vec2> {
   exec(timeDelta: number) {
     const player = PlayerState.getPlayer(this.eid);
     if (player) {
-      const mid = clampLine(
-        player.position,
-        this.end,
-        player.MAX_VELOCITY * timeDelta,
-      );
-      player.position.copy(mid);
+      // TODO rethink
+      // const mid = clampLine(
+      //   player.position,
+      //   this.end,
+      //   player.MAX_VELOCITY * timeDelta,
+      // );
+      // player.position.copy(mid);
     }
   }
 }
