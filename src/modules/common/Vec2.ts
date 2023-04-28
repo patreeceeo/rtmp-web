@@ -1,4 +1,5 @@
 import * as ECS from "bitecs";
+import { isAlmostZero } from "./math.ts";
 import { EntityId } from "./state/mod.ts";
 
 export interface IVec2 {
@@ -24,6 +25,47 @@ export class Vec2 implements IVec2 {
   add(d: Vec2) {
     this.x += d.x;
     this.y += d.y;
+  }
+  scale(s: number) {
+    this.x *= s;
+    this.y *= s;
+  }
+  lengthSquared() {
+    return this.x ** 2 + this.y ** 2;
+  }
+  extend(s: number) {
+    const { x, y } = this;
+    this.x = Math.max(0, x + s * Math.sign(x));
+    this.y = Math.max(0, y + s * Math.sign(y));
+  }
+  clamp(maxLength: number) {
+    const lengthSquared = this.lengthSquared();
+
+    // Special case: start and end points are too close
+    if (lengthSquared <= maxLength ** 2) {
+      return this;
+    }
+
+    const { x: x, y: y } = this;
+
+    if (isAlmostZero(x)) {
+      // Math.abs(y) must be greater than maxLength becase we already checked for lengthSquared <= maxLength * maxLength
+      this.y = maxLength * Math.sign(y);
+      return this;
+    }
+
+    if (isAlmostZero(y)) {
+      // Math.abs(dx) must be greater than maxLength becase we already checked for lengthSquared <= maxLength * maxLength
+      this.x = maxLength * Math.sign(x);
+      return this;
+    }
+
+    const length = Math.sqrt(lengthSquared);
+
+    // Calculate the new point that is maxLength away from start in the direction of end
+    this.x = (x * maxLength) / length;
+    this.y = (y * maxLength) / length;
+    return this;
   }
 
   get snapshot(): IVec2 {
