@@ -55,7 +55,6 @@ export class DotsClientApp extends ClientApp {
   handleMessage(server: WebSocket, event: MessageEvent<any>): void {
     const view = new DataViewMovable(event.data);
     const [type, payload] = readMessage(view, 0);
-    OutputState.isDirty = true;
 
     switch (type) {
       case MsgType.playerAdded:
