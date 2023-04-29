@@ -12,7 +12,7 @@ import { SetRing } from "../SetRing.ts";
 
 // TODO make these values dynamic. The slower the network the bigger they need to be.
 const MAX_LAG = 23;
-const BUFFER_SIZE_BYTES = Math.pow(2, 10); // 32 KB
+const BUFFER_SIZE_BYTES = Math.pow(2, 11);
 
 /**
  * What is this ugly monster? It's covering multiple seperate but intimately related
