@@ -9,6 +9,10 @@ import { filter, map } from "../../common/Iterable.ts";
 import { IPayloadAny } from "../../common/Message.ts";
 
 function exec(context: ISystemExecutionContext) {
+  // TODO This code is confusing. First it loops through all local entities, then
+  // nested-loops through all snapshots, regardless of whether they're for local
+  // entities or not, then says it's handled the last received step for each local
+  // entity. This seems, at best, innefficient.
   for (const nid of ClientNetworkState.getLocalIds()) {
     const lastReceivedSid = MessageState.getLastReceivedStepId(nid);
     const lastSentSid = MessageState.lastSentStepId;
@@ -17,6 +21,7 @@ function exec(context: ISystemExecutionContext) {
       lastReceivedSid > MessageState.getLastHandledStepId(nid)
     ) {
       for (const Trait of TraitState.getTypes()) {
+        // TODO(optimize) can't this just apply the most recent snapshot from the last received step?
         const snapshots = map(
           filter(
             MessageState.getSnapshotsByCommandStepCreated(
