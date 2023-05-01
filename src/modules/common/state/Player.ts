@@ -1,6 +1,7 @@
 import { Vec2, Vec2Type } from "../Vec2.ts";
 import { defaultWorld, EntityId } from "./mod.ts";
 import * as ECS from "bitecs";
+import { BoxReadOnly } from "../Box.ts";
 
 export enum ColorId {
   RED,
@@ -23,13 +24,17 @@ const webColors = [
 ];
 
 export class Player {
-  readonly width = 5;
-  readonly height = 5;
+  readonly hitBox = new BoxReadOnly(0, 0, 16, 32);
   readonly position: Vec2;
-  readonly MAX_VELOCITY = 0.05;
-  readonly MAX_VELOCITY_SQR = this.MAX_VELOCITY * this.MAX_VELOCITY;
+  readonly velocity: Vec2;
+  readonly acceleration: Vec2;
+  readonly maxVelocity = 0.2;
+  readonly maxVelocitySq = this.maxVelocity ** 2;
+  readonly friction = 0.0004;
   constructor(readonly eid: EntityId) {
     this.position = Vec2.fromEntityComponent(eid, PositionStore);
+    this.velocity = Vec2.fromEntityComponent(eid, VelocityStore);
+    this.acceleration = Vec2.fromEntityComponent(eid, AccelerationStore);
     // Don't overwrite value from ECS
     this.lastActiveTime = this.lastActiveTime || performance.now();
   }
@@ -77,6 +82,9 @@ export class Player {
 
 const PlayerTagStore = ECS.defineComponent();
 const PositionStore = ECS.defineComponent(Vec2Type);
+const VelocityStore = ECS.defineComponent(Vec2Type);
+const AccelerationStore = ECS.defineComponent(Vec2Type);
+// TODO remove
 const LastActiveStore = ECS.defineComponent({ time: ECS.Types.ui32 });
 const ColorStore = ECS.defineComponent({ value: ECS.Types.ui8 });
 const PoseStore = ECS.defineComponent({ value: ECS.Types.ui8 });
@@ -96,6 +104,8 @@ class PlayerStateApi {
     const player = new Player(eid);
     ECS.addComponent(this.world, PlayerTagStore, eid);
     ECS.addComponent(this.world, PositionStore, eid);
+    ECS.addComponent(this.world, VelocityStore, eid);
+    ECS.addComponent(this.world, AccelerationStore, eid);
     ECS.addComponent(this.world, LastActiveStore, eid);
     ECS.addComponent(this.world, ColorStore, eid);
     ECS.addComponent(this.world, PoseStore, eid);

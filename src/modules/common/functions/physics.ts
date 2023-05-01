@@ -1,38 +1,49 @@
+import { IBox } from "../Box.ts";
 import { Vec2 } from "../Vec2.ts";
-
-const reVec2 = new Vec2();
 
 export interface SimulateOptions {
   friction?: number;
   maxVelocity?: number;
+  worldDimensions?: Vec2;
+  hitBox?: IBox;
 }
 // Make this a method of Vec2?
 function accumulate(targetVector: Vec2, deltaTime: number, deltaVector: Vec2) {
-  reVec2.copy(deltaVector);
-  reVec2.scale(deltaTime);
-  targetVector.add(reVec2);
+  targetVector.add(deltaVector, deltaTime);
 }
-export function simulate(
-  deltaTime: number,
-  acceleration: Vec2,
-  velocity: Vec2,
+
+export function simulateVelocity(
   position: Vec2,
+  velocity: Vec2,
+  deltaTime: number,
   options: SimulateOptions = {},
 ) {
   accumulate(position, deltaTime, velocity);
 
-  accumulate(position, 0.5 * deltaTime ** 2, acceleration);
+  if (options.worldDimensions) {
+    position.limitToBoundingBox(
+      0,
+      0,
+      options.worldDimensions.x - (options.hitBox?.w || 0),
+      options.worldDimensions.y - (options.hitBox?.h || 0),
+    );
+  }
 
-  accumulate(velocity, deltaTime, acceleration);
-
-  if (
-    options.friction &&
-    ("maxVelocity" in options
-      ? velocity.lengthSquared() < options.maxVelocity! ** 2
-      : true)
-  ) {
+  if (options.friction) {
     velocity.extend(-1 * options.friction! * deltaTime);
   }
+}
+
+export function simulateAcceleration(
+  velocity: Vec2,
+  acceleration: Vec2,
+  deltaTime: number,
+  options: SimulateOptions = {},
+) {
+  accumulate(velocity, deltaTime, acceleration || Vec2.ZERO);
+
+  acceleration.set(0, 0);
+
   if (options.maxVelocity) {
     velocity.clamp(options.maxVelocity);
   }

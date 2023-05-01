@@ -52,12 +52,14 @@ const PlayerAdd = defMessageType<IPlayerAdd>(
 
 interface IPlayerSnapshot extends INilPayload {
   position: Vec2;
+  velocity: Vec2;
   pose: PoseType;
 }
 
 const PlayerSnapshotSpec: IBufferProxyObjectSpec<IPlayerSnapshot> = Object
   .assign({}, NilPayloadSpec, {
     position: Vec2Proxy,
+    velocity: Vec2Proxy,
     pose: PrimitiveType.Uint8,
   });
 
@@ -76,14 +78,14 @@ const PlayerRemove = defMessageType<IPlayerRemove>(
 );
 
 interface IPlayerMove extends INilPayload {
-  delta: Vec2;
+  acceleration: Vec2;
 }
 
 const PlayerMoveSpec: IBufferProxyObjectSpec<IPlayerMove> = Object.assign(
   {},
   NilPayloadSpec,
   {
-    delta: Vec2Proxy,
+    acceleration: Vec2Proxy,
   },
 );
 

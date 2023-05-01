@@ -10,6 +10,7 @@ export interface ISystemExecutionContext {
   deltaTime: number;
   /** time since pipeline started, in milliseconds */
   elapsedTime: number;
+  pauseTime: number;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -57,21 +58,30 @@ export class Pipeline {
   constructor(
     readonly systemPromises: Array<SystemPartial | Promise<SystemPartial>>,
     readonly driver: IPipelineDriver,
-  ) {
-  }
+  ) {}
   async start() {
     const systems = await Promise.all(this.systemPromises);
     const execFns = systems.filter((s) => s.exec).map((s) => s.exec);
-    let elapsedTime = 0;
-    let deltaTime = NaN;
     let then = performance.now();
+    let elapsedRealTime = 0;
+    const context: ISystemExecutionContext = {
+      deltaTime: NaN,
+      elapsedTime: 0,
+      pauseTime: 0,
+    };
     this.driver.start(() => {
-      deltaTime = performance.now() - then;
-      elapsedTime += deltaTime;
-      for (const exec of execFns) {
-        exec!({ deltaTime, elapsedTime });
+      context.deltaTime = performance.now() - then;
+      elapsedRealTime += context.deltaTime;
+      if (context.pauseTime > 0) {
+        context.pauseTime -= context.deltaTime;
+      } else {
+        context.pauseTime = 0;
+        context.elapsedTime += context.deltaTime;
+        for (const exec of execFns) {
+          exec!(context);
+        }
       }
-      then = elapsedTime;
+      then = elapsedRealTime;
     });
   }
   stop() {

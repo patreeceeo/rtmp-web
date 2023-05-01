@@ -26,7 +26,8 @@ import { IPlayerAdd, IPlayerRemove, MsgType } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { readMessage } from "../../../modules/common/Message.ts";
 import { WasdMoveTrait } from "../common/traits.ts";
-import { PoseTween, PositionTween } from "../common/tweens.ts";
+import { PoseTween, PositionTween, VelocityTween } from "../common/tweens.ts";
+import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -87,6 +88,7 @@ function handlePlayerAdded(
     TraitState.add(WasdMoveTrait, player.eid);
   } else {
     TweenState.add(PositionTween, player.eid);
+    TweenState.add(VelocityTween, player.eid);
     TweenState.add(PoseTween, player.eid);
   }
 }
@@ -111,6 +113,7 @@ startClient(new DotsClientApp());
 fixedPipeline.start();
 
 const animationPipeline = new Pipeline([
+  PhysicsSystem(),
   OutputSystem() as Partial<System>,
 ], new AnimationDriver());
 animationPipeline.start();

@@ -1,5 +1,4 @@
 import { filter, map } from "../../common/Iterable.ts";
-import { flattenMaybes } from "../../common/Maybe.ts";
 import { MessageState } from "../../common/state/Message.ts";
 import { TraitState } from "../../common/state/Trait.ts";
 import {
@@ -13,19 +12,12 @@ function exec(context: ISystemExecutionContext) {
       MessageState.getCommandsByStepReceived(MessageState.currentStep),
       ([commandType]) => commandType === Trait.commandType,
     );
-    const snapshots = flattenMaybes(
-      map(
-        commands,
-        ([_type, payload]) => Trait.getSnapshotMaybe(payload, context),
-      ),
-    );
-    for (const [type, write] of snapshots) {
-      const payload = MessageState.addSnapshot(type, write);
-      Trait.applySnapshot(payload, context);
+    for (const payload of map(commands, ([_type, payload]) => payload)) {
+      Trait.applyCommand(payload, context);
     }
   }
 }
 
-export const TraitSystem: SystemLoader = () => {
+export const ConsumeCommandSystem: SystemLoader = () => {
   return { exec };
 };

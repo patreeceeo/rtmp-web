@@ -14,13 +14,15 @@ import {
 } from "~/server/mod.ts";
 import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { TraitSystem } from "../../../modules/server/systems/Trait.ts";
+import { ConsumeCommandSystem } from "../../../modules/server/systems/ConsumeCommand.ts";
+import { ProduceSnapshotSystem } from "../../../modules/server/systems/ProduceSnapshot.ts";
 import { LevelState } from "../../../modules/common/state/LevelState.ts";
 import { getRandomIntBetween } from "../../../modules/common/random.ts";
 import { PlayerAdd, PlayerRemove } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { TraitState } from "../../../modules/common/state/Trait.ts";
 import { WasdMoveTrait } from "../common/traits.ts";
+import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 
 const idleTimeout = 300;
 
@@ -96,7 +98,9 @@ class DotsServerApp implements ServerApp {
 
 const pipeline = new Pipeline(
   [
-    TraitSystem(),
+    ConsumeCommandSystem(),
+    PhysicsSystem(),
+    ProduceSnapshotSystem(),
     NetworkSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] }),
   ] as Array<SystemPartial>,
   new FixedIntervalDriver(80),

@@ -8,35 +8,48 @@ export interface IVec2 {
 }
 
 export class Vec2 implements IVec2 {
+  static ZERO = new Vec2(0, 0);
   constructor(public x = 0, public y = 0) {}
   set(x: number, y: number) {
     this.x = x;
     this.y = y;
+    return this;
   }
   copy(src: Vec2) {
     this.x = src.x;
     this.y = src.y;
+    return this;
   }
   clone() {
     const clone = new Vec2();
     clone.copy(this);
     return clone;
   }
-  add(d: Vec2) {
-    this.x += d.x;
-    this.y += d.y;
+  add(d: Vec2, scale = 1) {
+    this.x += d.x * scale;
+    this.y += d.y * scale;
+    return this;
   }
   scale(s: number) {
     this.x *= s;
     this.y *= s;
+    return this;
   }
   lengthSquared() {
     return this.x ** 2 + this.y ** 2;
   }
   extend(s: number) {
     const { x, y } = this;
-    this.x = Math.max(0, x + s * Math.sign(x));
-    this.y = Math.max(0, y + s * Math.sign(y));
+    const xSign = Math.sign(x);
+    const ySign = Math.sign(y);
+    this.x = Math.max(0, x * xSign + s) * xSign;
+    this.y = Math.max(0, y * ySign + s) * ySign;
+    return this;
+  }
+  sub(d: Vec2) {
+    this.x -= d.x;
+    this.y -= d.y;
+    return this;
   }
   clamp(maxLength: number) {
     const lengthSquared = this.lengthSquared();
@@ -66,6 +79,11 @@ export class Vec2 implements IVec2 {
     this.x = (x * maxLength) / length;
     this.y = (y * maxLength) / length;
     return this;
+  }
+
+  limitToBoundingBox(xMin: number, yMin: number, xMax: number, yMax: number) {
+    this.x = Math.max(xMin, Math.min(xMax, this.x));
+    this.y = Math.max(yMin, Math.min(yMax, this.y));
   }
 
   get snapshot(): IVec2 {

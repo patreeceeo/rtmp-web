@@ -66,7 +66,7 @@ export class MessageStateApi {
     return this.#lastReceivedStepIdMap[nid];
   }
   getLastHandledStepId(nid: NetworkId) {
-    return this.#lastHandledStepIdMap[nid];
+    return this.#lastHandledStepIdMap[nid] || 0;
   }
   setLastHandledStepId(nid: NetworkId, sid: number) {
     return this.#lastHandledStepIdMap[nid] = sid;
