@@ -5,6 +5,9 @@ import { MessageState } from "~/common/state/Message.ts";
 import { broadcastData, broadcastMessage } from "../mod.ts";
 import { ServerNetworkState } from "../state/Network.ts";
 import { NetworkId } from "../../common/NetworkApi.ts";
+import { Ping, PingState } from "../../common/state/Ping.ts";
+import { PingMsg } from "../../../examples/platformer/common/message.ts";
+import { average, filter } from "../../common/Iterable.ts";
 
 type MessageTranscoder<P extends IPayloadAny> = [
   IMessageDef<P>,
@@ -69,6 +72,27 @@ export const NetworkSystem: SystemLoader<[Options]> = (opts) => {
         view,
       );
     }
+    // Play a little ping pong to calculate average network round-trip time
+    const ping = new Ping(MessageState.currentStep);
+    PingState.add(ping);
+    broadcastMessage(PingMsg, (p) => {
+      p.id = ping.id;
+    });
+    ping.setSent();
+
+    // clear old pings
+    const oldPings = filter(
+      PingState.getAll(),
+      (pong) => performance.now() - pong.sentTimeMS > 4000,
+    );
+    for (const pong of oldPings) {
+      PingState.delete(pong.id);
+    }
+    const pongs = filter(
+      PingState.getAll(),
+      (ping) => ping.state === Ping.Status.RECEIVED,
+    );
+    PingState.averageRoundTripTime = average(pongs, "roundTripTime");
 
     MessageState.incrementStepId();
   }

@@ -10,14 +10,21 @@ import { PoseType } from "../../../modules/common/state/Player.ts";
 
 export enum MsgType {
   nil,
+  ping,
   playerAdded,
   playerSnapshot,
   playerRemoved,
   playerMoved,
 }
-export type { IPlayerAdd, IPlayerMove, IPlayerRemove, IPlayerSnapshot };
+export type {
+  IPingMsg,
+  IPlayerAdd,
+  IPlayerMove,
+  IPlayerRemove,
+  IPlayerSnapshot,
+};
 
-export { PlayerAdd, PlayerMove, PlayerRemove, PlayerSnapshot };
+export { PingMsg, PlayerAdd, PlayerMove, PlayerRemove, PlayerSnapshot };
 
 interface INilPayload {
   nid: NetworkId;
@@ -30,6 +37,17 @@ const NilPayloadSpec: IBufferProxyObjectSpec<INilPayload> = {
 };
 
 defMessageType<INilPayload>(MsgType.nil, NilPayloadSpec);
+
+interface IPingMsg {
+  id: number;
+}
+
+const PingMsgSpec: IBufferProxyObjectSpec<IPingMsg> = {
+  // TODO(perf) This could probably be a uint8, since any ping that hasn't been ponged less than 256 steps ago is probably a lost cause
+  id: PrimitiveType.StepId,
+};
+
+const PingMsg = defMessageType<IPingMsg>(MsgType.ping, PingMsgSpec);
 
 interface IPlayerAdd extends INilPayload {
   position: Vec2;
