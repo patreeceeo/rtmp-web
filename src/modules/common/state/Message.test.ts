@@ -68,16 +68,6 @@ function assertMessageNidsForServer(
   );
 }
 
-Deno.test("Message sid", () => {
-  const state = new MessageStateApi();
-  let sid;
-
-  for (sid = 0; sid < 10; sid++) {
-    assertEquals(state.currentStep, sid);
-    state.incrementStepId();
-  }
-});
-
 Deno.test("get messages created in most recent step", () => {
   const state = new MessageStateApi();
 

@@ -112,7 +112,7 @@ const pipeline = new Pipeline(
     ProduceSnapshotSystem(),
     NetworkSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] }),
   ] as Array<SystemPartial>,
-  new FixedIntervalDriver(80),
+  new FixedIntervalDriver(1000 / 60),
 );
 pipeline.start();
 startServer(new DotsServerApp());

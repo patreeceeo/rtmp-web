@@ -7,10 +7,14 @@ import {
   SystemLoader,
 } from "../../common/systems/mod.ts";
 
+let lastHandledStep = 0;
 function exec(context: ISystemExecutionContext) {
   for (const Trait of TraitState.getTypes()) {
     const commands = filter(
-      MessageState.getCommandsByStepReceived(MessageState.currentStep),
+      MessageState.getCommandsByStepReceived(
+        lastHandledStep + 1,
+        MessageState.currentStep,
+      ),
       ([commandType]) => commandType === Trait.commandType,
     );
     const snapshots = flattenMaybes(
@@ -24,6 +28,7 @@ function exec(context: ISystemExecutionContext) {
       Trait.applySnapshot(payload, context);
     }
   }
+  lastHandledStep = MessageState.currentStep;
 }
 
 export const ProduceSnapshotSystem: SystemLoader = () => {

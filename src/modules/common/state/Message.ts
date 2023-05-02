@@ -36,22 +36,12 @@ export class MessageStateApi {
   #commandBufferByteOffset = 0;
   #commandsByStepCreated = new SetRing(MAX_LAG, BUFFER_SIZE_BYTES);
   #commandsByStepReceived = new SetRing(MAX_LAG, BUFFER_SIZE_BYTES);
-  #sidNow = 0;
   #lastSentStepId = 0;
   #lastReceivedStepIdMap: Array<number> = [];
   #lastHandledStepIdMap: Array<number> = [];
 
-  /** Increment the ID number used to identify executions of the fixed pipeline.
-   * Note: even if called every milisecond, it would take ~571,233 years for this
-   * number to exceed Number.MAX_SAFE_INTEGER
-   * TODO use performance.now()
-   */
-  incrementStepId() {
-    this.#sidNow++;
-  }
-
   get currentStep() {
-    return this.#sidNow;
+    return Math.floor(performance.now());
   }
 
   get lastSentStepId() {
@@ -75,7 +65,7 @@ export class MessageStateApi {
   addCommand<P extends IPayloadAny>(
     MsgDef: IMessageDef<P>,
     writePayload: (p: P) => void,
-    sidReceivedAt = this.#sidNow,
+    sidReceivedAt = this.currentStep,
   ) {
     const byteOffset = this.#commandBufferByteOffset;
     const payload = MsgDef.write(
@@ -101,7 +91,7 @@ export class MessageStateApi {
   copyCommandFrom(
     view: DataViewMovable,
     byteOffset = 0,
-    sidReceivedAt = this.#sidNow,
+    sidReceivedAt = this.currentStep,
   ) {
     const MsgDef = copyMessage(
       view,
@@ -114,7 +104,7 @@ export class MessageStateApi {
   }
 
   *getCommandDataViewsByStepCreated(
-    start = this.#sidNow,
+    start = this.currentStep,
     end = start,
   ) {
     for (
@@ -128,7 +118,7 @@ export class MessageStateApi {
   }
 
   *getCommandsByStepCreated(
-    start = this.#sidNow,
+    start = this.currentStep,
     end = start,
   ) {
     for (
@@ -139,7 +129,7 @@ export class MessageStateApi {
   }
 
   *getCommandsByStepReceived(
-    start = this.#sidNow,
+    start = this.currentStep,
     end = start,
   ) {
     for (
@@ -166,7 +156,7 @@ export class MessageStateApi {
   addSnapshot<P extends IPayloadAny>(
     MsgDef: IMessageDef<P>,
     writePayload: (p: P) => void,
-    sidCreatedAt = this.#sidNow,
+    sidCreatedAt = this.currentStep,
   ) {
     const byteOffset = this.#snapshotBufferByteOffset;
     const payload = MsgDef.write(
@@ -201,7 +191,7 @@ export class MessageStateApi {
   copySnapshotFrom(
     view: DataViewMovable,
     byteOffset = 0,
-    sidCreatedAt = this.#sidNow,
+    sidCreatedAt = this.currentStep,
   ) {
     const MsgDef = copyMessage(
       view,
@@ -219,7 +209,7 @@ export class MessageStateApi {
   }
 
   *getSnapshotDataViewsByStepCreated(
-    start = this.#sidNow,
+    start = this.currentStep,
     end = start,
   ) {
     for (
@@ -233,7 +223,7 @@ export class MessageStateApi {
   }
 
   *getSnapshotsByStepCreated(
-    start = this.#sidNow,
+    start = this.currentStep,
     end = start,
   ) {
     for (
@@ -244,7 +234,7 @@ export class MessageStateApi {
   }
 
   *getSnapshotsByCommandStepCreated(
-    start = this.#sidNow,
+    start = this.currentStep,
     end = start,
   ) {
     for (

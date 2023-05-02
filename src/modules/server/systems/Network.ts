@@ -62,6 +62,7 @@ export const NetworkSystem: SystemLoader<[Options]> = (opts) => {
 
     for (
       const view of MessageState.getSnapshotDataViewsByStepCreated(
+        MessageState.lastSentStepId + 1,
         MessageState.currentStep,
       )
     ) {
@@ -72,6 +73,7 @@ export const NetworkSystem: SystemLoader<[Options]> = (opts) => {
         view,
       );
     }
+    MessageState.lastSentStepId = MessageState.currentStep;
     // Play a little ping pong to calculate average network round-trip time
     const ping = new Ping(MessageState.currentStep);
     PingState.add(ping);
@@ -93,8 +95,6 @@ export const NetworkSystem: SystemLoader<[Options]> = (opts) => {
       (ping) => ping.state === Ping.Status.RECEIVED,
     );
     PingState.averageRoundTripTime = average(pongs, "roundTripTime");
-
-    MessageState.incrementStepId();
   }
   return { exec };
 };

@@ -114,7 +114,7 @@ const fixedPipeline = new Pipeline([
   ClientNetworkSystem(),
   TweenSystem(),
   ReconcileSystem(),
-], new FixedIntervalDriver(80));
+], new FixedIntervalDriver(1000 / 60));
 
 startClient(new DotsClientApp());
 fixedPipeline.start();
