@@ -9,6 +9,7 @@ export abstract class ClientApp {
   abstract handleError(server: WebSocket, event: Event): void;
   abstract handleMessage(server: WebSocket, event: MessageEvent): void;
   abstract handleIdle(): void;
+  inputEvents: Array<Event> = [];
 }
 
 export function startClient(app: ClientApp) {
@@ -50,22 +51,20 @@ export function startClient(app: ClientApp) {
   });
 
   window.onkeydown = (e) => {
-    // deno-lint-ignore no-explicit-any
-    InputState.setButtonPressed(e.code as any);
+    app.inputEvents.push(e);
   };
   window.onkeyup = (e) => {
-    // deno-lint-ignore no-explicit-any
-    InputState.setButtonReleased(e.code as any);
+    app.inputEvents.push(e);
   };
   window.onmousemove = (e) => {
-    InputState.mousePosition.set(e.clientX, e.clientY);
-    InputState.mousePositionIsDirty = true;
+    app.inputEvents.push(e);
   };
   window.onmousedown = (e) => {
-    InputState.setButtonPressed(mouseButton(e.button));
+    app.inputEvents.push(e);
   };
   window.onmouseup = (e) => {
     InputState.setButtonReleased(mouseButton(e.button));
+    app.inputEvents.push(e);
   };
   window.onblur = () => app.handleIdle();
 }

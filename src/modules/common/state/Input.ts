@@ -8,7 +8,6 @@ export interface ButtonState {
 class InputStateApi {
   #buttonStateMap: Map<Button, ButtonState> = new Map();
   mousePosition = new Vec2();
-  mousePositionIsDirty = false;
   mousePositionOnCanvas = new Vec2();
   #initInput(button: Button) {
     this.#buttonStateMap.set(button, {

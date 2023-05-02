@@ -3,6 +3,7 @@ import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import {
   AnimationDriver,
+  EventQueueDriver,
   FixedIntervalDriver,
   Pipeline,
 } from "~/common/systems/mod.ts";
@@ -106,16 +107,26 @@ function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
   TraitState.deleteEntity(eid);
 }
 
-const fixedPipeline = new Pipeline([
+const app = new DotsClientApp();
+
+const inputPipeline = new Pipeline([
   InputSystem(),
   TraitSystem(),
   ClientNetworkSystem(),
-  TweenSystem(),
-  ReconcileSystem(),
-], new FixedIntervalDriver(1000 / 60));
+], new EventQueueDriver(app.inputEvents));
+inputPipeline.start();
 
-startClient(new DotsClientApp());
+const fixedPipeline = new Pipeline([
+  // TODO understand why these systems need to be run on a fixed interval
+  TraitSystem(),
+  ClientNetworkSystem(),
+  // TODO these should driven by the socket events
+  ReconcileSystem(),
+  TweenSystem(),
+], new FixedIntervalDriver(1000 / 80));
 fixedPipeline.start();
+
+startClient(app);
 
 const framePipeline = new Pipeline([
   PhysicsSystem(),

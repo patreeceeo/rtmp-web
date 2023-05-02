@@ -22,7 +22,9 @@ interface Options {
   }>;
 }
 
-export const PurgeSystem: SystemLoader<[Options]> = (opts) => {
+export const PurgeSystem: SystemLoader<ISystemExecutionContext, [Options]> = (
+  opts,
+) => {
   const idleTimeout = opts?.idleTimeout || 60;
   function exec({ elapsedTime }: ISystemExecutionContext) {
     for (const client of ServerNetworkState.getClients()) {
