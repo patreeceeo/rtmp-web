@@ -25,6 +25,7 @@ import { WasdMoveTrait } from "../common/traits.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { readMessage } from "../../../modules/common/Message.ts";
 import { PingState } from "../../../modules/common/state/Ping.ts";
+import { PurgeSystem } from "../../../modules/server/systems/PurgeSystem.ts";
 
 const idleTimeout = 300;
 
@@ -105,14 +106,22 @@ class DotsServerApp implements ServerApp {
   }
 }
 
-const pipeline = new Pipeline(
+const fastPipeline = new Pipeline(
   [
     ConsumeCommandSystem(),
     PhysicsSystem(),
     ProduceSnapshotSystem(),
-    NetworkSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] }),
-  ] as Array<SystemPartial>,
+    NetworkSystem(),
+  ],
   new FixedIntervalDriver(1000 / 60),
 );
-pipeline.start();
+fastPipeline.start();
+
+const slowPipeline = new Pipeline(
+  [
+    PurgeSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] }),
+  ],
+  new FixedIntervalDriver(500),
+);
+slowPipeline.start();
 startServer(new DotsServerApp());

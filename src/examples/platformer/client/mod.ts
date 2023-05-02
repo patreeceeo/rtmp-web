@@ -119,8 +119,8 @@ const fixedPipeline = new Pipeline([
 startClient(new DotsClientApp());
 fixedPipeline.start();
 
-const animationPipeline = new Pipeline([
+const framePipeline = new Pipeline([
   PhysicsSystem(),
-  OutputSystem() as Partial<System>,
+  OutputSystem(),
 ], new AnimationDriver());
-animationPipeline.start();
+framePipeline.start();
