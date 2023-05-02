@@ -1,7 +1,7 @@
 import { IBox } from "../Box.ts";
 import { Vec2 } from "../Vec2.ts";
 
-export interface SimulateOptions {
+export interface ISimulateOptions {
   friction?: number;
   maxVelocity?: number;
   worldDimensions?: Vec2;
@@ -16,7 +16,7 @@ export function simulateVelocity(
   position: Vec2,
   velocity: Vec2,
   deltaTime: number,
-  options: SimulateOptions = {},
+  options: ISimulateOptions = {},
 ) {
   accumulate(position, deltaTime, velocity);
 
@@ -38,7 +38,7 @@ export function simulateAcceleration(
   velocity: Vec2,
   acceleration: Vec2,
   deltaTime: number,
-  options: SimulateOptions = {},
+  options: ISimulateOptions = {},
 ) {
   accumulate(velocity, deltaTime, acceleration || Vec2.ZERO);
 

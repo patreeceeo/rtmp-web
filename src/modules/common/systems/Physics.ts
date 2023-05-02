@@ -1,13 +1,13 @@
 import { PlayerState } from "../state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
+  ISimulateOptions,
   simulateAcceleration,
-  SimulateOptions,
   simulateVelocity,
 } from "../../../modules/common/functions/physics.ts";
 import { LevelState } from "../state/LevelState.ts";
 
-const reOptions: SimulateOptions = {};
+const reOptions: ISimulateOptions = {};
 
 function exec({ deltaTime }: ISystemExecutionContext) {
   for (const player of PlayerState.getPlayers()) {
