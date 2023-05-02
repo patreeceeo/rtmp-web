@@ -28,7 +28,8 @@ function exec(context: ISystemExecutionContext) {
               lastReceivedSid,
               lastReceivedSid,
             ),
-            ([type]) => type === Trait.snapshotType,
+            ([type, payload]) =>
+              type === Trait.snapshotType && payload.nid === nid,
           ),
           ([_type, payload]) => payload,
         );
@@ -55,6 +56,8 @@ function exec(context: ISystemExecutionContext) {
     }
   }
 }
+
+let lastAppliedStep = 0;
 
 /**
  * Sometimes, especially when there's network lag, the server sends back snapshots
@@ -83,7 +86,11 @@ function reconcile<
 ) {
   let snapshotCount = 0;
   for (const payload of snapshots) {
-    applySnapshot(payload, context);
+    // TODO we really just need to apply the snapshot with the highest sid
+    if (payload.sid > lastAppliedStep) {
+      applySnapshot(payload, context);
+    }
+    lastAppliedStep = payload.sid;
     snapshotCount++;
   }
   if (snapshotCount > 0) {
