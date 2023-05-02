@@ -106,6 +106,7 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
       // Server sends back correct position
       player.position.copy(position);
       player.velocity.copy(velocity);
+      // TODO simulateVelocity(player.position, player.velocity, performance.now() - sid, player as unknown as ISimulateOptions)
       player.pose = pose;
       // TODO what if lastActiveTime is changed by more than just moving?
       player.lastActiveTime = context.elapsedTime;
