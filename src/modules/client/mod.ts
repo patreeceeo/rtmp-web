@@ -1,5 +1,3 @@
-import { mouseButton } from "../common/Button.ts";
-import { InputState } from "../common/state/Input.ts";
 import { ClientNetworkState } from "./state/Network.ts";
 import { OutputState } from "./state/Output.ts";
 
@@ -50,21 +48,24 @@ export function startClient(app: ClientApp) {
     }
   });
 
-  window.onkeydown = (e) => {
+  const addInputEvent = (e: Event) => {
     app.inputEvents.push(e);
+  };
+
+  let lastKeyDown: KeyboardEvent["code"] | undefined;
+  window.onkeydown = (e) => {
+    // This event repeats while key is held down
+    // We only want to send one event per key press
+    if (e.code === lastKeyDown) return;
+    lastKeyDown = e.code;
+    addInputEvent(e);
   };
   window.onkeyup = (e) => {
-    app.inputEvents.push(e);
+    lastKeyDown = undefined;
+    addInputEvent(e);
   };
-  window.onmousemove = (e) => {
-    app.inputEvents.push(e);
-  };
-  window.onmousedown = (e) => {
-    app.inputEvents.push(e);
-  };
-  window.onmouseup = (e) => {
-    InputState.setButtonReleased(mouseButton(e.button));
-    app.inputEvents.push(e);
-  };
+  window.onmousemove = addInputEvent;
+  window.onmousedown = addInputEvent;
+  window.onmouseup = addInputEvent;
   window.onblur = () => app.handleIdle();
 }

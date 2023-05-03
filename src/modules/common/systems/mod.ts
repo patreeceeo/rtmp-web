@@ -69,6 +69,7 @@ export class EventQueueDriver implements IPipelineDriver {
       let len = this.queue.length;
       while (len--) {
         const event = this.queue.shift()!;
+        // console.log("executing", event.type, "code" in event ? event.code : "button" in event ? event.button : event);
         context.event = event;
         boundExec();
       }

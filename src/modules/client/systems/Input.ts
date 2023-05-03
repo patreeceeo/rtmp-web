@@ -8,7 +8,6 @@ import { OutputState } from "../state/Output.ts";
 
 function exec(context: IEventSystemExecutionContext) {
   const e = context.event;
-  // if(context.isPaused) return;
   switch (e.type) {
     case "keydown":
       // deno-lint-ignore no-explicit-any
