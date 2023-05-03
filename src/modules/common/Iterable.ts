@@ -62,4 +62,14 @@ export function average<A>(
   return sum / count;
 }
 
+export function join<T>(...iterables: Array<Iterable<T>>): Iterable<T> {
+  return {
+    *[Symbol.iterator]() {
+      for (const iter of iterables) {
+        yield* iter;
+      }
+    },
+  };
+}
+
 export const emtpyIterable = (new Set()).values();

@@ -94,6 +94,10 @@ export class Vec2 implements IVec2 {
     return this.x === other.x && this.y === other.y;
   }
 
+  almostEquals(other: Vec2) {
+    return isAlmostZero(this.x - other.x) && isAlmostZero(this.y - other.y);
+  }
+
   applySnapshot(snap: typeof this.snapshot) {
     this.x = snap.x;
     this.y = snap.y;
