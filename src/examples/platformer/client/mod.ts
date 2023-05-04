@@ -111,25 +111,22 @@ const app = new DotsClientApp();
 
 const inputPipeline = new Pipeline([
   InputSystem(),
-  TraitSystem(),
-  ClientNetworkSystem(),
 ], new EventQueueDriver(app.inputEvents));
 inputPipeline.start();
 
 const fixedPipeline = new Pipeline([
-  // TODO understand why these systems need to be run on a fixed interval
   TraitSystem(),
   ClientNetworkSystem(),
-  // TODO these should driven by the socket events
+  // TODO reconcile and tween should driven by the socket events
   ReconcileSystem(),
+  PhysicsSystem(),
   TweenSystem(),
-], new FixedIntervalDriver(1000 / 80));
+], new FixedIntervalDriver(10));
 fixedPipeline.start();
 
 startClient(app);
 
 const framePipeline = new Pipeline([
-  PhysicsSystem(),
   OutputSystem(),
 ], new AnimationDriver());
 framePipeline.start();
