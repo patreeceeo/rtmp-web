@@ -18,14 +18,29 @@ const lastHandledClientStep = new Map<NetworkId, number>();
 export const commandsReadyToProcess: Array<[number, IPayloadAny]> = [];
 
 function exec(context: ISystemExecutionContext) {
+  // TODO what if these aren't in the order they were sent?
   const mostRecentBatchOfCommands = MessageState.getCommandsByStepReceived(
     lastHandledStep + 1,
     MessageState.currentStep,
   );
   lastHandledStep = MessageState.currentStep;
 
-  // due to network lag, we may have received commands out of order and in batches
-  // so we need to apply them in the order they were received and with the same timing that they were issued by the client
+  // Due to network lag, we may have received commands in batches that were sent in different steps,
+  // but we need to apply them with the same timing that they were issued by the client.
+  // You'd think something like this would work, but you'd be wrong
+  // TODO why? I suspect it's because setTimeout isn't accurate enough
+  /*
+  if(mostRecentBatchOfCommands.length > 0) {
+    const firstCommand = mostRecentBatchOfCommands.shift()!;
+    const firstSidInBatch = firstCommand[1].sid;
+    processCommand(firstCommand, context);
+    for(const command of mostRecentBatchOfCommands) {
+      setTimeout(() => {
+        processCommand(command, context);
+      }, command[1].sid - firstSidInBatch);
+    }
+  }
+  */
   for (
     const payload of map(mostRecentBatchOfCommands, ([_, payload]) => payload)
   ) {
