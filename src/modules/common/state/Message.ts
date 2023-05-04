@@ -6,13 +6,17 @@ import {
   readMessage,
 } from "../../common/Message.ts";
 import { DataViewMovable } from "../DataView.ts";
+import { isClient } from "../env.ts";
 import { invariant } from "../Error.ts";
 import { NetworkId } from "../NetworkApi.ts";
 import { SetRing } from "../SetRing.ts";
 
 // TODO make these values dynamic. The slower the network the bigger they need to be.
 const MAX_LAG = 23;
-const BUFFER_SIZE_BYTES = Math.pow(2, 11);
+// 1 Megabyte, enough space for about 16 seconds of commands if commands have a max length of 64 bytes and are added at a rate of one per millisecond,
+// for clients, and 8 Megabytes for the server. There's currently no mechanism to prevent proxy objects from having their underlying memory overwritten
+// so much care needs to be taken to ensure that the buffer is large enough to prevent that from happening. TODO add a mechanism to prevent that from happening.
+const BUFFER_SIZE_BYTES = (2 ** 20) * (isClient ? 1 : 8);
 
 /**
  * What is this ugly monster? It's covering multiple seperate but intimately related

@@ -121,7 +121,7 @@ const fixedPipeline = new Pipeline([
   ReconcileSystem(),
   PhysicsSystem(),
   TweenSystem(),
-], new FixedIntervalDriver(10));
+], new FixedIntervalDriver(0));
 fixedPipeline.start();
 
 startClient(app);
