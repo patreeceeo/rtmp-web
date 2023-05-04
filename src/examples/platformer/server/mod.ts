@@ -113,7 +113,7 @@ const fastPipeline = new Pipeline(
     ProduceSnapshotSystem(),
     NetworkSystem(),
   ],
-  new FixedIntervalDriver(0),
+  new FixedIntervalDriver(1),
 );
 fastPipeline.start();
 
