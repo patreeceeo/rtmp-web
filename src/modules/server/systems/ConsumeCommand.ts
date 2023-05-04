@@ -13,7 +13,7 @@ let lastHandledStep = 0;
 const firstReceivedSidByNid = new Map<NetworkId, number>();
 const serverSidAtFirstMessageByNid = new Map<NetworkId, number>();
 const commandQueueByNid = new Map<NetworkId, Array<[number, IPayloadAny]>>();
-export const commandsReadyToProcess: Array<[number, IPayloadAny]> = [];
+export const commandsReadyToSnapshot: Array<[number, IPayloadAny]> = [];
 
 function updateMap<K, V>(
   map: Map<K, V>,
@@ -52,8 +52,8 @@ function exec(context: ISystemExecutionContext) {
     }
   }
 
-  // due to possible network lag, we may have received commands out of order or in batches
-  // so we need to apply them in the order they were received and with the same timing that they were issued by the client
+  // Due to network lag, we may have received commands in batches.
+  // But we need to apply them with the same timing that they were issued by the client, otherwise the server's simulation will diverge from the client's.
   // TODO this currently assumes that the queue is sorted by sid
   for (const [nid, queue] of commandQueueByNid.entries()) {
     const firstClientSid = firstReceivedSidByNid.get(nid)!;
@@ -65,11 +65,11 @@ function exec(context: ISystemExecutionContext) {
       queue.length > 0 &&
       queue[0][1].sid <= clientSid
     ) {
-      commandsReadyToProcess.push(queue.shift()!);
+      commandsReadyToSnapshot.push(queue.shift()!);
     }
   }
 
-  for (const [type, payload] of commandsReadyToProcess) {
+  for (const [type, payload] of commandsReadyToSnapshot) {
     const Trait = TraitState.getTypeByCommandType(type)!;
     Trait.applyCommand(payload, context);
   }
