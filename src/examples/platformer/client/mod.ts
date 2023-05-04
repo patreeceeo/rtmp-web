@@ -115,6 +115,7 @@ const inputPipeline = new Pipeline([
 inputPipeline.start();
 
 const fixedPipeline = new Pipeline([
+  // TODO run these systems immediately after input, but without handling input events more than once
   TraitSystem(),
   ClientNetworkSystem(),
   // TODO reconcile and tween should driven by the socket events
