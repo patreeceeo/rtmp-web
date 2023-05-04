@@ -8,7 +8,7 @@ import {
 import { commandsReadyToProcess } from "./ConsumeCommand.ts";
 
 function exec(context: ISystemExecutionContext) {
-  // TODO(perf) more pipeline
+  // TODO this could be more efficient
   while (commandsReadyToProcess.length > 0) {
     const [type, payload] = commandsReadyToProcess.shift()!;
     const Trait = TraitState.getTypeByCommandType(type)!;
