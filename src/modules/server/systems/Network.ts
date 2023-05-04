@@ -22,6 +22,7 @@ export const NetworkSystem: SystemLoader = () => {
     }
     MessageState.lastSentStepId = MessageState.currentStep;
     // Play a little ping pong to calculate average network round-trip time
+    // TODO delete this
     const ping = new Ping(MessageState.currentStep);
     PingState.add(ping);
     broadcastMessage(PingMsg, (p) => {
