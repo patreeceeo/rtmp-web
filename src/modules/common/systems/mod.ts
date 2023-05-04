@@ -21,7 +21,6 @@ export interface IEventSystemExecutionContext extends ISystemExecutionContext {
   event: Event;
 }
 
-// deno-lint-ignore no-explicit-any
 export interface SystemLoader<
   TContext extends ISystemExecutionContext = ISystemExecutionContext,
   TArgs extends Array<any> = [],
@@ -33,21 +32,17 @@ interface IPipelineDriver<
   TContext extends ISystemExecutionContext = ISystemExecutionContext,
 > {
   start(exec: (context: TContext) => void, context: TContext): void;
-  onTick: () => void;
   stop(): void;
 }
 
 export class FixedIntervalDriver implements IPipelineDriver {
   #interval?: number;
-  onTick = () => {};
   constructor(readonly intervalMs: number) {}
   start(
     exec: (context: ISystemExecutionContext) => void,
     context: ISystemExecutionContext,
   ) {
-    const onTick = () => {
-      this.onTick(), exec(context);
-    };
+    const onTick = () => exec(context);
     this.#interval = setInterval(onTick, this.intervalMs);
   }
   stop() {
@@ -56,7 +51,6 @@ export class FixedIntervalDriver implements IPipelineDriver {
 }
 
 export class EventQueueDriver implements IPipelineDriver {
-  onTick = () => {};
   #intervalDriver = new FixedIntervalDriver(0);
   constructor(readonly queue: Array<Event>) {
   }
@@ -64,14 +58,14 @@ export class EventQueueDriver implements IPipelineDriver {
     exec: (context: IEventSystemExecutionContext) => void,
     context: IEventSystemExecutionContext,
   ) {
-    const boundExec = () => exec(context);
+    const onTick = () => exec(context);
     this.#intervalDriver.start(() => {
       let len = this.queue.length;
       while (len--) {
         const event = this.queue.shift()!;
         // console.log("executing", event.type, "code" in event ? event.code : "button" in event ? event.button : event);
         context.event = event;
-        boundExec();
+        onTick();
       }
     }, context);
   }
@@ -82,7 +76,6 @@ export class EventQueueDriver implements IPipelineDriver {
 
 export class AnimationDriver implements IPipelineDriver {
   #isRunning = false;
-  onTick = () => {};
   constructor() {}
   start(
     exec: (context: ISystemExecutionContext) => void,
@@ -95,7 +88,6 @@ export class AnimationDriver implements IPipelineDriver {
   #run(exec: () => void) {
     if (this.#isRunning) {
       requestAnimationFrame(() => {
-        this.onTick();
         exec();
         this.#run(exec);
       });
