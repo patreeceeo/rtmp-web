@@ -40,6 +40,7 @@ export type TraitAny = Trait<IPayloadAny, IPayloadAny>;
 
 class TraitStateApi {
   #instanceMap = new Map<ITraitConstructorAny, Record<EntityId, TraitAny>>();
+  #commandTypeMap = new Map<number, ITraitConstructorAny>();
   #getEntityMap<C extends IPayloadAny, P extends IPayloadAny>(
     type: ITraitConstructor<C, P>,
   ) {
@@ -53,6 +54,7 @@ class TraitStateApi {
     const entityMap = this.#getEntityMap(type);
     entityMap[trait.entityId] = trait as TraitAny;
     this.#instanceMap.set(type as ITraitConstructorAny, entityMap);
+    this.#commandTypeMap.set(type.commandType, type as ITraitConstructorAny);
   }
   deleteEntity(eid: EntityId) {
     for (const map of Object.entries(this.#instanceMap)) {
@@ -68,6 +70,9 @@ class TraitStateApi {
   }
   getTypes(): Iterable<ITraitConstructorAny> {
     return this.#instanceMap.keys();
+  }
+  getTypeByCommandType(commandType: number) {
+    return this.#commandTypeMap.get(commandType);
   }
   getTrait<
     CommandPayload extends IPayloadAny,
