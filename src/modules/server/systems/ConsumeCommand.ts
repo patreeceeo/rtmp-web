@@ -1,4 +1,4 @@
-import { filter, map } from "../../common/Iterable.ts";
+import { filter } from "../../common/Iterable.ts";
 import { IPayloadAny } from "../../common/Message.ts";
 import { NetworkId } from "../../common/NetworkApi.ts";
 import { MessageState } from "../../common/state/Message.ts";
@@ -8,8 +8,11 @@ import {
   SystemLoader,
 } from "../../common/systems/mod.ts";
 
+// TODO clean up this code
+
 let lastHandledStep = 0;
 
+// TODO(perf) objects are probably faster than maps here
 const firstReceivedSidByNid = new Map<NetworkId, number>();
 const serverSidAtFirstMessageByNid = new Map<NetworkId, number>();
 const commandQueueByNid = new Map<NetworkId, Array<[number, IPayloadAny]>>();
