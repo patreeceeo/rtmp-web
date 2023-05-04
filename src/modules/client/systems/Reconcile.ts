@@ -8,6 +8,7 @@ import { TraitState } from "../../common/state/Trait.ts";
 import { filter, map } from "../../common/Iterable.ts";
 import { IPayloadAny } from "../../common/Message.ts";
 
+let timeout: number;
 function exec(context: ISystemExecutionContext) {
   // TODO This code is confusing. First it loops through all local entities, then
   // nested-loops through all snapshots, regardless of whether they're for local
@@ -21,7 +22,6 @@ function exec(context: ISystemExecutionContext) {
       lastReceivedSid > MessageState.getLastHandledStepId(nid)
     ) {
       for (const Trait of TraitState.getTypes()) {
-        // TODO(optimize) can't this just apply the most recent snapshot from the last received step?
         const snapshots = map(
           filter(
             MessageState.getSnapshotsByCommandStepCreated(
@@ -57,8 +57,6 @@ function exec(context: ISystemExecutionContext) {
   }
 }
 
-let lastAppliedStep = 0;
-
 /**
  * Sometimes, especially when there's network lag, the server sends back snapshots
  * that correspond to commands that are one or more steps behind what the client has
@@ -84,18 +82,21 @@ function reconcile<
   ) => void,
   context: ISystemExecutionContext,
 ) {
-  let snapshotCount = 0;
+  let snapshotToApply: IPayloadAny | undefined = undefined;
+  let maxSnapshotSid = 0;
   for (const payload of snapshots) {
-    // TODO we really just need to apply the snapshot with the highest sid
-    if (payload.sid > lastAppliedStep) {
-      applySnapshot(payload, context);
+    // TODO is there a more efficient way to do this? could we just get the most recent snapshot from MessageState?
+    if (payload.sid > maxSnapshotSid) {
+      maxSnapshotSid = payload.sid;
+      snapshotToApply = payload;
     }
-    lastAppliedStep = payload.sid;
-    snapshotCount++;
   }
-  if (snapshotCount > 0) {
+  if (snapshotToApply) {
+    applySnapshot(snapshotToApply, context);
     for (const payload of commands) {
-      applyCommand(payload, context);
+      if (payload.sid > maxSnapshotSid) {
+        applyCommand(payload, context);
+      }
     }
   }
 }
