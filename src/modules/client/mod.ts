@@ -56,9 +56,10 @@ export function startClient(app: ClientApp) {
   window.onkeydown = (e) => {
     // This event repeats while key is held down
     // We only want to send one event per key press
-    if (e.code === lastKeyDown) return;
+    if (e.code !== lastKeyDown) {
+      addInputEvent(e);
+    }
     lastKeyDown = e.code;
-    addInputEvent(e);
   };
   window.onkeyup = (e) => {
     lastKeyDown = undefined;
