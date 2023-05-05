@@ -1,7 +1,11 @@
 import { OutputState } from "~/client/state/Output.ts";
-import { PlayerState, PoseType } from "~/common/state/Player.ts";
-import { SystemLoader } from "~/common/systems/mod.ts";
+import { Player, PlayerState, PoseType } from "~/common/state/Player.ts";
+import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
+import { PositionTween } from "../../../examples/platformer/common/tweens.ts";
+import { filter, map, toArray } from "../../common/Iterable.ts";
+import { DebugState } from "../state/Debug.ts";
 import { Sprite, SpriteState, SpriteType } from "../state/Sprite.ts";
+import { TweenState } from "../state/Tween.ts";
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
@@ -14,7 +18,9 @@ export const OutputSystem: SystemLoader = async () => {
   SpriteState.set(SpriteType.penguinLeft, sprite2);
   await loadSprite(sprite2);
 
-  const { canvas: { resolution } } = OutputState;
+  const {
+    canvas: { resolution },
+  } = OutputState;
 
   const el: HTMLCanvasElement = document.querySelector("#screen")!;
   el.width = resolution.x;
@@ -28,16 +34,52 @@ export const OutputSystem: SystemLoader = async () => {
   } else {
     throw new Error("Failed to get canvas rendering context");
   }
+
   function exec() {
+    drawBackground();
     drawPlayers();
+    DebugState.enabled && drawTweenHelpers();
   }
   return { exec };
 };
 
-function drawPlayers() {
-  const { canvas: { resolution, context2d } } = OutputState;
+function drawBackground() {
+  const {
+    canvas: { resolution, context2d },
+  } = OutputState;
   const ctx = context2d!;
   ctx.clearRect(0, 0, resolution.x, resolution.y);
+}
+
+function drawTweenHelpers() {
+  const {
+    canvas: { context2d },
+  } = OutputState;
+  const ctx = context2d!;
+
+  const players = PlayerState.getPlayers();
+  const positionTweenPairs = map(
+    filter(
+      players,
+      (player) =>
+        TweenState.has(PositionTween, player.eid) &&
+        TweenState.isActive(PositionTween, player.eid),
+    ),
+    (player) => [TweenState.get(PositionTween, player.eid)!, player] as const,
+  );
+  for (const [tween, player] of positionTweenPairs) {
+    const { x, y } = tween.end;
+    const { h, w } = player.hitBox;
+    ctx.strokeStyle = "red";
+    ctx.strokeRect(x, y, w, h);
+  }
+}
+
+function drawPlayers() {
+  const {
+    canvas: { context2d },
+  } = OutputState;
+  const ctx = context2d!;
   for (const player of PlayerState.getPlayers()) {
     const spriteType = player.pose === PoseType.facingRight
       ? SpriteType.penguinRight
@@ -48,7 +90,7 @@ function drawPlayers() {
 }
 async function loadSprite(sprite: Sprite) {
   const source = SpriteState.getSource(sprite.imageUrl);
-  await new Promise((resolve) => source.onload = resolve);
+  await new Promise((resolve) => (source.onload = resolve));
   const context = sprite.source.getContext("2d")!;
   if (sprite.mirror) {
     context.scale(-1, 1);

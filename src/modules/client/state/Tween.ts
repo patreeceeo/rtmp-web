@@ -48,6 +48,13 @@ class TweenStateApi {
     tween.setEnd(end);
     ECS.addComponent(this.#world, this.#getTweenType(tween).store, tween.eid);
   }
+  isActive<T>(type: ITweenConstructor<T, unknown>, eid: EntityId) {
+    return ECS.hasComponent(
+      this.#world,
+      type.store,
+      eid,
+    );
+  }
   deactivate<T>(tween: Tween<T>) {
     ECS.removeComponent(
       this.#world,

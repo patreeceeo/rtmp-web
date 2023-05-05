@@ -30,6 +30,7 @@ import { readMessage } from "../../../modules/common/Message.ts";
 import { WasdMoveTrait } from "../common/traits.ts";
 import { PoseTween, PositionTween, VelocityTween } from "../common/tweens.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
+import { DebugSystem } from "~/client/systems/DebugSystem.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -130,6 +131,7 @@ const consumerPipeline = new Pipeline(
     ReconcileSystem(),
     TweenSystem(),
     PhysicsSystem(),
+    DebugSystem(),
   ],
   new FixedIntervalDriver(20),
 );
