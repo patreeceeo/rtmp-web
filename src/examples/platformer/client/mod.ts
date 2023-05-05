@@ -114,16 +114,20 @@ const inputPipeline = new Pipeline([
 ], new EventQueueDriver(app.inputEvents));
 inputPipeline.start();
 
-const fixedPipeline = new Pipeline([
+const producerPipeline = new Pipeline([
   // TODO run these systems immediately after input, but without handling input events more than once
   TraitSystem(),
   ClientNetworkSystem(),
-  // TODO reconcile and tween should driven by the socket events
+], new FixedIntervalDriver(8));
+producerPipeline.start();
+
+const consumerPipeline = new Pipeline([
+  // TODO reconcile and tween should driven by the socket events but with some delay
   ReconcileSystem(),
   PhysicsSystem(),
   TweenSystem(),
-], new FixedIntervalDriver(8));
-fixedPipeline.start();
+], new FixedIntervalDriver(20));
+consumerPipeline.start();
 
 startClient(app);
 
