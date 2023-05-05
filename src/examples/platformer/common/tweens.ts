@@ -6,6 +6,8 @@ import * as ECS from "bitecs";
 import { IPlayerSnapshot, MsgType } from "./message.ts";
 import { ISystemExecutionContext } from "../../../modules/common/systems/mod.ts";
 
+const reuseVec2 = new Vec2();
+
 export class PositionTween implements Tween<Vec2> {
   static readonly store = ECS.defineComponent(Vec2Type);
   static readonly query = ECS.defineQuery([this.store]);
@@ -25,12 +27,24 @@ export class PositionTween implements Tween<Vec2> {
   get end(): Vec2 {
     return this.#end;
   }
-  exec() {
+  exec({ deltaTime }: ISystemExecutionContext) {
     const player = PlayerState.getPlayer(this.eid);
     if (player) {
       // TODO actually tween
-      player.position.copy(this.end);
+      reuseVec2.copy(this.end).sub(player.position);
+      const distance = Math.sqrt(reuseVec2.lengthSquared());
+      reuseVec2.clamp(
+        Math.min(player.maxVelocity / 8 * deltaTime, distance / 2),
+      );
+      player.position.add(reuseVec2);
     }
+  }
+  get isComplete() {
+    const player = PlayerState.getPlayer(this.eid);
+    if (player) {
+      return player.position.almostEquals(this.end, 0.1);
+    }
+    return true;
   }
 }
 export class VelocityTween implements Tween<Vec2> {
@@ -60,6 +74,13 @@ export class VelocityTween implements Tween<Vec2> {
       player.velocity.copy(this.end);
     }
   }
+  get isComplete() {
+    const player = PlayerState.getPlayer(this.eid);
+    if (player) {
+      return player.velocity.equals(this.end);
+    }
+    return true;
+  }
 }
 
 export class PoseTween implements Tween<PoseType> {
@@ -81,5 +102,9 @@ export class PoseTween implements Tween<PoseType> {
   exec() {
     const player = PlayerState.getPlayer(this.eid);
     player.pose = this.end;
+  }
+
+  get isComplete() {
+    return PlayerState.getPlayer(this.eid)?.pose === this.end ?? true;
   }
 }

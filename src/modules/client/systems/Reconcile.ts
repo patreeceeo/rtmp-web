@@ -16,6 +16,7 @@ function exec(context: ISystemExecutionContext) {
   for (const nid of ClientNetworkState.getLocalIds()) {
     const lastReceivedSid = MessageState.getLastReceivedStepId(nid);
     const lastSentSid = MessageState.lastSentStepId;
+    // TODO these if statements feel wrong
     if (
       lastReceivedSid < lastSentSid &&
       lastReceivedSid > MessageState.getLastHandledStepId(nid)
@@ -51,7 +52,8 @@ function exec(context: ISystemExecutionContext) {
           context,
         );
       }
-      MessageState.setLastHandledStepId(nid, lastReceivedSid);
+      // TODO it's be reconciled but not completely handled, needs to be tweened
+      // MessageState.setLastHandledStepId(nid, lastReceivedSid);
     }
   }
 }

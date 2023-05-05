@@ -4,8 +4,8 @@ export function getDistanceSquared(a: Vec2, b: Vec2) {
   return Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2);
 }
 
-export function isAlmostZero(n: number) {
-  return Math.abs(n) <= Number.EPSILON;
+export function isAlmostZero(n: number, tolerance = Number.EPSILON) {
+  return Math.abs(n) <= tolerance;
 }
 
 /** @deprecated */

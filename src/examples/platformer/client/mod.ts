@@ -92,11 +92,10 @@ function handlePlayerAdded(
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
   if (isLocal) {
     TraitState.add(WasdMoveTrait, player.eid);
-  } else {
-    TweenState.add(PositionTween, player.eid);
-    TweenState.add(VelocityTween, player.eid);
-    TweenState.add(PoseTween, player.eid);
   }
+  TweenState.add(PositionTween, player.eid);
+  TweenState.add(VelocityTween, player.eid);
+  TweenState.add(PoseTween, player.eid);
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
   // TODO player system
@@ -109,29 +108,34 @@ function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
 
 const app = new DotsClientApp();
 
-const inputPipeline = new Pipeline([
-  InputSystem(),
-], new EventQueueDriver(app.inputEvents));
+const inputPipeline = new Pipeline(
+  [InputSystem()],
+  new EventQueueDriver(app.inputEvents),
+);
 inputPipeline.start();
 
-const producerPipeline = new Pipeline([
-  // TODO run these systems immediately after input, but without handling input events more than once
-  TraitSystem(),
-  ClientNetworkSystem(),
-], new FixedIntervalDriver(8));
+const producerPipeline = new Pipeline(
+  [
+    // TODO run these systems immediately after input, but without handling input events more than once
+    TraitSystem(),
+    ClientNetworkSystem(),
+  ],
+  new FixedIntervalDriver(8),
+);
 producerPipeline.start();
 
-const consumerPipeline = new Pipeline([
-  // TODO reconcile and tween should driven by the socket events but with some delay
-  ReconcileSystem(),
-  PhysicsSystem(),
-  TweenSystem(),
-], new FixedIntervalDriver(20));
+const consumerPipeline = new Pipeline(
+  [
+    // TODO reconcile and tween should driven by the socket events but with some delay
+    ReconcileSystem(),
+    TweenSystem(),
+    PhysicsSystem(),
+  ],
+  new FixedIntervalDriver(20),
+);
 consumerPipeline.start();
 
 startClient(app);
 
-const framePipeline = new Pipeline([
-  OutputSystem(),
-], new AnimationDriver());
+const framePipeline = new Pipeline([OutputSystem()], new AnimationDriver());
 framePipeline.start();

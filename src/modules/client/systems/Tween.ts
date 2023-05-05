@@ -8,11 +8,11 @@ import { TweenState } from "../state/Tween.ts";
 import { filter } from "../../common/Iterable.ts";
 
 function exec(context: ISystemExecutionContext) {
-  // TODO tween should run for all entities, not just remote ones?
-  for (const nid of ClientNetworkState.getRemoteIds()) {
+  for (const nid of ClientNetworkState.getAllIds()) {
+    const eid = ClientNetworkState.getEntityId(nid)!;
     const lastReceivedSid = MessageState.getLastReceivedStepId(nid);
     if (lastReceivedSid > MessageState.getLastHandledStepId(nid)) {
-      const remoteEntitySnapshots = filter(
+      const snapshots = filter(
         MessageState.getSnapshotsByCommandStepCreated(
           // TODO(bug) using lastReceivedSid - 1 here causes erratic movement
           lastReceivedSid,
@@ -21,8 +21,7 @@ function exec(context: ISystemExecutionContext) {
         ([_type, payload]) => payload.nid === nid,
       );
 
-      for (const [msgType, payload] of remoteEntitySnapshots) {
-        const eid = ClientNetworkState.getEntityId(payload.nid)!;
+      for (const [msgType, payload] of snapshots) {
         for (const type of TweenState.mapMessageType(msgType)) {
           const tween = TweenState.get(type, eid);
           if (tween !== undefined) {
@@ -31,12 +30,15 @@ function exec(context: ISystemExecutionContext) {
         }
       }
 
-      for (const type of TweenState.getTypes()) {
-        for (const tween of TweenState.getActive(type)) {
-          tween.exec(context);
+      MessageState.setLastHandledStepId(nid, lastReceivedSid);
+    }
+    for (const type of TweenState.getTypes()) {
+      for (const tween of TweenState.getActive(type)) {
+        tween.exec(context);
+        if (tween.isComplete) {
+          TweenState.deactivate(tween);
         }
       }
-      MessageState.setLastHandledStepId(nid, lastReceivedSid);
     }
   }
 }

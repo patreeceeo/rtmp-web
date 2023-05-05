@@ -15,6 +15,8 @@ import {
 } from "./message.ts";
 import { MessageState } from "../../../modules/common/state/Message.ts";
 import { ISystemExecutionContext } from "../../../modules/common/systems/mod.ts";
+import { TweenState } from "../../../modules/client/state/Tween.ts";
+import { PositionTween } from "./tweens.ts";
 
 const maxAcceleration = 0.005;
 
@@ -103,9 +105,14 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
     // TODO filter out invalid snapshots
     if (PlayerState.hasPlayer(eid)) {
       const player = PlayerState.getPlayer(eid);
+      const positionTween = TweenState.get(PositionTween, eid);
       // Server sends back correct position
       // but due to network latency, it might be very outdated
-      player.position.copy(position);
+      if (positionTween) {
+        TweenState.activate(positionTween, position);
+      } else {
+        player.position.copy(position);
+      }
       player.velocity.copy(velocity);
       player.pose = pose;
       // TODO what if lastActiveTime is changed by more than just moving?

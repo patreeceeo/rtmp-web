@@ -16,6 +16,7 @@ export interface Tween<Type> {
   setEnd(data: Type): void;
   readonly end: Type;
   exec(context: ISystemExecutionContext): void;
+  isComplete: boolean;
 }
 
 class TweenStateApi {
