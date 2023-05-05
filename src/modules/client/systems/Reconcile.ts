@@ -5,10 +5,9 @@ import {
 } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { TraitState } from "../../common/state/Trait.ts";
-import { filter, map } from "../../common/Iterable.ts";
+import { filter, last, map } from "../../common/Iterable.ts";
 import { IPayloadAny } from "../../common/Message.ts";
 
-let timeout: number;
 function exec(context: ISystemExecutionContext) {
   // TODO This code is confusing. First it loops through all local entities, then
   // nested-loops through all snapshots, regardless of whether they're for local
@@ -82,21 +81,12 @@ function reconcile<
   ) => void,
   context: ISystemExecutionContext,
 ) {
-  let snapshotToApply: IPayloadAny | undefined = undefined;
-  let maxSnapshotSid = 0;
-  for (const payload of snapshots) {
-    // TODO is there a more efficient way to do this? could we just get the most recent snapshot from MessageState?
-    if (payload.sid > maxSnapshotSid) {
-      maxSnapshotSid = payload.sid;
-      snapshotToApply = payload;
-    }
-  }
+  const snapshotToApply = last(snapshots);
+  const commandToApply = last(commands);
   if (snapshotToApply) {
     applySnapshot(snapshotToApply, context);
-    for (const payload of commands) {
-      if (payload.sid > maxSnapshotSid) {
-        applyCommand(payload, context);
-      }
+    if (commandToApply) {
+      applyCommand(commandToApply, context);
     }
   }
 }
