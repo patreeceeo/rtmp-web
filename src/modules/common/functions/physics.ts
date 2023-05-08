@@ -26,9 +26,13 @@ const defaultOptions = new SimulateOptions();
 function accumulate(targetVector: Vec2, deltaTime: number, deltaVector: Vec2) {
   targetVector.add(deltaVector, deltaTime);
 }
+
+function getStepCount(limit: number, step: number) {
+  return limit / step - 1;
+}
 function sumSeriesFromZero(limit: number, step: number) {
   if (limit !== 0) {
-    const steps = limit / step - 1;
+    const steps = getStepCount(limit, step);
     return (limit * steps) / 2;
   } else {
     return 0;
@@ -56,6 +60,40 @@ export function determineRestingPosition(
     velocity.y,
     friction * Math.sign(velocity.y),
   );
+  position.x = clamp(
+    position.x + xDelta,
+    options.worldDimensions.xMin,
+    options.worldDimensions.xMax,
+  );
+  position.y = clamp(
+    position.y + yDelta,
+    options.worldDimensions.yMin,
+    options.worldDimensions.yMax,
+  );
+}
+
+export function determinePositionAtTime(
+  position: Vec2,
+  velocity: IVec2Readonly,
+  time: number,
+  options: ISimulateOptions = defaultOptions,
+) {
+  const friction = options.friction;
+
+  const xDelta = velocity.x > 0
+    ? sumSeriesFromZero(velocity.x, friction * Math.sign(velocity.x)) -
+      sumSeriesFromZero(
+        getStepCount(velocity.x, friction) - time + 1,
+        friction,
+      )
+    : 0;
+  const yDelta = velocity.y > 0
+    ? sumSeriesFromZero(velocity.y, friction * Math.sign(velocity.y)) -
+      sumSeriesFromZero(
+        getStepCount(velocity.y, friction) - time + 1,
+        friction,
+      )
+    : 0;
   position.x = clamp(
     position.x + xDelta,
     options.worldDimensions.xMin,

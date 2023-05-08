@@ -1,6 +1,7 @@
 import { Vec2 } from "../Vec2.ts";
 import { assertEquals } from "asserts";
 import {
+  determinePositionAtTime,
   determineRestingPosition,
   simulateAcceleration,
   SimulateOptions,
@@ -64,6 +65,36 @@ Deno.test("deterministic physics: resting position with worldDimensions and nega
 
   determineRestingPosition(position, velocity, options);
   assertEquals(position.x, 0);
+});
+
+Deno.test("deterministic physics: position at time with friction", () => {
+  const position = new Vec2();
+  const originalPosition = new Vec2();
+  const velocity = new Vec2(3, 0); // space units per time unit squared
+  originalVelocity.copy(velocity);
+  originalPosition.copy(position);
+
+  const options = new SimulateOptions();
+  options.friction = 1;
+  determinePositionAtTime(position, velocity, 1, options);
+
+  assertEquals(position.x, 2);
+  assertEquals(position.y, 0);
+  assertEquals(velocity, originalVelocity);
+
+  position.copy(originalPosition);
+  determinePositionAtTime(position, velocity, 2, options);
+
+  assertEquals(position.x, 2 + 1);
+  assertEquals(position.y, 0);
+  assertEquals(velocity, originalVelocity);
+
+  position.copy(originalPosition);
+  determinePositionAtTime(position, velocity, 3, options);
+
+  assertEquals(position.x, 2 + 1);
+  assertEquals(position.y, 0);
+  assertEquals(velocity, originalVelocity);
 });
 
 Deno.test("physics: acceleration", () => {
