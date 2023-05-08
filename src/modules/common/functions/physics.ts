@@ -1,5 +1,5 @@
 import { Box, IBox } from "../Box.ts";
-import { Vec2 } from "../Vec2.ts";
+import { IVec2, IVec2Readonly, Vec2 } from "../Vec2.ts";
 
 /**
  * @fileoverview
@@ -9,15 +9,14 @@ import { Vec2 } from "../Vec2.ts";
 export interface ISimulateOptions {
   friction: number;
   maxVelocity: number;
-  // TODO should be a Box
-  worldDimensions: Vec2;
+  worldDimensions: IBox;
   hitBox: IBox;
 }
 
 export class SimulateOptions implements ISimulateOptions {
   friction = 0;
   maxVelocity = Infinity;
-  worldDimensions = Vec2.INFINITY;
+  worldDimensions = Box.INFINITY;
   hitBox = Box.ZERO;
 }
 
@@ -42,9 +41,9 @@ function clamp(value: number, min: number, max: number) {
 
 /** calculate the sum of the series of initial velocity minus friction per elapsed time unit until velocity is zero
  */
-export function determineFinalPosition(
+export function determineRestingPosition(
   position: Vec2,
-  velocity: Vec2,
+  velocity: IVec2Readonly,
   options: ISimulateOptions = defaultOptions,
 ) {
   const friction = options.friction;
@@ -59,13 +58,13 @@ export function determineFinalPosition(
   );
   position.x = clamp(
     position.x + xDelta,
-    0,
-    options.worldDimensions.x,
+    options.worldDimensions.xMin,
+    options.worldDimensions.xMax,
   );
-  position.y += clamp(
+  position.y = clamp(
     position.y + yDelta,
-    0,
-    options.worldDimensions.y,
+    options.worldDimensions.yMin,
+    options.worldDimensions.yMax,
   );
 }
 
@@ -81,8 +80,8 @@ export function simulateVelocity(
     position.limitToBoundingBox(
       0,
       0,
-      options.worldDimensions.x - (options.hitBox?.w || 0),
-      options.worldDimensions.y - (options.hitBox?.h || 0),
+      options.worldDimensions.xMin - (options.hitBox?.w || 0),
+      options.worldDimensions.yMin - (options.hitBox?.h || 0),
     );
   }
 

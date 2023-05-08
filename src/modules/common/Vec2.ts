@@ -7,23 +7,51 @@ export interface IVec2 {
   y: number;
 }
 
-export class Vec2 implements IVec2 {
-  static ZERO = new Vec2(0, 0);
-  constructor(public x = 0, public y = 0) {}
+export interface IVec2Readonly {
+  readonly x: number;
+  readonly y: number;
+}
+
+export class Vec2ReadOnly implements IVec2Readonly {
+  constructor(readonly x = 0, readonly y = 0) {}
+  clone() {
+    const clone = new Vec2();
+    clone.copy(this);
+    return clone;
+  }
+  get isZero() {
+    return this.x === 0 && this.y === 0;
+  }
+  get lengthSquared() {
+    return this.x ** 2 + this.y ** 2;
+  }
+  get snapshot(): IVec2 {
+    return { x: this.x, y: this.y };
+  }
+  equals(other: IVec2) {
+    return this.x === other.x && this.y === other.y;
+  }
+  almostEquals(other: IVec2, tolerance = Number.EPSILON) {
+    return isAlmostZero(this.x - other.x, tolerance) &&
+      isAlmostZero(this.y - other.y, tolerance);
+  }
+}
+
+export class Vec2 extends Vec2ReadOnly implements IVec2 {
+  static ZERO = new Vec2ReadOnly(0, 0);
+  static INFINITY = new Vec2ReadOnly(Infinity, Infinity);
+  constructor(public x = 0, public y = 0) {
+    super(x, y);
+  }
   set(x: number, y: number) {
     this.x = x;
     this.y = y;
     return this;
   }
-  copy(src: Vec2) {
+  copy(src: IVec2) {
     this.x = src.x;
     this.y = src.y;
     return this;
-  }
-  clone() {
-    const clone = new Vec2();
-    clone.copy(this);
-    return clone;
   }
   add(d: Vec2, scale = 1) {
     this.x += d.x * scale;
@@ -34,9 +62,6 @@ export class Vec2 implements IVec2 {
     this.x *= s;
     this.y *= s;
     return this;
-  }
-  lengthSquared() {
-    return this.x ** 2 + this.y ** 2;
   }
   extend(s: number) {
     const { x, y } = this;
@@ -52,7 +77,7 @@ export class Vec2 implements IVec2 {
     return this;
   }
   clamp(maxLength: number) {
-    const lengthSquared = this.lengthSquared();
+    const lengthSquared = this.lengthSquared;
 
     // Special case: start and end points are too close
     if (lengthSquared <= maxLength ** 2) {
@@ -84,19 +109,6 @@ export class Vec2 implements IVec2 {
   limitToBoundingBox(xMin: number, yMin: number, xMax: number, yMax: number) {
     this.x = Math.max(xMin, Math.min(xMax, this.x));
     this.y = Math.max(yMin, Math.min(yMax, this.y));
-  }
-
-  get snapshot(): IVec2 {
-    return { x: this.x, y: this.y };
-  }
-
-  equals(other: Vec2) {
-    return this.x === other.x && this.y === other.y;
-  }
-
-  almostEquals(other: Vec2, tolerance = Number.EPSILON) {
-    return isAlmostZero(this.x - other.x, tolerance) &&
-      isAlmostZero(this.y - other.y, tolerance);
   }
 
   applySnapshot(snap: typeof this.snapshot) {

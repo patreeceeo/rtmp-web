@@ -32,7 +32,7 @@ export class PositionTween implements Tween<Vec2> {
     if (player) {
       // TODO actually tween
       reuseVec2.copy(this.end).sub(player.position);
-      const distance = Math.sqrt(reuseVec2.lengthSquared());
+      const distance = Math.sqrt(reuseVec2.lengthSquared);
       reuseVec2.clamp(
         Math.min(player.maxVelocity / 8 * deltaTime, distance / 2),
       );
