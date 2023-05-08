@@ -55,15 +55,16 @@ Deno.test("deterministic physics: resting position with worldDimensions", () => 
   assertEquals(position.x, 10);
 });
 
-// Deno.test("deterministic physics: resting position with worldDimensions and negative velocity", () => {
-//   const position = new Vec2(8, 0);
-//   const velocity = new Vec2(-3, 0); // space units per time unit squared
+Deno.test("deterministic physics: resting position with worldDimensions and negative velocity", () => {
+  const position = new Vec2(8, 0);
+  const velocity = new Vec2(-3, 0); // space units per time unit squared
 
-//   const options = new SimulateOptions();
+  const options = new SimulateOptions();
+  options.worldDimensions = new Box(0, 0, 10, 10);
 
-//   determineRestingPosition(position, velocity, options);
-//   assertEquals(position.x, 0);
-// });
+  determineRestingPosition(position, velocity, options);
+  assertEquals(position.x, 0);
+});
 
 Deno.test("physics: acceleration", () => {
   const deltaTime = 10;
