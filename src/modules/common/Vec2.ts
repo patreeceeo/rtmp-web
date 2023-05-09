@@ -12,6 +12,10 @@ export interface IVec2Readonly {
   readonly y: number;
 }
 
+function getRatioOfComponent(a: number, b: number) {
+  return a / (Math.abs(a) + Math.abs(b));
+}
+
 export class Vec2ReadOnly implements IVec2Readonly {
   constructor(readonly x = 0, readonly y = 0) {}
   clone() {
@@ -35,6 +39,10 @@ export class Vec2ReadOnly implements IVec2Readonly {
     return isAlmostZero(this.x - other.x, tolerance) &&
       isAlmostZero(this.y - other.y, tolerance);
   }
+}
+
+function signSafe(n: number) {
+  return n >= 0 ? 1 : -1;
 }
 
 export class Vec2 extends Vec2ReadOnly implements IVec2 {
@@ -63,12 +71,14 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
     this.y *= s;
     return this;
   }
-  extend(s: number) {
+  extend(s: number, other: IVec2Readonly) {
     const { x, y } = this;
-    const xSign = Math.sign(x);
-    const ySign = Math.sign(y);
-    this.x = Math.max(0, x * xSign + s) * xSign;
-    this.y = Math.max(0, y * ySign + s) * ySign;
+    const xDelta = getRatioOfComponent(other.x, other.y) * s;
+    const yDelta = getRatioOfComponent(other.y, other.x) * s;
+    const xSign = signSafe(x);
+    const ySign = signSafe(y);
+    this.x = Math.max(0, x * xSign + xDelta) * xSign;
+    this.y = Math.max(0, y * ySign + yDelta) * ySign;
     return this;
   }
   sub(d: Vec2) {

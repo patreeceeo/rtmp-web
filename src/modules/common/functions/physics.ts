@@ -27,13 +27,14 @@ function accumulate(targetVector: Vec2, deltaTime: number, deltaVector: Vec2) {
   targetVector.add(deltaVector, deltaTime);
 }
 
-function getStepCount(limit: number, step: number) {
-  return limit / step - 1;
-}
-function sumSeriesFromZero(limit: number, step: number) {
-  if (limit !== 0) {
-    const steps = getStepCount(limit, step);
-    return (limit * steps) / 2;
+function sumSeries(start: number, limit: number, step: number): number {
+  if (limit !== start) {
+    if (step === 0) {
+      return Infinity * Math.sign(limit - start);
+    }
+    const steps = Math.floor((limit - start - 0.5 * step) / step) + 1;
+    const last = start + (steps - 1) * step;
+    return (steps * (start + last)) / 2;
   } else {
     return 0;
   }
@@ -43,23 +44,37 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-/** calculate the sum of the series of initial velocity minus friction per elapsed time unit until velocity is zero
- */
-export function determineRestingPosition(
+const tempFrictionVector = new Vec2();
+function getFrictionVector(velocity: IVec2Readonly, friction: number) {
+  tempFrictionVector.set(0, 0);
+  tempFrictionVector.extend(friction, velocity);
+  return tempFrictionVector;
+}
+
+function determinePositionWithVelocity(
   position: Vec2,
+  initialVelocity: IVec2Readonly,
   velocity: IVec2Readonly,
   options: ISimulateOptions = defaultOptions,
 ) {
-  const friction = options.friction;
-
-  const xDelta = sumSeriesFromZero(
-    velocity.x,
-    friction * Math.sign(velocity.x),
+  const { x: xFriction, y: yFriction } = getFrictionVector(
+    initialVelocity,
+    options.friction,
   );
-  const yDelta = sumSeriesFromZero(
-    velocity.y,
-    friction * Math.sign(velocity.y),
-  );
+  const xDelta = initialVelocity.x !== 0
+    ? sumSeries(
+      velocity.x,
+      initialVelocity.x,
+      xFriction,
+    )
+    : 0;
+  const yDelta = initialVelocity.y !== 0
+    ? sumSeries(
+      velocity.y,
+      initialVelocity.y,
+      yFriction,
+    )
+    : 0;
   position.x = clamp(
     position.x + xDelta,
     options.worldDimensions.xMin,
@@ -72,37 +87,34 @@ export function determineRestingPosition(
   );
 }
 
+/** calculate the sum of the series of initial velocity minus friction per elapsed time unit until velocity is zero
+ */
+export function determineRestingPosition(
+  position: Vec2,
+  velocity: IVec2Readonly,
+  options: ISimulateOptions = defaultOptions,
+) {
+  determinePositionWithVelocity(position, velocity, Vec2.ZERO, options);
+}
+
+const tempEndVelocity = new Vec2();
 export function determinePositionAtTime(
   position: Vec2,
   velocity: IVec2Readonly,
   time: number,
   options: ISimulateOptions = defaultOptions,
 ) {
-  const friction = options.friction;
-
-  const xDelta = velocity.x > 0
-    ? sumSeriesFromZero(velocity.x, friction * Math.sign(velocity.x)) -
-      sumSeriesFromZero(
-        getStepCount(velocity.x, friction) - time + 1,
-        friction,
-      )
-    : 0;
-  const yDelta = velocity.y > 0
-    ? sumSeriesFromZero(velocity.y, friction * Math.sign(velocity.y)) -
-      sumSeriesFromZero(
-        getStepCount(velocity.y, friction) - time + 1,
-        friction,
-      )
-    : 0;
-  position.x = clamp(
-    position.x + xDelta,
-    options.worldDimensions.xMin,
-    options.worldDimensions.xMax,
+  const { x: xFriction, y: yFriction } = getFrictionVector(
+    velocity,
+    options.friction,
   );
-  position.y = clamp(
-    position.y + yDelta,
-    options.worldDimensions.yMin,
-    options.worldDimensions.yMax,
+  const xEndVelocity = velocity.x - xFriction * time;
+  const yEndVelocity = velocity.y - yFriction * time;
+  determinePositionWithVelocity(
+    position,
+    velocity,
+    tempEndVelocity.set(xEndVelocity, yEndVelocity),
+    options,
   );
 }
 
@@ -124,7 +136,7 @@ export function simulateVelocity(
   }
 
   if (options.friction) {
-    velocity.extend(-1 * options.friction! * deltaTime);
+    velocity.extend(-options.friction * deltaTime, velocity);
   }
 }
 

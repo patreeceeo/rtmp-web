@@ -13,15 +13,16 @@ const originalVelocity = new Vec2();
 
 Deno.test("deterministic physics: resting position with velocity & friction", () => {
   const position = new Vec2();
-  const velocity = new Vec2(3, 0); // space units per time unit squared
+  const velocity = new Vec2(3, 3); // space units per time unit squared
   originalVelocity.copy(velocity);
 
   const options = new SimulateOptions();
-  options.friction = 0.5;
+  options.friction = 1;
   determineRestingPosition(position, velocity, options);
 
+  // since x and y velocities are equal, the friction divided is divided evenly between them
   assertEquals(position.x, 2.5 + 2 + 1.5 + 1 + 0.5);
-  assertEquals(position.y, 0);
+  assertEquals(position.y, 2.5 + 2 + 1.5 + 1 + 0.5);
   assertEquals(velocity, originalVelocity);
 });
 
