@@ -176,9 +176,6 @@ export function simulateAcceleration(
 ) {
   accumulate(velocity, deltaTime, acceleration || Vec2.ZERO);
 
-  // TODO
-  // acceleration.set(0, 0);
-
   if (options.maxVelocity) {
     velocity.clamp(options.maxVelocity);
   }
