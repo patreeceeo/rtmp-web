@@ -62,18 +62,10 @@ function determinePositionWithVelocity(
     options.friction,
   );
   const xDelta = initialVelocity.x !== 0
-    ? sumSeries(
-      velocity.x,
-      initialVelocity.x,
-      xFriction,
-    )
+    ? sumSeries(velocity.x, initialVelocity.x, xFriction)
     : 0;
   const yDelta = initialVelocity.y !== 0
-    ? sumSeries(
-      velocity.y,
-      initialVelocity.y,
-      yFriction,
-    )
+    ? sumSeries(velocity.y, initialVelocity.y, yFriction)
     : 0;
   position.x = clamp(
     position.x + xDelta,
@@ -97,6 +89,21 @@ export function determineRestingPosition(
   determinePositionWithVelocity(position, velocity, Vec2.ZERO, options);
 }
 
+export function determineVelocityAtTime(
+  velocity: Vec2,
+  initialVelocity: IVec2Readonly,
+  time: number,
+  options: ISimulateOptions = defaultOptions,
+) {
+  const { x: xFriction, y: yFriction } = getFrictionVector(
+    initialVelocity,
+    options.friction,
+  );
+  velocity.x = initialVelocity.x - xFriction * time;
+  velocity.y = initialVelocity.y - yFriction * time;
+  return velocity;
+}
+
 const tempEndVelocity = new Vec2();
 export function determinePositionAtTime(
   position: Vec2,
@@ -104,12 +111,12 @@ export function determinePositionAtTime(
   time: number,
   options: ISimulateOptions = defaultOptions,
 ) {
-  const { x: xFriction, y: yFriction } = getFrictionVector(
+  const { x: xEndVelocity, y: yEndVelocity } = determineVelocityAtTime(
+    tempEndVelocity,
     velocity,
-    options.friction,
+    time,
+    options,
   );
-  const xEndVelocity = velocity.x - xFriction * time;
-  const yEndVelocity = velocity.y - yFriction * time;
   determinePositionWithVelocity(
     position,
     velocity,

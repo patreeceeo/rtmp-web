@@ -3,6 +3,7 @@ import { assertEquals } from "asserts";
 import {
   determinePositionAtTime,
   determineRestingPosition,
+  determineVelocityAtTime,
   simulateAcceleration,
   SimulateOptions,
   simulateVelocity,
@@ -96,6 +97,28 @@ Deno.test("deterministic physics: position at time with friction", () => {
   assertEquals(position.x, 2 + 1);
   assertEquals(position.y, 0);
   assertEquals(velocity, originalVelocity);
+});
+
+Deno.test("deterministic physics: velocity at time with friction", () => {
+  const initialVelocity = new Vec2(3, 0); // space units per time unit squared
+  const velocity = new Vec2().copy(initialVelocity);
+
+  const options = new SimulateOptions();
+  options.friction = 1;
+  determineVelocityAtTime(velocity, initialVelocity, 1, options);
+
+  assertEquals(velocity.x, 2);
+  assertEquals(velocity.y, 0);
+
+  determineVelocityAtTime(velocity, initialVelocity, 2, options);
+
+  assertEquals(velocity.x, 1);
+  assertEquals(velocity.y, 0);
+
+  determineVelocityAtTime(velocity, initialVelocity, 3, options);
+
+  assertEquals(velocity.x, 0);
+  assertEquals(velocity.y, 0);
 });
 
 Deno.test("physics: acceleration", () => {
