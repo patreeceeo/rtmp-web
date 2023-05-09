@@ -60,7 +60,6 @@ function getFrictionVector(velocity: IVec2Readonly, friction: number) {
 }
 
 // TODO does this work when initial velocity is negative?
-// TODO refactor into 1-D function
 /** find the position of object when it has reached `targetVelocity` from `initialVelocity`
  */
 function determinePositionWithVelocity(
