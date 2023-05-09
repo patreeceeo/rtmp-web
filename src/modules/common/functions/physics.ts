@@ -66,28 +66,46 @@ function getFrictionVector(velocity: IVec2Readonly, friction: number) {
 function determinePositionWithVelocity(
   position: Vec2,
   initialVelocity: IVec2Readonly,
-  velocity: IVec2Readonly,
+  targetVelocity: IVec2Readonly,
   options: ISimulateOptions = defaultOptions,
 ) {
   const { x: xFriction, y: yFriction } = getFrictionVector(
     initialVelocity,
     options.friction,
   );
-  const xDelta = initialVelocity.x !== 0
-    ? sumSeries(velocity.x, initialVelocity.x, xFriction)
-    : 0;
-  const yDelta = initialVelocity.y !== 0
-    ? sumSeries(velocity.y, initialVelocity.y, yFriction)
-    : 0;
-  position.x = clamp(
-    position.x + xDelta,
+  position.x = determinePositionWithVelocity1D(
+    position.x,
+    initialVelocity.x,
+    targetVelocity.x,
     options.worldDimensions.xMin,
     options.worldDimensions.xMax,
+    xFriction,
   );
-  position.y = clamp(
-    position.y + yDelta,
+  position.y = determinePositionWithVelocity1D(
+    position.y,
+    initialVelocity.y,
+    targetVelocity.y,
     options.worldDimensions.yMin,
     options.worldDimensions.yMax,
+    yFriction,
+  );
+}
+
+function determinePositionWithVelocity1D(
+  position: number,
+  initialVelocity: number,
+  targetVelocity: number,
+  minPosition: number,
+  maxPosition: number,
+  friction: number,
+) {
+  const delta = initialVelocity !== 0
+    ? sumSeries(targetVelocity, initialVelocity, friction)
+    : 0;
+  return clamp(
+    position + delta,
+    minPosition,
+    maxPosition,
   );
 }
 
