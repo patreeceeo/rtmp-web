@@ -36,13 +36,11 @@ export class Vec2ReadOnly implements IVec2Readonly {
     return this.x === other.x && this.y === other.y;
   }
   almostEquals(other: IVec2, tolerance = Number.EPSILON) {
-    return isAlmostZero(this.x - other.x, tolerance) &&
-      isAlmostZero(this.y - other.y, tolerance);
+    return (
+      isAlmostZero(this.x - other.x, tolerance) &&
+      isAlmostZero(this.y - other.y, tolerance)
+    );
   }
-}
-
-function signSafe(n: number) {
-  return n >= 0 ? 1 : -1;
 }
 
 export class Vec2 extends Vec2ReadOnly implements IVec2 {
@@ -75,10 +73,16 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
     const { x, y } = this;
     const xDelta = getRatioOfComponent(other.x, other.y) * s;
     const yDelta = getRatioOfComponent(other.y, other.x) * s;
-    const xSign = signSafe(x);
-    const ySign = signSafe(y);
-    this.x = Math.max(0, x * xSign + xDelta) * xSign;
-    this.y = Math.max(0, y * ySign + yDelta) * ySign;
+    this.x = x == 0
+      ? x + xDelta
+      : x > 0
+      ? Math.max(0, x + xDelta)
+      : Math.min(0, x + xDelta);
+    this.y = y == 0
+      ? y + yDelta
+      : y > 0
+      ? Math.max(0, y + yDelta)
+      : Math.min(0, y + yDelta);
     return this;
   }
   sub(d: Vec2) {

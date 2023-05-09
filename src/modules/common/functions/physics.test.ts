@@ -48,6 +48,17 @@ Deno.test("deterministic physics: resting position unchanged because zero veloci
   assertEquals(position.x, 13);
 });
 
+Deno.test("deterministic physics: resting position with friction and negative velocity", () => {
+  const position = new Vec2(20, 0);
+  const velocity = new Vec2(-3, 0); // space units per time unit squared
+
+  const options = new SimulateOptions();
+  options.friction = 1;
+
+  determineRestingPosition(position, velocity, options);
+  assertEquals(position.x, 20 - 2 - 1);
+});
+
 Deno.test("deterministic physics: resting position with worldDimensions", () => {
   const position = new Vec2();
   const velocity = new Vec2(3, 0); // space units per time unit squared
