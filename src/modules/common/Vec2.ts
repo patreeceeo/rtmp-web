@@ -61,7 +61,7 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
     this.y = src.y;
     return this;
   }
-  add(d: Vec2, scale = 1) {
+  add(d: IVec2, scale = 1) {
     this.x += d.x * scale;
     this.y += d.y * scale;
     return this;

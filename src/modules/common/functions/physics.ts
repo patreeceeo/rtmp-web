@@ -1,5 +1,5 @@
 import { Box, IBox } from "../Box.ts";
-import { IVec2, IVec2Readonly, Vec2 } from "../Vec2.ts";
+import { IVec2Readonly, Vec2, Vec2ReadOnly } from "../Vec2.ts";
 
 /**
  * @fileoverview
@@ -9,21 +9,29 @@ import { IVec2, IVec2Readonly, Vec2 } from "../Vec2.ts";
 export interface ISimulateOptions {
   friction: number;
   maxVelocity: number;
+  acceleration: Vec2ReadOnly;
   worldDimensions: IBox;
   hitBox: IBox;
+  maxSteps: number;
 }
 
 export class SimulateOptions implements ISimulateOptions {
   friction = 0;
   maxVelocity = Infinity;
+  acceleration = Vec2.ZERO;
   worldDimensions = Box.INFINITY;
   hitBox = Box.ZERO;
+  maxSteps = 1000;
 }
 
 const defaultOptions = new SimulateOptions();
 
 // Make this a method of Vec2?
-function accumulate(targetVector: Vec2, deltaTime: number, deltaVector: Vec2) {
+function accumulate(
+  targetVector: Vec2,
+  deltaTime: number,
+  deltaVector: Vec2ReadOnly,
+) {
   targetVector.add(deltaVector, deltaTime);
 }
 
@@ -89,6 +97,10 @@ export function determineRestingPosition(
   determinePositionWithVelocity(position, velocity, Vec2.ZERO, options);
 }
 
+// TODO does this work when initial velocity is negative?
+// TODO refactor into 1-D function
+/** find the position of object when it has reached `targetVelocity` from `initialVelocity`
+ */
 export function determineVelocityAtTime(
   velocity: Vec2,
   initialVelocity: IVec2Readonly,
@@ -107,22 +119,31 @@ export function determineVelocityAtTime(
 const tempEndVelocity = new Vec2();
 export function determinePositionAtTime(
   position: Vec2,
-  velocity: IVec2Readonly,
+  velocity: Vec2ReadOnly,
   time: number,
   options: ISimulateOptions = defaultOptions,
 ) {
-  const { x: xEndVelocity, y: yEndVelocity } = determineVelocityAtTime(
-    tempEndVelocity,
-    velocity,
-    time,
-    options,
-  );
-  determinePositionWithVelocity(
-    position,
-    velocity,
-    tempEndVelocity.set(xEndVelocity, yEndVelocity),
-    options,
-  );
+  if (options.acceleration.isZero) {
+    const { x: xEndVelocity, y: yEndVelocity } = determineVelocityAtTime(
+      tempEndVelocity,
+      velocity,
+      time,
+      options,
+    );
+    determinePositionWithVelocity(
+      position,
+      velocity,
+      tempEndVelocity.set(xEndVelocity, yEndVelocity),
+      options,
+    );
+  } else {
+    tempEndVelocity.copy(velocity);
+    while (time > 0) {
+      time -= 1;
+      simulateAcceleration(tempEndVelocity, options.acceleration, 1, options);
+      simulateVelocity(position, tempEndVelocity, 1, options);
+    }
+  }
 }
 
 export function simulateVelocity(
@@ -135,10 +156,10 @@ export function simulateVelocity(
 
   if (options.worldDimensions) {
     position.limitToBoundingBox(
-      0,
-      0,
-      options.worldDimensions.xMin - (options.hitBox?.w || 0),
-      options.worldDimensions.yMin - (options.hitBox?.h || 0),
+      options.worldDimensions.xMin,
+      options.worldDimensions.yMin,
+      options.worldDimensions.xMax - options.hitBox.w,
+      options.worldDimensions.yMax - options.hitBox.h,
     );
   }
 
@@ -149,13 +170,14 @@ export function simulateVelocity(
 
 export function simulateAcceleration(
   velocity: Vec2,
-  acceleration: Vec2,
+  acceleration: Vec2ReadOnly,
   deltaTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {
   accumulate(velocity, deltaTime, acceleration || Vec2.ZERO);
 
-  acceleration.set(0, 0);
+  // TODO
+  // acceleration.set(0, 0);
 
   if (options.maxVelocity) {
     velocity.clamp(options.maxVelocity);

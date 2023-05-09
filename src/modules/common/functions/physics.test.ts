@@ -11,6 +11,7 @@ import {
 import { Box } from "../Box.ts";
 
 const originalVelocity = new Vec2();
+const originalPosition = new Vec2();
 
 Deno.test("deterministic physics: resting position with velocity & friction", () => {
   const position = new Vec2();
@@ -121,6 +122,36 @@ Deno.test("deterministic physics: velocity at time with friction", () => {
   assertEquals(velocity.y, 0);
 });
 
+Deno.test("deterministic physics: position at time with acceleration", () => {
+  const position = new Vec2();
+  const velocity = new Vec2(3, 0); // space units per time unit squared
+  originalVelocity.copy(velocity);
+  originalPosition.copy(position);
+
+  const options = new SimulateOptions();
+  options.acceleration = new Vec2(0, 1);
+
+  determinePositionAtTime(position, velocity, 1, options);
+
+  assertEquals(position.x, 3 * 1);
+  assertEquals(position.y, 1);
+  assertEquals(velocity, originalVelocity);
+
+  position.copy(originalPosition);
+  determinePositionAtTime(position, velocity, 2, options);
+
+  assertEquals(position.x, 3 * 2);
+  assertEquals(position.y, 1 + 2);
+  assertEquals(velocity, originalVelocity);
+
+  position.copy(originalPosition);
+  determinePositionAtTime(position, velocity, 3, options);
+
+  assertEquals(position.x, 3 * 3);
+  assertEquals(position.y, 1 + 2 + 3);
+  assertEquals(velocity, originalVelocity);
+});
+
 Deno.test("physics: acceleration", () => {
   const deltaTime = 10;
   const velocity = new Vec2(5);
@@ -130,8 +161,6 @@ Deno.test("physics: acceleration", () => {
   simulateAcceleration(velocity, acceleration, deltaTime);
 
   assertEquals(velocity.x, 35);
-
-  assertEquals(acceleration.x, 0);
 });
 
 Deno.test("physics: max velocity", () => {
