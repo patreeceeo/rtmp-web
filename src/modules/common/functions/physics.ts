@@ -115,50 +115,60 @@ export function determineRestingPosition(
   velocity: IVec2Readonly,
   options: ISimulateOptions = defaultOptions,
 ) {
-  determinePositionWithVelocity(position, velocity, Vec2.ZERO, options);
+  if (options.acceleration.isZero) {
+    determinePositionWithVelocity(position, velocity, Vec2.ZERO, options);
+  } else {
+    let steps = 0;
+    tempVelocity.copy(velocity);
+    while (steps < options.maxSteps && !tempVelocity.isZero) {
+      steps += 1;
+      simulateAcceleration(tempVelocity, options.acceleration, 1, options);
+      simulateVelocity(position, tempVelocity, 1, options);
+    }
+  }
 }
 
 export function determineVelocityAtTime(
   velocity: Vec2,
   initialVelocity: IVec2Readonly,
-  time: number,
+  elapsedTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {
   const { x: xFriction, y: yFriction } = getFrictionVector(
     initialVelocity,
     options.friction,
   );
-  velocity.x = initialVelocity.x - xFriction * time;
-  velocity.y = initialVelocity.y - yFriction * time;
+  velocity.x = initialVelocity.x - xFriction * elapsedTime;
+  velocity.y = initialVelocity.y - yFriction * elapsedTime;
   return velocity;
 }
 
-const tempEndVelocity = new Vec2();
+const tempVelocity = new Vec2();
 export function determinePositionAtTime(
   position: Vec2,
   velocity: Vec2ReadOnly,
-  time: number,
+  elapsedTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {
   if (options.acceleration.isZero) {
     const { x: xEndVelocity, y: yEndVelocity } = determineVelocityAtTime(
-      tempEndVelocity,
+      tempVelocity,
       velocity,
-      time,
+      elapsedTime,
       options,
     );
     determinePositionWithVelocity(
       position,
       velocity,
-      tempEndVelocity.set(xEndVelocity, yEndVelocity),
+      tempVelocity.set(xEndVelocity, yEndVelocity),
       options,
     );
   } else {
-    tempEndVelocity.copy(velocity);
-    while (time > 0) {
-      time -= 1;
-      simulateAcceleration(tempEndVelocity, options.acceleration, 1, options);
-      simulateVelocity(position, tempEndVelocity, 1, options);
+    tempVelocity.copy(velocity);
+    while (elapsedTime > 0) {
+      elapsedTime -= 1;
+      simulateAcceleration(tempVelocity, options.acceleration, 1, options);
+      simulateVelocity(position, tempVelocity, 1, options);
     }
   }
 }
@@ -172,6 +182,18 @@ export function simulateVelocity(
   accumulate(position, deltaTime, velocity);
 
   if (options.worldDimensions) {
+    if (
+      position.x < options.worldDimensions.xMin ||
+      position.x > options.worldDimensions.xMax
+    ) {
+      velocity.x = 0;
+    }
+    if (
+      position.y < options.worldDimensions.yMin ||
+      position.y > options.worldDimensions.yMax
+    ) {
+      velocity.y = 0;
+    }
     position.limitToBoundingBox(
       options.worldDimensions.xMin,
       options.worldDimensions.yMin,

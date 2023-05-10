@@ -81,6 +81,23 @@ Deno.test("deterministic physics: resting position with worldDimensions and nega
   assertEquals(position.x, 0);
 });
 
+Deno.test("deterministic physics: resting position with accleration, friction and worldDimensions", () => {
+  const position = new Vec2(0, 0);
+  const velocity = new Vec2(3, 0); // space units per time unit squared
+
+  const options = new SimulateOptions();
+  options.worldDimensions = new Box(0, 0, 20, 6);
+  options.acceleration = new Vec2(0, 1);
+  options.friction = 1;
+
+  determineRestingPosition(position, velocity, options);
+  // Determining velocity over time with both friction and acceleration gets complicated very quickly,
+  // so this X value is just what I got when I ran the code and it seems to be correct based on the
+  // intermediate values.
+  assertEquals(position.x, 8.46875);
+  assertEquals(position.y, 6);
+});
+
 Deno.test("deterministic physics: position at time with friction", () => {
   const position = new Vec2();
   const originalPosition = new Vec2();
