@@ -37,12 +37,15 @@ interface IPipelineDriver<
 
 export class FixedIntervalDriver implements IPipelineDriver {
   #interval?: number;
-  constructor(readonly intervalMs: number) {}
+  constructor(readonly intervalMs: number, readonly leading = false) {}
   start(
     exec: (context: ISystemExecutionContext) => void,
     context: ISystemExecutionContext,
   ) {
     const onTick = () => exec(context);
+    if (this.leading) {
+      onTick();
+    }
     this.#interval = setInterval(onTick, this.intervalMs);
   }
   stop() {

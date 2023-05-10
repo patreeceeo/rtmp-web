@@ -26,6 +26,7 @@ import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { readMessage } from "../../../modules/common/Message.ts";
 import { PingState } from "../../../modules/common/state/Ping.ts";
 import { PurgeSystem } from "../../../modules/server/systems/PurgeSystem.ts";
+import { TargetPhysicsSystem } from "../../../modules/common/systems/TargetPhysics.ts";
 
 const idleTimeout = 300;
 
@@ -38,9 +39,17 @@ class DotsServerApp implements ServerApp {
     client.addNetworkId(playerNid);
 
     addedPlayer.position.set(
-      getRandomIntBetween(0, LevelState.dimensions.x),
-      getRandomIntBetween(0, LevelState.dimensions.y),
+      getRandomIntBetween(
+        LevelState.dimensions.xMin,
+        LevelState.dimensions.xMax,
+      ),
+      getRandomIntBetween(
+        LevelState.dimensions.yMin,
+        LevelState.dimensions.yMax,
+      ),
     );
+
+    addedPlayer.targetPosition.copy(addedPlayer.position);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
     TraitState.add(WasdMoveTrait, addedPlayer.eid);
 
@@ -110,12 +119,20 @@ const fastPipeline = new Pipeline(
   [
     ConsumeCommandSystem(),
     PhysicsSystem(),
+  ],
+  new FixedIntervalDriver(10),
+);
+fastPipeline.start();
+
+const mediumPipeline = new Pipeline(
+  [
+    TargetPhysicsSystem(),
     ProduceSnapshotSystem(),
     NetworkSystem(),
   ],
-  new FixedIntervalDriver(1),
+  new FixedIntervalDriver(20, true),
 );
-fastPipeline.start();
+mediumPipeline.start();
 
 const slowPipeline = new Pipeline(
   [
@@ -124,4 +141,5 @@ const slowPipeline = new Pipeline(
   new FixedIntervalDriver(500),
 );
 slowPipeline.start();
+
 startServer(new DotsServerApp());

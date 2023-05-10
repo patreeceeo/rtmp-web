@@ -9,7 +9,10 @@ import { IVec2Readonly, Vec2, Vec2ReadOnly } from "../Vec2.ts";
 export interface ISimulateOptions {
   friction: number;
   maxVelocity: number;
-  acceleration: Vec2ReadOnly;
+  /** the acceleration vector for momentary changes in velocity, like turning, jumping, colliding with a wall, etc. */
+  bounce: Vec2ReadOnly;
+  /** the acceleration vector for steady changes in velocity, like gravity */
+  steadyAcceleration: Vec2ReadOnly;
   worldDimensions: IBox;
   hitBox: IBox;
   maxSteps: number;
@@ -18,7 +21,8 @@ export interface ISimulateOptions {
 export class SimulateOptions implements ISimulateOptions {
   friction = 0;
   maxVelocity = Infinity;
-  acceleration = Vec2.ZERO;
+  bounce = Vec2.ZERO;
+  steadyAcceleration = Vec2.ZERO;
   worldDimensions = Box.INFINITY;
   hitBox = Box.ZERO;
   maxSteps = 1000;
@@ -59,7 +63,6 @@ function getFrictionVector(velocity: IVec2Readonly, friction: number) {
   return tempFrictionVector;
 }
 
-// TODO does this work when initial velocity is negative?
 /** find the position of object when it has reached `targetVelocity` from `initialVelocity`
  */
 function determinePositionWithVelocity(
@@ -115,15 +118,25 @@ export function determineRestingPosition(
   velocity: IVec2Readonly,
   options: ISimulateOptions = defaultOptions,
 ) {
-  if (options.acceleration.isZero) {
-    determinePositionWithVelocity(position, velocity, Vec2.ZERO, options);
+  tempVelocity.copy(velocity).add(options.bounce, 1);
+  if (options.steadyAcceleration.isZero) {
+    determinePositionWithVelocity(position, tempVelocity, Vec2.ZERO, options);
   } else {
     let steps = 0;
-    tempVelocity.copy(velocity);
-    while (steps < options.maxSteps && !tempVelocity.isZero) {
+    // console.log("determine");
+    while (
+      steps < options.maxSteps && !(tempVelocity.almostEquals(Vec2.ZERO))
+    ) {
       steps += 1;
-      simulateAcceleration(tempVelocity, options.acceleration, 1, options);
-      simulateVelocity(position, tempVelocity, 1, options);
+      simulatePositionWithVelocity(
+        position,
+        tempVelocity,
+        10, /* TODO magic number */
+        options,
+      );
+    }
+    if (steps === options.maxSteps) {
+      console.warn("determineRestingPosition reached maxSteps", steps);
     }
   }
 }
@@ -150,7 +163,7 @@ export function determinePositionAtTime(
   elapsedTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {
-  if (options.acceleration.isZero) {
+  if (options.bounce.isZero) {
     const { x: xEndVelocity, y: yEndVelocity } = determineVelocityAtTime(
       tempVelocity,
       velocity,
@@ -167,13 +180,18 @@ export function determinePositionAtTime(
     tempVelocity.copy(velocity);
     while (elapsedTime > 0) {
       elapsedTime -= 1;
-      simulateAcceleration(tempVelocity, options.acceleration, 1, options);
-      simulateVelocity(position, tempVelocity, 1, options);
+      simulateVelocityWithAcceleration(
+        tempVelocity,
+        options.bounce,
+        1,
+        options,
+      );
+      simulatePositionWithVelocity(position, tempVelocity, 1, options);
     }
   }
 }
 
-export function simulateVelocity(
+export function simulatePositionWithVelocity(
   position: Vec2,
   velocity: Vec2,
   deltaTime: number,
@@ -182,24 +200,25 @@ export function simulateVelocity(
   accumulate(position, deltaTime, velocity);
 
   if (options.worldDimensions) {
-    if (
-      position.x < options.worldDimensions.xMin ||
-      position.x > options.worldDimensions.xMax
-    ) {
+    if (position.x <= options.worldDimensions.xMin) {
       velocity.x = 0;
+      position.x = options.worldDimensions.xMin;
     }
-    if (
-      position.y < options.worldDimensions.yMin ||
-      position.y > options.worldDimensions.yMax
-    ) {
+
+    if (position.x >= options.worldDimensions.xMax) {
+      velocity.x = 0;
+      position.x = options.worldDimensions.xMax;
+    }
+
+    if (position.y <= options.worldDimensions.yMin) {
       velocity.y = 0;
+      position.y = options.worldDimensions.yMin;
     }
-    position.limitToBoundingBox(
-      options.worldDimensions.xMin,
-      options.worldDimensions.yMin,
-      options.worldDimensions.xMax - options.hitBox.w,
-      options.worldDimensions.yMax - options.hitBox.h,
-    );
+
+    if (position.y >= options.worldDimensions.yMax) {
+      velocity.y = 0;
+      position.y = options.worldDimensions.yMax;
+    }
   }
 
   if (options.friction) {
@@ -207,13 +226,13 @@ export function simulateVelocity(
   }
 }
 
-export function simulateAcceleration(
+export function simulateVelocityWithAcceleration(
   velocity: Vec2,
   acceleration: Vec2ReadOnly,
   deltaTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {
-  accumulate(velocity, deltaTime, acceleration || Vec2.ZERO);
+  accumulate(velocity, deltaTime, acceleration);
 
   if (options.maxVelocity) {
     velocity.clamp(options.maxVelocity);

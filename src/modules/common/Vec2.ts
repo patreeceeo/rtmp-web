@@ -1,4 +1,5 @@
 import * as ECS from "bitecs";
+import { IBox } from "./Box.ts";
 import { isAlmostZero } from "./math.ts";
 import { EntityId } from "./state/mod.ts";
 
@@ -70,20 +71,22 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
     return this;
   }
   extend(s: number, other: IVec2Readonly) {
-    const { x, y } = this;
-    const xDelta = getRatioOfComponent(other.x, other.y) * s;
-    const yDelta = getRatioOfComponent(other.y, other.x) * s;
-    this.x = x == 0
-      ? x + xDelta
-      : x > 0
-      ? Math.max(0, x + xDelta)
-      : Math.min(0, x + xDelta);
-    this.y = y == 0
-      ? y + yDelta
-      : y > 0
-      ? Math.max(0, y + yDelta)
-      : Math.min(0, y + yDelta);
-    return this;
+    if (other.x !== 0 || other.y !== 0) {
+      const { x, y } = this;
+      const xDelta = getRatioOfComponent(other.x, other.y) * s;
+      const yDelta = getRatioOfComponent(other.y, other.x) * s;
+      this.x = x == 0
+        ? x + xDelta
+        : x > 0
+        ? Math.max(0, x + xDelta)
+        : Math.min(0, x + xDelta);
+      this.y = y == 0
+        ? y + yDelta
+        : y > 0
+        ? Math.max(0, y + yDelta)
+        : Math.min(0, y + yDelta);
+      return this;
+    }
   }
   sub(d: Vec2) {
     this.x -= d.x;
@@ -123,6 +126,11 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
   limitToBoundingBox(xMin: number, yMin: number, xMax: number, yMax: number) {
     this.x = Math.max(xMin, Math.min(xMax, this.x));
     this.y = Math.max(yMin, Math.min(yMax, this.y));
+  }
+
+  fromBox(box: IBox) {
+    this.x = box.xMin + box.w;
+    this.y = box.yMin + box.h;
   }
 
   applySnapshot(snap: typeof this.snapshot) {

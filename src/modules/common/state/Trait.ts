@@ -7,20 +7,11 @@ export type MaybeAddMessageParameters<P extends IPayloadAny> = Maybe<
   [IMessageDef<P>, IWritePayload<P>]
 >;
 
-interface ITraitConstructor<
+export interface ITraitConstructor<
   CommandPayload extends IPayloadAny,
   SnapshotPayload extends IPayloadAny,
 > {
   new (eid: EntityId): Trait<CommandPayload, SnapshotPayload>;
-  applyCommand(payload: CommandPayload, context: ISystemExecutionContext): void;
-  applySnapshot(
-    payload: SnapshotPayload,
-    context: ISystemExecutionContext,
-  ): void;
-  getSnapshotMaybe(
-    command: CommandPayload,
-    context: ISystemExecutionContext,
-  ): MaybeAddMessageParameters<SnapshotPayload>;
   commandType: number;
   snapshotType: number;
 }
@@ -35,6 +26,15 @@ export interface Trait<
   getCommandMaybe(
     context: ISystemExecutionContext,
   ): MaybeAddMessageParameters<CommandPayload>;
+  applyCommand(payload: CommandPayload, context: ISystemExecutionContext): void;
+  applySnapshot(
+    payload: SnapshotPayload,
+    context: ISystemExecutionContext,
+  ): void;
+  getSnapshotMaybe(
+    command: CommandPayload,
+    context: ISystemExecutionContext,
+  ): MaybeAddMessageParameters<SnapshotPayload>;
 }
 export type TraitAny = Trait<IPayloadAny, IPayloadAny>;
 
@@ -80,7 +80,7 @@ class TraitStateApi {
   >(type: ITraitConstructor<CommandPayload, SnapshotPayload>, eid: EntityId) {
     return this.#instanceMap.get(type as ITraitConstructorAny)![
       eid
-    ] as Trait<CommandPayload, SnapshotPayload>;
+    ] as Trait<CommandPayload, SnapshotPayload> | undefined;
   }
 }
 

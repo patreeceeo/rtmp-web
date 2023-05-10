@@ -7,6 +7,7 @@ import { ITraitConstructorAny, TraitState } from "~/common/state/Trait.ts";
 import { isJust, Maybe, unboxJust } from "../../common/Maybe.ts";
 import { IMessageDef, IWritePayload } from "../../common/Message.ts";
 import { IPayloadAny } from "../../common/Message.ts";
+import { NetworkState } from "../../common/state/Network.ts";
 
 function exec(context: ISystemExecutionContext) {
   const traitCommandMaybes: Array<
@@ -35,7 +36,11 @@ function exec(context: ISystemExecutionContext) {
 
   for (const [Trait, [msgType, write]] of traitCommands) {
     const payload = MessageState.addCommand(msgType, write);
-    Trait.applyCommand(payload, context);
+    const eid = NetworkState.getEntityId(payload.nid)!;
+    const trait = TraitState.getTrait(Trait, eid);
+    if (trait) {
+      trait.applyCommand(payload, context);
+    }
   }
 }
 

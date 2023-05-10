@@ -104,6 +104,7 @@ export class MessageStateApi {
       this.#commandBufferByteOffset,
     );
     const [_type, payload] = readMessage(view, byteOffset);
+    // console.log("received sid", payload.sid);
     this.#recordCommandMetadata(MsgDef.byteLength, sidReceivedAt, payload.sid);
   }
 

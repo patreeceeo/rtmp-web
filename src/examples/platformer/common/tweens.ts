@@ -13,7 +13,7 @@ export class PositionTween implements Tween<Vec2> {
   static readonly query = ECS.defineQuery([this.store]);
   static readonly messageType = MsgType.playerSnapshot;
   static extractData(source: IPlayerSnapshot) {
-    return source.position;
+    return source.targetPosition;
   }
   #end: Vec2;
 

@@ -4,7 +4,11 @@ import {
   SystemLoader,
 } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { TraitState } from "../../common/state/Trait.ts";
+import {
+  ITraitConstructor,
+  ITraitConstructorAny,
+  TraitState,
+} from "../../common/state/Trait.ts";
 import { filter, last, map } from "../../common/Iterable.ts";
 import { IPayloadAny } from "../../common/Message.ts";
 
@@ -47,8 +51,7 @@ function exec(context: ISystemExecutionContext) {
         reconcile(
           snapshots,
           commands,
-          Trait.applySnapshot,
-          Trait.applyCommand,
+          Trait,
           context,
         );
       }
@@ -66,6 +69,8 @@ function exec(context: ISystemExecutionContext) {
  * state. Instead, this function applies new snapshots for a given type, then applies
  * commands that have been sent since the corresponding command of the most recently
  * received snapshot.
+ *
+ * TODO apply commands that have been issued since snapshot was created
  */
 function reconcile<
   CommandPayload extends IPayloadAny,
@@ -73,22 +78,19 @@ function reconcile<
 >(
   snapshots: Iterable<SnapshotPayload>,
   commands: Iterable<CommandPayload>,
-  applySnapshot: (
-    payload: IPayloadAny,
-    context: ISystemExecutionContext,
-  ) => void,
-  applyCommand: (
-    payload: IPayloadAny,
-    context: ISystemExecutionContext,
-  ) => void,
+  Trait: ITraitConstructor<CommandPayload, SnapshotPayload>,
   context: ISystemExecutionContext,
 ) {
   const snapshotToApply = last(snapshots);
   const commandToApply = last(commands);
   if (snapshotToApply) {
-    applySnapshot(snapshotToApply, context);
-    if (commandToApply) {
-      applyCommand(commandToApply, context);
+    const eid = ClientNetworkState.getEntityId(snapshotToApply.nid)!;
+    const trait = TraitState.getTrait(Trait, eid);
+    if (trait) {
+      trait.applySnapshot(snapshotToApply, context);
+      if (commandToApply) {
+        trait.applyCommand(commandToApply, context);
+      }
     }
   }
 }

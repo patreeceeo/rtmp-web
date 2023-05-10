@@ -4,9 +4,9 @@ import {
   determinePositionAtTime,
   determineRestingPosition,
   determineVelocityAtTime,
-  simulateAcceleration,
   SimulateOptions,
-  simulateVelocity,
+  simulatePositionWithVelocity,
+  simulateVelocityWithAcceleration,
 } from "./physics.ts";
 import { Box } from "../Box.ts";
 
@@ -81,20 +81,17 @@ Deno.test("deterministic physics: resting position with worldDimensions and nega
   assertEquals(position.x, 0);
 });
 
-Deno.test("deterministic physics: resting position with accleration, friction and worldDimensions", () => {
+Deno.test("deterministic physics: resting position with bounce, friction and worldDimensions", () => {
   const position = new Vec2(0, 0);
   const velocity = new Vec2(3, 0); // space units per time unit squared
 
   const options = new SimulateOptions();
   options.worldDimensions = new Box(0, 0, 20, 6);
-  options.acceleration = new Vec2(0, 1);
+  options.bounce = new Vec2(0, 3);
   options.friction = 1;
 
   determineRestingPosition(position, velocity, options);
-  // Determining velocity over time with both friction and acceleration gets complicated very quickly,
-  // so this X value is just what I got when I ran the code and it seems to be correct based on the
-  // intermediate values.
-  assertEquals(position.x, 8.46875);
+  assertEquals(position.x, 2.5 + 2 + 1.5 + 1 + 0.5);
   assertEquals(position.y, 6);
 });
 
@@ -150,14 +147,14 @@ Deno.test("deterministic physics: velocity at time with friction", () => {
   assertEquals(velocity.y, 0);
 });
 
-Deno.test("deterministic physics: position at time with acceleration", () => {
+Deno.test("deterministic physics: position at time with bounce", () => {
   const position = new Vec2();
   const velocity = new Vec2(3, 0); // space units per time unit squared
   originalVelocity.copy(velocity);
   originalPosition.copy(position);
 
   const options = new SimulateOptions();
-  options.acceleration = new Vec2(0, 1);
+  options.bounce = new Vec2(0, 1);
 
   determinePositionAtTime(position, velocity, 1, options);
 
@@ -186,7 +183,7 @@ Deno.test("physics: acceleration", () => {
   const acceleration = new Vec2();
 
   acceleration.x = 3; // space units per time unit squared
-  simulateAcceleration(velocity, acceleration, deltaTime);
+  simulateVelocityWithAcceleration(velocity, acceleration, deltaTime);
 
   assertEquals(velocity.x, 35);
 });
@@ -201,7 +198,7 @@ Deno.test("physics: max velocity", () => {
 
   acceleration.x = 3; // space units per time unit squared
 
-  simulateAcceleration(velocity, acceleration, timeDelta, options);
+  simulateVelocityWithAcceleration(velocity, acceleration, timeDelta, options);
 
   assertEquals(velocity.x, 10);
 });
@@ -214,7 +211,7 @@ Deno.test("physics: friction", () => {
 
   options.friction = 0.5;
 
-  simulateVelocity(position, velocity, timeDelta, options);
+  simulatePositionWithVelocity(position, velocity, timeDelta, options);
 
   assertEquals(velocity.x, 0);
 });

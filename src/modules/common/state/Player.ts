@@ -26,17 +26,24 @@ const webColors = [
 export class Player {
   readonly hitBox = new BoxReadOnly(0, 0, 16, 32);
   readonly position: Vec2;
+  readonly targetPosition: Vec2;
   readonly velocity: Vec2;
   readonly acceleration: Vec2;
   readonly maxVelocity = 0.2;
   readonly maxVelocitySq = this.maxVelocity ** 2;
   readonly friction = 0.0004;
   constructor(readonly eid: EntityId) {
-    this.position = Vec2.fromEntityComponent(eid, PositionStore);
-    this.velocity = Vec2.fromEntityComponent(eid, VelocityStore);
-    this.acceleration = Vec2.fromEntityComponent(eid, AccelerationStore);
     // Don't overwrite value from ECS
     this.lastActiveTime = this.lastActiveTime || performance.now();
+    this.targetEntity = this.targetEntity ||
+      ECS.addEntity(defaultWorld) as EntityId;
+    this.position = Vec2.fromEntityComponent(eid, PositionStore);
+    this.velocity = Vec2.fromEntityComponent(eid, VelocityStore);
+    this.targetPosition = Vec2.fromEntityComponent(
+      this.targetEntity,
+      PositionStore,
+    );
+    this.acceleration = Vec2.fromEntityComponent(eid, AccelerationStore);
   }
   set lastActiveTime(time: number) {
     LastActiveStore.time[this.eid] = Math.round(time);
@@ -44,6 +51,22 @@ export class Player {
 
   get lastActiveTime(): number {
     return LastActiveStore.time[this.eid];
+  }
+
+  get targetEntity(): EntityId {
+    return EntityStore.eid[this.eid] as EntityId;
+  }
+
+  set targetEntity(eid: EntityId) {
+    EntityStore.eid[this.eid] = eid;
+  }
+
+  get timeWarp(): number {
+    return TimeWarpStore.value[this.eid];
+  }
+
+  set timeWarp(value: number) {
+    TimeWarpStore.value[this.eid] = value;
   }
 
   get color(): ColorId {
@@ -84,10 +107,12 @@ const PlayerTagStore = ECS.defineComponent();
 const PositionStore = ECS.defineComponent(Vec2Type);
 const VelocityStore = ECS.defineComponent(Vec2Type);
 const AccelerationStore = ECS.defineComponent(Vec2Type);
+const EntityStore = ECS.defineComponent({ eid: ECS.Types.ui32 });
 // TODO remove
 const LastActiveStore = ECS.defineComponent({ time: ECS.Types.ui32 });
 const ColorStore = ECS.defineComponent({ value: ECS.Types.ui8 });
 const PoseStore = ECS.defineComponent({ value: ECS.Types.ui8 });
+const TimeWarpStore = ECS.defineComponent({ value: ECS.Types.i8 });
 
 export enum PoseType {
   facingLeft,
@@ -104,11 +129,13 @@ class PlayerStateApi {
     const player = new Player(eid);
     ECS.addComponent(this.world, PlayerTagStore, eid);
     ECS.addComponent(this.world, PositionStore, eid);
+    ECS.addComponent(this.world, PositionStore, player.targetEntity);
     ECS.addComponent(this.world, VelocityStore, eid);
     ECS.addComponent(this.world, AccelerationStore, eid);
     ECS.addComponent(this.world, LastActiveStore, eid);
     ECS.addComponent(this.world, ColorStore, eid);
     ECS.addComponent(this.world, PoseStore, eid);
+    ECS.addComponent(this.world, TimeWarpStore, eid);
     return player;
   }
 

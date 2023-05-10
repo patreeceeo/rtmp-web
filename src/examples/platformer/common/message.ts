@@ -69,14 +69,14 @@ const PlayerAdd = defMessageType<IPlayerAdd>(
 );
 
 interface IPlayerSnapshot extends INilPayload {
-  position: Vec2;
+  targetPosition: Vec2;
   velocity: Vec2;
   pose: PoseType;
 }
 
 const PlayerSnapshotSpec: IBufferProxyObjectSpec<IPlayerSnapshot> = Object
   .assign({}, NilPayloadSpec, {
-    position: Vec2Proxy,
+    targetPosition: Vec2Proxy,
     velocity: Vec2Proxy,
     pose: PrimitiveType.Uint8,
   });

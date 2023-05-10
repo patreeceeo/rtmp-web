@@ -1,82 +1,40 @@
 import { filter } from "../../common/Iterable.ts";
-import { IPayloadAny } from "../../common/Message.ts";
-import { NetworkId } from "../../common/NetworkApi.ts";
 import { MessageState } from "../../common/state/Message.ts";
+import { NetworkState } from "../../common/state/Network.ts";
 import { TraitState } from "../../common/state/Trait.ts";
 import {
   ISystemExecutionContext,
   SystemLoader,
 } from "../../common/systems/mod.ts";
 
-// TODO clean up this code
-
-let lastHandledStep = 0;
-
-// TODO(perf) objects are probably faster than maps here
-const firstReceivedSidByNid = new Map<NetworkId, number>();
-const serverSidAtFirstMessageByNid = new Map<NetworkId, number>();
-const commandQueueByNid = new Map<NetworkId, Array<[number, IPayloadAny]>>();
-export const commandsReadyToSnapshot: Array<[number, IPayloadAny]> = [];
-
-function updateMap<K, V>(
-  map: Map<K, V>,
-  key: K,
-  fn: (value: V) => V,
-  defaultValue: V,
-) {
-  const value = map.get(key);
-  map.set(key, fn(value || defaultValue));
-}
+let lastHandledStep = -1;
+let lastHandledCommandStep = -1;
 
 function exec(context: ISystemExecutionContext) {
+  let cmdCount = 0;
   for (const Trait of TraitState.getTypes()) {
     const commands = filter(
       MessageState.getCommandsByStepReceived(
-        lastHandledStep + 1,
+        lastHandledStep,
         MessageState.currentStep,
       ),
       ([commandType]) => commandType === Trait.commandType,
     );
     for (const command of commands) {
-      const payload = command[1];
-      if (!firstReceivedSidByNid.has(payload.nid)) {
-        firstReceivedSidByNid.set(payload.nid, payload.sid);
-        serverSidAtFirstMessageByNid.set(payload.nid, MessageState.currentStep);
+      cmdCount++;
+      const [_, payload] = command;
+      const eid = NetworkState.getEntityId(payload.nid)!;
+      const trait = TraitState.getTrait(Trait, eid);
+      // TODO pipeline this
+      if (trait && payload.sid > lastHandledCommandStep) {
+        trait.applyCommand(payload, context);
+        lastHandledCommandStep = payload.sid;
       }
-      updateMap(
-        commandQueueByNid,
-        payload.nid,
-        (queue) => {
-          queue.push(command);
-          return queue;
-        },
-        [],
-      );
     }
   }
-
-  // Due to network lag, we may have received commands in batches.
-  // But we need to apply them with the same timing that they were issued by the client, otherwise the server's simulation will diverge from the client's.
-  // TODO this currently assumes that the queue is sorted by sid
-  for (const [nid, queue] of commandQueueByNid.entries()) {
-    const firstClientSid = firstReceivedSidByNid.get(nid)!;
-    const serverSidAtFirstMessage = serverSidAtFirstMessageByNid.get(nid)!;
-    // approximate the client's current time
-    const clientSid = MessageState.currentStep - serverSidAtFirstMessage +
-      firstClientSid;
-    if (
-      queue.length > 0 &&
-      queue[0][1].sid <= clientSid
-    ) {
-      commandsReadyToSnapshot.push(queue.shift()!);
-    }
+  if (cmdCount === 0) {
+    // console.log("Zero cmds from", lastHandledStep + 1, "to", MessageState.currentStep);
   }
-
-  for (const [type, payload] of commandsReadyToSnapshot) {
-    const Trait = TraitState.getTypeByCommandType(type)!;
-    Trait.applyCommand(payload, context);
-  }
-
   lastHandledStep = MessageState.currentStep;
 }
 

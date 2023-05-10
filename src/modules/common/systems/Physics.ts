@@ -1,28 +1,27 @@
 import { PlayerState } from "../state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
-  ISimulateOptions,
-  simulateAcceleration,
-  SimulateOptions,
-  simulateVelocity,
+  simulatePositionWithVelocity,
+  simulateVelocityWithAcceleration,
 } from "../../../modules/common/functions/physics.ts";
-import { LevelState } from "../state/LevelState.ts";
-
-const reOptions: ISimulateOptions = new SimulateOptions();
+import { getPhysicsOptions } from "../functions/physicsHelpers.ts";
 
 function exec({ deltaTime }: ISystemExecutionContext) {
   for (const player of PlayerState.getPlayers()) {
-    reOptions.worldDimensions = LevelState.dimensions;
-    reOptions.maxVelocity = player.maxVelocity;
-    reOptions.friction = player.friction;
-    reOptions.hitBox = player.hitBox;
-    simulateAcceleration(
+    const options = getPhysicsOptions(player);
+    simulateVelocityWithAcceleration(
       player.velocity,
       player.acceleration,
       deltaTime,
-      reOptions,
+      options,
     );
-    simulateVelocity(player.position, player.velocity, deltaTime, reOptions);
+    simulatePositionWithVelocity(
+      player.position,
+      player.velocity,
+      deltaTime + player.timeWarp,
+      options,
+    );
+    player.timeWarp = 0;
   }
 }
 export const PhysicsSystem: SystemLoader = () => {

@@ -31,6 +31,7 @@ import { WasdMoveTrait } from "../common/traits.ts";
 import { PoseTween, PositionTween, VelocityTween } from "../common/tweens.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { DebugSystem } from "~/client/systems/DebugSystem.ts";
+import { TargetPhysicsSystem } from "../../../modules/common/systems/TargetPhysics.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -43,7 +44,7 @@ if (import.meta.hot) {
   });
 }
 
-OutputState.canvas.resolution.copy(LevelState.dimensions);
+OutputState.canvas.resolution.fromBox(LevelState.dimensions);
 
 export class DotsClientApp extends ClientApp {
   handleOpen(_server: WebSocket, _event: Event): void {
@@ -90,6 +91,7 @@ function handlePlayerAdded(
   const player = PlayerState.createPlayer();
   console.log("player nid:", nid);
   player.position.copy(position);
+  player.targetPosition.copy(position);
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
   if (isLocal) {
     TraitState.add(WasdMoveTrait, player.eid);
@@ -115,27 +117,29 @@ const inputPipeline = new Pipeline(
 );
 inputPipeline.start();
 
-const producerPipeline = new Pipeline(
+const fastPipeline = new Pipeline(
   [
     // TODO run these systems immediately after input, but without handling input events more than once
     TraitSystem(),
     ClientNetworkSystem(),
-  ],
-  new FixedIntervalDriver(8),
-);
-producerPipeline.start();
-
-const consumerPipeline = new Pipeline(
-  [
-    // TODO reconcile and tween should driven by the socket events but with some delay
-    ReconcileSystem(),
-    TweenSystem(),
     PhysicsSystem(),
     DebugSystem(),
   ],
-  new FixedIntervalDriver(20),
+  new FixedIntervalDriver(8),
 );
-consumerPipeline.start();
+fastPipeline.start();
+
+const slowPipeline = new Pipeline(
+  [
+    // TODO reconcile and tween should driven by the socket events but with some delay
+    TargetPhysicsSystem(), // TODO needs to run at least as often as PhysicsOptions.maxSteps
+    // TODO only testing local simulation for now
+    // ReconcileSystem(),
+    // TweenSystem(),
+  ],
+  new FixedIntervalDriver(40, true),
+);
+slowPipeline.start();
 
 startClient(app);
 
