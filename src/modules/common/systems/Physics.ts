@@ -23,7 +23,7 @@ export const PhysicsSystem: SystemLoader<
         player.targetPosition.copy(player.position);
         tempVelocityDelta.copy(player.velocity);
         // TODO understand why determineRestingPosition overshoots the eventual result of simulatePositionWithVelocity
-        tempVelocityDelta.extend(-0.2, tempVelocityDelta);
+        tempVelocityDelta.extend(-0.1, tempVelocityDelta);
         determineRestingPosition(
           player.targetPosition,
           tempVelocityDelta,
