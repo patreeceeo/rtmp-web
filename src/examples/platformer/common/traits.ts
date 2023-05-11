@@ -16,7 +16,7 @@ import {
 import { MessageState } from "../../../modules/common/state/Message.ts";
 import { ISystemExecutionContext } from "../../../modules/common/systems/mod.ts";
 
-const maxAcceleration = 0.005;
+const maxAcceleration = 0.003;
 
 const reAcceleration = new Vec2();
 export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
@@ -74,7 +74,7 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
       PlayerSnapshot,
       (p: IPlayerSnapshot) => {
         const player = this.#player;
-        p.position.copy(player.position);
+        p.position.copy(player.targetPosition);
         p.velocity.copy(player.velocity);
         p.pose = player.pose;
         p.nid = nid;
@@ -94,8 +94,8 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
   ) {
     const player = this.#player;
     player.lastActiveTime = context.elapsedTime;
-    player.position.copy(position);
-    player.velocity.copy(velocity);
+    player.targetPosition.copy(position);
+    player.targetVelocity.copy(velocity);
     player.pose = pose;
   }
 }

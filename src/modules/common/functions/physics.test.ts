@@ -81,13 +81,12 @@ Deno.test("deterministic physics: resting position with worldDimensions and nega
   assertEquals(position.x, 0);
 });
 
-Deno.test("deterministic physics: resting position with bounce, friction and worldDimensions", () => {
+Deno.test("deterministic physics: resting position with friction and worldDimensions", () => {
   const position = new Vec2(0, 0);
-  const velocity = new Vec2(3, 0); // space units per time unit squared
+  const velocity = new Vec2(3, 3); // space units per time unit squared
 
   const options = new SimulateOptions();
   options.worldDimensions = new Box(0, 0, 20, 6);
-  options.bounce = new Vec2(0, 3);
   options.friction = 1;
 
   determineRestingPosition(position, velocity, options);

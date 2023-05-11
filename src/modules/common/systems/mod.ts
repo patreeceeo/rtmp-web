@@ -119,7 +119,6 @@ export class DemandDriver implements IPipelineDriver {
     this.#exec = exec;
   }
   exec(context: ISystemExecutionContext) {
-    console.log(this.#exec);
     if (this.#exec) {
       this.#exec(context);
     }

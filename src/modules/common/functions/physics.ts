@@ -118,7 +118,7 @@ export function determineRestingPosition(
   velocity: IVec2Readonly,
   options: ISimulateOptions = defaultOptions,
 ) {
-  tempVelocity.copy(velocity).add(options.bounce, 1);
+  tempVelocity.copy(velocity);
   if (options.steadyAcceleration.isZero) {
     determinePositionWithVelocity(position, tempVelocity, Vec2.ZERO, options);
   } else {

@@ -5,8 +5,7 @@ import {
 } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { TraitState } from "../../common/state/Trait.ts";
-import { filter, last, map } from "../../common/Iterable.ts";
-import { PlayerState } from "../../common/state/Player.ts";
+import { filter, map } from "../../common/Iterable.ts";
 
 function exec(context: ISystemExecutionContext) {
   for (const nid of ClientNetworkState.getAllIds()) {
@@ -32,22 +31,11 @@ function exec(context: ISystemExecutionContext) {
         for (const payload of snapshotPayloadsForTrait) {
           const eid = ClientNetworkState.getEntityId(nid)!;
           const trait = TraitState.getTrait(Trait, eid);
-          const player = PlayerState.getPlayer(eid);
           if (trait) {
             if (payload.velocity.isZero) {
               MessageState.setLastHandledStepId(nid, lastReceivedSid);
             }
-            if (
-              !lastSentSid ||
-              (player.velocity.isZero && payload.velocity.isZero)
-            ) {
-              console.log(
-                "apply snapshot",
-                payload.position.snapshot,
-                payload.sid,
-              );
-              trait.applySnapshot(payload, context);
-            }
+            trait.applySnapshot(payload, context);
           }
         }
       }
