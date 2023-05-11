@@ -68,15 +68,16 @@ const PlayerAdd = defMessageType<IPlayerAdd>(
   PlayerAddSpec,
 );
 
+// TODO(perf) maybe this should be broken up into two messages
 interface IPlayerSnapshot extends INilPayload {
-  targetPosition: Vec2;
+  position: Vec2;
   velocity: Vec2;
   pose: PoseType;
 }
 
 const PlayerSnapshotSpec: IBufferProxyObjectSpec<IPlayerSnapshot> = Object
   .assign({}, NilPayloadSpec, {
-    targetPosition: Vec2Proxy,
+    position: Vec2Proxy,
     velocity: Vec2Proxy,
     pose: PrimitiveType.Uint8,
   });

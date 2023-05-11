@@ -14,7 +14,6 @@ import {
   sendPingToServer,
 } from "~/client/systems/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { TweenSystem } from "~/client/systems/Tween.ts";
 import { TweenState } from "~/client/state/Tween.ts";
 import { TraitSystem } from "~/client/systems/Trait.ts";
 import { OutputState } from "~/client/state/Output.ts";
@@ -31,7 +30,6 @@ import { WasdMoveTrait } from "../common/traits.ts";
 import { PoseTween, PositionTween, VelocityTween } from "../common/tweens.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { DebugSystem } from "~/client/systems/DebugSystem.ts";
-import { TargetPhysicsSystem } from "../../../modules/common/systems/TargetPhysics.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -93,9 +91,7 @@ function handlePlayerAdded(
   player.position.copy(position);
   player.targetPosition.copy(position);
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
-  if (isLocal) {
-    TraitState.add(WasdMoveTrait, player.eid);
-  }
+  TraitState.add(WasdMoveTrait, player.eid);
   TweenState.add(PositionTween, player.eid);
   TweenState.add(VelocityTween, player.eid);
   TweenState.add(PoseTween, player.eid);
@@ -112,34 +108,20 @@ function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
 const app = new DotsClientApp();
 
 const inputPipeline = new Pipeline(
-  [InputSystem()],
+  [InputSystem(), TraitSystem(), ClientNetworkSystem()],
   new EventQueueDriver(app.inputEvents),
 );
 inputPipeline.start();
 
 const fastPipeline = new Pipeline(
   [
-    // TODO run these systems immediately after input, but without handling input events more than once
-    TraitSystem(),
-    ClientNetworkSystem(),
-    PhysicsSystem(),
+    PhysicsSystem({ fixedDeltaTime: 8 }),
+    ReconcileSystem(),
     DebugSystem(),
   ],
   new FixedIntervalDriver(8),
 );
 fastPipeline.start();
-
-const slowPipeline = new Pipeline(
-  [
-    // TODO reconcile and tween should driven by the socket events but with some delay
-    TargetPhysicsSystem(), // TODO needs to run at least as often as PhysicsOptions.maxSteps
-    // TODO only testing local simulation for now
-    // ReconcileSystem(),
-    // TweenSystem(),
-  ],
-  new FixedIntervalDriver(40, true),
-);
-slowPipeline.start();
 
 startClient(app);
 

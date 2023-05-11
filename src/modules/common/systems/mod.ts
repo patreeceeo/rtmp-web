@@ -33,15 +33,18 @@ interface IPipelineDriver<
 > {
   start(exec: (context: TContext) => void, context: TContext): void;
   stop(): void;
+  exec?(context: TContext): void;
 }
 
 export class FixedIntervalDriver implements IPipelineDriver {
+  #exec?: (context: ISystemExecutionContext) => void;
   #interval?: number;
   constructor(readonly intervalMs: number, readonly leading = false) {}
   start(
     exec: (context: ISystemExecutionContext) => void,
     context: ISystemExecutionContext,
   ) {
+    this.#exec = exec;
     const onTick = () => exec(context);
     if (this.leading) {
       onTick();
@@ -50,6 +53,11 @@ export class FixedIntervalDriver implements IPipelineDriver {
   }
   stop() {
     clearInterval(this.#interval);
+  }
+  exec(context: ISystemExecutionContext) {
+    if (this.#exec) {
+      this.#exec(context);
+    }
   }
 }
 
@@ -101,6 +109,25 @@ export class AnimationDriver implements IPipelineDriver {
   }
 }
 
+export class DemandDriver implements IPipelineDriver {
+  #exec?: (context: ISystemExecutionContext) => void;
+  constructor() {}
+  start(
+    exec: (context: ISystemExecutionContext) => void,
+    _context: ISystemExecutionContext,
+  ) {
+    this.#exec = exec;
+  }
+  exec(context: ISystemExecutionContext) {
+    console.log(this.#exec);
+    if (this.#exec) {
+      this.#exec(context);
+    }
+  }
+  stop() {
+  }
+}
+
 export class Pipeline<
   TContext extends ISystemExecutionContext = ISystemExecutionContext,
 > {
@@ -144,5 +171,14 @@ export class Pipeline<
   stop() {
     this.driver.stop();
     clearInterval(this.#interval);
+  }
+  exec() {
+    if (this.driver.exec) {
+      this.driver.exec({
+        deltaTime: NaN,
+        elapsedTime: 0,
+        pauseTime: 0,
+      } as unknown as TContext);
+    }
   }
 }

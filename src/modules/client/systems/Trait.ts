@@ -36,6 +36,7 @@ function exec(context: ISystemExecutionContext) {
 
   for (const [Trait, [msgType, write]] of traitCommands) {
     const payload = MessageState.addCommand(msgType, write);
+    MessageState.setLastSentStepId(payload.nid, payload.sid);
     const eid = NetworkState.getEntityId(payload.nid)!;
     const trait = TraitState.getTrait(Trait, eid);
     if (trait) {

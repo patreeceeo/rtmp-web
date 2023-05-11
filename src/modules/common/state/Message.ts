@@ -33,6 +33,7 @@ const BUFFER_SIZE_BYTES = (2 ** 20) * (isClient ? 1 : 8);
  */
 export class MessageStateApi {
   // TODO maybe there should only be one buffer for all commands, snapshots, etc
+  // TODO(server) each client should have their own buffer?
   #commandBuffer = new ArrayBuffer(BUFFER_SIZE_BYTES);
   #commandBufferView = new DataViewMovable(this.#commandBuffer, {
     isCircular: true,
@@ -41,6 +42,7 @@ export class MessageStateApi {
   #commandsByStepCreated = new SetRing(MAX_LAG, BUFFER_SIZE_BYTES);
   #commandsByStepReceived = new SetRing(MAX_LAG, BUFFER_SIZE_BYTES);
   #lastSentStepId = 0;
+  #lastSentStepIdMap: Array<number> = [];
   #lastReceivedStepIdMap: Array<number> = [];
   #lastHandledStepIdMap: Array<number> = [];
 
@@ -48,12 +50,15 @@ export class MessageStateApi {
     return Math.floor(performance.now());
   }
 
+  setLastSentStepId(nid: NetworkId, sid: number) {
+    this.#lastSentStepId = sid;
+    this.#lastSentStepIdMap[nid] = sid;
+  }
+  getLastSentStepId(nid: NetworkId) {
+    return this.#lastSentStepIdMap[nid];
+  }
   get lastSentStepId() {
     return this.#lastSentStepId;
-  }
-
-  set lastSentStepId(sid: number) {
-    this.#lastSentStepId = sid;
   }
 
   getLastReceivedStepId(nid: NetworkId) {

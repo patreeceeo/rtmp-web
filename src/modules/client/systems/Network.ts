@@ -5,17 +5,18 @@ import { sendIfOpen } from "../../common/socket.ts";
 import { DataViewMovable } from "../../common/DataView.ts";
 import { PingMsg } from "../../../examples/platformer/common/message.ts";
 
+let lastHandledStep = -1;
 export const ClientNetworkSystem: SystemLoader = () => {
   function exec() {
     for (
       const view of MessageState.getCommandDataViewsByStepCreated(
-        MessageState.lastSentStepId + 1,
+        lastHandledStep + 1,
         MessageState.currentStep,
       )
     ) {
       sendMessageToServer(view);
     }
-    MessageState.lastSentStepId = MessageState.currentStep;
+    lastHandledStep = MessageState.currentStep;
   }
   return { exec };
 };

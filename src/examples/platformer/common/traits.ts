@@ -3,11 +3,7 @@ import { Just, Nothing } from "../../../modules/common/Maybe.ts";
 import { NetworkId } from "../../../modules/common/NetworkApi.ts";
 import { InputState } from "../../../modules/common/state/Input.ts";
 import { NetworkState } from "../../../modules/common/state/Network.ts";
-import {
-  Player,
-  PlayerState,
-  PoseType,
-} from "../../../modules/common/state/Player.ts";
+import { Player, PlayerState } from "../../../modules/common/state/Player.ts";
 import { EntityId } from "../../../modules/common/state/mod.ts";
 import { Vec2 } from "~/common/Vec2.ts";
 import { MaybeAddMessageParameters, Trait } from "~/common/state/Trait.ts";
@@ -30,8 +26,6 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
   readonly #player: Player;
   #lastDdx = 0;
   #lastDdy = 0;
-  #lastCommandStep = 0;
-  #lastLocalStep = 0;
 
   constructor(readonly entityId: EntityId) {
     this.#nid = NetworkState.getId(this.entityId)!;
@@ -41,26 +35,28 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
     return this.constructor as typeof WasdMoveTrait;
   }
   getCommandMaybe() {
-    let ddx = 0,
-      ddy = 0;
-    if (InputState.isButtonPressed(Button.KeyA)) {
-      ddx = -1;
-    }
-    if (InputState.isButtonPressed(Button.KeyW)) {
-      ddy = -1;
-    }
-    if (InputState.isButtonPressed(Button.KeyS)) {
-      ddy = 1;
-    }
-    if (InputState.isButtonPressed(Button.KeyD)) {
-      ddx = 1;
-    }
-    if (ddx !== this.#lastDdx || ddy !== this.#lastDdy) {
-      reAcceleration.set(ddx, ddy);
-      reAcceleration.clamp(maxAcceleration);
-      this.#lastDdx = ddx;
-      this.#lastDdy = ddy;
-      return this.#justCommand;
+    if (NetworkState.isLocal(this.#nid)) {
+      let ddx = 0,
+        ddy = 0;
+      if (InputState.isButtonPressed(Button.KeyA)) {
+        ddx = -1;
+      }
+      if (InputState.isButtonPressed(Button.KeyW)) {
+        ddy = -1;
+      }
+      if (InputState.isButtonPressed(Button.KeyS)) {
+        ddy = 1;
+      }
+      if (InputState.isButtonPressed(Button.KeyD)) {
+        ddx = 1;
+      }
+      if (ddx !== this.#lastDdx || ddy !== this.#lastDdy) {
+        reAcceleration.set(ddx, ddy);
+        reAcceleration.clamp(maxAcceleration);
+        this.#lastDdx = ddx;
+        this.#lastDdy = ddy;
+        return this.#justCommand;
+      }
     }
     return Nothing();
   }
@@ -78,8 +74,7 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
       PlayerSnapshot,
       (p: IPlayerSnapshot) => {
         const player = this.#player;
-        p.targetPosition.copy(player.targetPosition);
-        // TODO is this correct?
+        p.position.copy(player.position);
         p.velocity.copy(player.velocity);
         p.pose = player.pose;
         p.nid = nid;
@@ -87,37 +82,20 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
       },
     ]) as MaybeAddMessageParameters<IPlayerSnapshot>;
   }
-  applyCommand({ nid, acceleration, sid }: IPlayerMove) {
+  applyCommand(
+    { acceleration }: IPlayerMove,
+  ) {
     const player = this.#player;
-    // console.log("acceleration", acceleration.snapshot, "sid", sid);
     player.acceleration.copy(acceleration);
-    player.pose = acceleration.x == 0
-      ? player.pose
-      : acceleration.x > 0
-      ? PoseType.facingRight
-      : PoseType.facingLeft;
-    // The difference in the deltaTime according to the commands and the deltaTime according to the local system
-
-    player.timeWarp = Math.max(
-      0,
-      sid -
-        this.#lastCommandStep -
-        (MessageState.currentStep - this.#lastLocalStep),
-    );
-    // console.log("client deltaTime", sid - this.lastCommandStep, "server deltaTime", MessageState.currentStep - this.lastLocalStep, "timeWarp", player.timeWarp);
-    this.#lastCommandStep = sid;
-    this.#lastLocalStep = MessageState.currentStep;
   }
   applySnapshot(
-    { nid, pose, targetPosition, velocity }: IPlayerSnapshot,
+    { pose, position, velocity }: IPlayerSnapshot,
     context: ISystemExecutionContext,
   ) {
     const player = this.#player;
-    player.targetPosition.copy(targetPosition);
-    // For now, we don't need to send velocity because we're assuming it will come to a stop
+    player.lastActiveTime = context.elapsedTime;
+    player.position.copy(position);
     player.velocity.copy(velocity);
     player.pose = pose;
-    // TODO what if lastActiveTime is changed by more than just moving?
-    player.lastActiveTime = context.elapsedTime;
   }
 }

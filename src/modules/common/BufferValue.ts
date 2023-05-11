@@ -202,6 +202,7 @@ export function createBufferProxyObjectConstructor<
         const instance = Klass === null ? this : new Klass();
         let nextByteOffset = byteOffset;
         const byteLength = getByteLength(validFields);
+        // TODO this doesn't work if the same property is written to more than once
         let bytesRemainingSelf = byteLength;
         const meta = Object.create(null, {
           spec: {

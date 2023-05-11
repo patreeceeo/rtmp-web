@@ -4,92 +4,52 @@ import {
   SystemLoader,
 } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import {
-  ITraitConstructor,
-  ITraitConstructorAny,
-  TraitState,
-} from "../../common/state/Trait.ts";
+import { TraitState } from "../../common/state/Trait.ts";
 import { filter, last, map } from "../../common/Iterable.ts";
-import { IPayloadAny } from "../../common/Message.ts";
+import { PlayerState } from "../../common/state/Player.ts";
 
 function exec(context: ISystemExecutionContext) {
-  // TODO This code is confusing. First it loops through all local entities, then
-  // nested-loops through all snapshots, regardless of whether they're for local
-  // entities or not, then says it's handled the last received step for each local
-  // entity. This seems, at best, innefficient.
-  for (const nid of ClientNetworkState.getLocalIds()) {
+  for (const nid of ClientNetworkState.getAllIds()) {
     const lastReceivedSid = MessageState.getLastReceivedStepId(nid);
-    const lastSentSid = MessageState.lastSentStepId;
-    // TODO these if statements feel wrong
+    const lastSentSid = MessageState.getLastSentStepId(nid);
     if (
-      lastReceivedSid < lastSentSid &&
+      (lastReceivedSid === lastSentSid || !lastSentSid) &&
       lastReceivedSid > MessageState.getLastHandledStepId(nid)
     ) {
       for (const Trait of TraitState.getTypes()) {
-        const snapshots = map(
+        const snapshotPayloadsForTrait = map(
           filter(
             MessageState.getSnapshotsByCommandStepCreated(
               lastReceivedSid,
               lastReceivedSid,
             ),
-            ([type, payload]) =>
-              type === Trait.snapshotType && payload.nid === nid,
+            ([type, payload]) => {
+              return payload.nid === nid && type === Trait.snapshotType;
+            },
           ),
           ([_type, payload]) => payload,
         );
-
-        const commands = map(
-          filter(
-            MessageState.getCommandsByStepCreated(
-              lastReceivedSid + 1,
-              lastSentSid,
-            ),
-            ([type]) => type === Trait.commandType,
-          ),
-          ([_type, payload]) => payload,
-        );
-        reconcile(
-          snapshots,
-          commands,
-          Trait,
-          context,
-        );
-      }
-      // TODO it's be reconciled but not completely handled, needs to be tweened
-      // MessageState.setLastHandledStepId(nid, lastReceivedSid);
-    }
-  }
-}
-
-/**
- * Sometimes, especially when there's network lag, the server sends back snapshots
- * that correspond to commands that are one or more steps behind what the client has
- * sent, and since snapshots specify absolute values for state while commands specify
- * deltas, the old snapshots, if simply applied, would take the client back to an old
- * state. Instead, this function applies new snapshots for a given type, then applies
- * commands that have been sent since the corresponding command of the most recently
- * received snapshot.
- *
- * TODO apply commands that have been issued since snapshot was created
- */
-function reconcile<
-  CommandPayload extends IPayloadAny,
-  SnapshotPayload extends IPayloadAny,
->(
-  snapshots: Iterable<SnapshotPayload>,
-  commands: Iterable<CommandPayload>,
-  Trait: ITraitConstructor<CommandPayload, SnapshotPayload>,
-  context: ISystemExecutionContext,
-) {
-  const snapshotToApply = last(snapshots);
-  const commandToApply = last(commands);
-  if (snapshotToApply) {
-    const eid = ClientNetworkState.getEntityId(snapshotToApply.nid)!;
-    const trait = TraitState.getTrait(Trait, eid);
-    if (trait) {
-      trait.applySnapshot(snapshotToApply, context);
-      if (commandToApply) {
-        trait.applyCommand(commandToApply, context);
+        for (const payload of snapshotPayloadsForTrait) {
+          const eid = ClientNetworkState.getEntityId(nid)!;
+          const trait = TraitState.getTrait(Trait, eid);
+          const player = PlayerState.getPlayer(eid);
+          if (trait) {
+            if (payload.velocity.isZero) {
+              MessageState.setLastHandledStepId(nid, lastReceivedSid);
+            }
+            if (
+              !lastSentSid ||
+              (player.velocity.isZero && payload.velocity.isZero)
+            ) {
+              console.log(
+                "apply snapshot",
+                payload.position.snapshot,
+                payload.sid,
+              );
+              trait.applySnapshot(payload, context);
+            }
+          }
+        }
       }
     }
   }

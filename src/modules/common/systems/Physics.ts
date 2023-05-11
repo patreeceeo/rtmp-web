@@ -1,4 +1,4 @@
-import { PlayerState } from "../state/Player.ts";
+import { PlayerState, PoseType } from "../state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
   simulatePositionWithVelocity,
@@ -6,24 +6,31 @@ import {
 } from "../../../modules/common/functions/physics.ts";
 import { getPhysicsOptions } from "../functions/physicsHelpers.ts";
 
-function exec({ deltaTime }: ISystemExecutionContext) {
-  for (const player of PlayerState.getPlayers()) {
-    const options = getPhysicsOptions(player);
-    simulateVelocityWithAcceleration(
-      player.velocity,
-      player.acceleration,
-      deltaTime,
-      options,
-    );
-    simulatePositionWithVelocity(
-      player.position,
-      player.velocity,
-      deltaTime + player.timeWarp,
-      options,
-    );
-    player.timeWarp = 0;
+export const PhysicsSystem: SystemLoader<
+  ISystemExecutionContext,
+  [{ fixedDeltaTime: number }]
+> = ({ fixedDeltaTime }) => {
+  function exec() {
+    for (const player of PlayerState.getPlayers()) {
+      const options = getPhysicsOptions(player);
+      player.pose = player.acceleration.x == 0
+        ? player.pose
+        : player.acceleration.x > 0
+        ? PoseType.facingRight
+        : PoseType.facingLeft;
+      simulateVelocityWithAcceleration(
+        player.velocity,
+        player.acceleration,
+        fixedDeltaTime,
+        options,
+      );
+      simulatePositionWithVelocity(
+        player.position,
+        player.velocity,
+        fixedDeltaTime,
+        options,
+      );
+    }
   }
-}
-export const PhysicsSystem: SystemLoader = () => {
   return { exec };
 };

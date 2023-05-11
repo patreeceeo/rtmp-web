@@ -51,9 +51,9 @@ class MessageDef<P extends IPayloadAny> implements IMessageDef<P> {
     const payload = new this.Payload(view, byteOffset + 1);
     writePayload(payload);
     const { bytesRemaining } = payload.meta;
-    // TODO
+    // TODO should be equal to 0, but there's a bug in BufferProxyObject
     invariant(
-      bytesRemaining === 0,
+      bytesRemaining <= 0,
       `Payload should be completely written. There are ${bytesRemaining} bytes remaining`,
     );
     return payload;

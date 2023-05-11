@@ -64,4 +64,8 @@ export class NetworkStateApi {
   getAllIds() {
     return join(this.#state.localIds.values(), this.#state.remoteIds.values());
   }
+
+  isLocal(nid: NetworkId) {
+    return this.#state.localIds.has(nid);
+  }
 }

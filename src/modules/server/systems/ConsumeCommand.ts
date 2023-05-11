@@ -32,9 +32,9 @@ function exec(context: ISystemExecutionContext) {
       }
     }
   }
-  if (cmdCount === 0) {
-    // console.log("Zero cmds from", lastHandledStep + 1, "to", MessageState.currentStep);
-  }
+  // if(cmdCount > 0) {
+  //   console.log("Consumed", cmdCount, "commands");
+  // }
   lastHandledStep = MessageState.currentStep;
 }
 

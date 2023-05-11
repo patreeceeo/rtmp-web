@@ -2,6 +2,7 @@ import "../mod.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { NetworkSystem } from "~/server/systems/Network.ts";
 import {
+  DemandDriver,
   FixedIntervalDriver,
   Pipeline,
   SystemPartial,
@@ -111,28 +112,29 @@ class DotsServerApp implements ServerApp {
       ping?.setReceived();
     } else {
       MessageState.copyCommandFrom(view);
+      handleMessagePipeline.exec();
     }
   }
 }
 
-const fastPipeline = new Pipeline(
+const handleMessagePipeline = new Pipeline(
   [
     ConsumeCommandSystem(),
-    PhysicsSystem(),
+    PhysicsSystem({ fixedDeltaTime: 8 }), // fixedDeltaTime matches the client
   ],
-  new FixedIntervalDriver(10),
+  new DemandDriver(),
 );
-fastPipeline.start();
+handleMessagePipeline.start();
 
-const mediumPipeline = new Pipeline(
+const fastPipeline = new Pipeline(
   [
-    TargetPhysicsSystem(),
+    PhysicsSystem({ fixedDeltaTime: 30 }), // fixedDeltaTime matches that interval of this pipeline
     ProduceSnapshotSystem(),
     NetworkSystem(),
   ],
-  new FixedIntervalDriver(20, true),
+  new FixedIntervalDriver(30),
 );
-mediumPipeline.start();
+fastPipeline.start();
 
 const slowPipeline = new Pipeline(
   [

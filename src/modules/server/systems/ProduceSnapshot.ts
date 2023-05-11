@@ -8,40 +8,45 @@ import {
   SystemLoader,
 } from "../../common/systems/mod.ts";
 
-let lastHandledStep = 0;
 function exec(context: ISystemExecutionContext) {
-  for (const Trait of TraitState.getTypes()) {
-    const commands = filter(
-      MessageState.getCommandsByStepReceived(
-        lastHandledStep + 1,
-        MessageState.currentStep,
-      ),
-      ([commandType]) => commandType === Trait.commandType,
-    );
-    const snapshots = flattenMaybes(
-      map(
-        commands,
-        ([_type, payload]) => {
-          // was making these instance methods really a good idea?
-          const eid = NetworkState.getEntityId(payload.nid)!;
-          const trait = TraitState.getTrait(Trait, eid);
-          if (trait) {
-            return trait.getSnapshotMaybe(payload, context);
+  for (const nid of NetworkState.getAllIds()) {
+    for (const Trait of TraitState.getTypes()) {
+      const commands = filter(
+        MessageState.getCommandsByStepReceived(
+          MessageState.getLastHandledStepId(nid) + 1,
+          MessageState.currentStep,
+        ),
+        ([commandType, payload]) =>
+          payload.nid === nid && commandType === Trait.commandType,
+      );
+      const snapshots = flattenMaybes(
+        map(
+          commands,
+          ([_type, payload]) => {
+            // was making these instance methods really a good idea?
+            const eid = NetworkState.getEntityId(nid)!;
+            const trait = TraitState.getTrait(Trait, eid);
+            if (trait) {
+              return trait.getSnapshotMaybe(payload, context);
+            }
+            return Nothing();
+          },
+        ),
+      );
+      for (const [type, write] of snapshots) {
+        const payload = MessageState.addSnapshot(type, write);
+        const eid = NetworkState.getEntityId(payload.nid)!;
+        const trait = TraitState.getTrait(Trait, eid);
+        if (trait) {
+          if (payload.velocity.isZero) {
+            MessageState.setLastHandledStepId(nid, payload.sid);
           }
-          return Nothing();
-        },
-      ),
-    );
-    for (const [type, write] of snapshots) {
-      const payload = MessageState.addSnapshot(type, write);
-      const eid = NetworkState.getEntityId(payload.nid)!;
-      const trait = TraitState.getTrait(Trait, eid);
-      if (trait) {
-        trait.applySnapshot(payload, context);
+          trait.applySnapshot(payload, context);
+          MessageState.addSnapshot(type, write);
+        }
       }
     }
   }
-  lastHandledStep = MessageState.currentStep;
 }
 
 export const ProduceSnapshotSystem: SystemLoader = () => {

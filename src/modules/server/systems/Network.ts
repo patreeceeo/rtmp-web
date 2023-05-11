@@ -5,11 +5,12 @@ import { PingMsg } from "../../../examples/platformer/common/message.ts";
 import { average, filter } from "../../common/Iterable.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 
+let lastHandledStep = -1;
 export const NetworkSystem: SystemLoader = () => {
   function exec() {
     for (
       const view of MessageState.getSnapshotDataViewsByStepCreated(
-        MessageState.lastSentStepId + 1,
+        lastHandledStep + 1,
         MessageState.currentStep,
       )
     ) {
@@ -20,7 +21,7 @@ export const NetworkSystem: SystemLoader = () => {
         view,
       );
     }
-    MessageState.lastSentStepId = MessageState.currentStep;
+    lastHandledStep = MessageState.currentStep;
     // Play a little ping pong to calculate average network round-trip time
     // TODO delete this
     const ping = new Ping(MessageState.currentStep);
