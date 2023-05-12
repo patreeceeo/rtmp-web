@@ -5,7 +5,6 @@ import {
   DemandDriver,
   FixedIntervalDriver,
   Pipeline,
-  SystemPartial,
 } from "~/common/systems/mod.ts";
 import {
   broadcastMessage,
@@ -27,7 +26,6 @@ import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { readMessage } from "../../../modules/common/Message.ts";
 import { PingState } from "../../../modules/common/state/Ping.ts";
 import { PurgeSystem } from "../../../modules/server/systems/PurgeSystem.ts";
-import { TargetPhysicsSystem } from "../../../modules/common/systems/TargetPhysics.ts";
 
 const idleTimeout = 300;
 
