@@ -3,6 +3,7 @@ import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import {
   AnimationDriver,
+  DemandDriver,
   EventQueueDriver,
   FixedIntervalDriver,
   Pipeline,
@@ -70,10 +71,11 @@ export class DotsClientApp extends ClientApp {
         sendPingToServer(payload.id);
         break;
       }
-      default:
-        // console.log("received message", payload.meta.pojo)
+      default: {
         // TODO payload gets read twice
         MessageState.copySnapshotFrom(view);
+        handleMessagePipeline.exec();
+      }
     }
   }
   handleIdle(): void {
@@ -113,10 +115,17 @@ const inputPipeline = new Pipeline(
 );
 inputPipeline.start();
 
+const handleMessagePipeline = new Pipeline(
+  [
+    ReconcileSystem(),
+  ],
+  new DemandDriver(),
+);
+handleMessagePipeline.start();
+
 const fastPipeline = new Pipeline(
   [
     PhysicsSystem({ fixedDeltaTime: 8 }),
-    ReconcileSystem(),
     DebugSystem(),
   ],
   new FixedIntervalDriver(8),
