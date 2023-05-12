@@ -12,7 +12,7 @@ let lastHandledStep = -1;
 const lastHandledCommandStep = new Map<NetworkId, number>();
 
 function exec(context: ISystemExecutionContext) {
-  let cmdCount = 0;
+  // let cmdCount = 0;
   for (const Trait of TraitState.getTypes()) {
     const commands = filter(
       MessageState.getCommandsByStepReceived(
@@ -22,7 +22,7 @@ function exec(context: ISystemExecutionContext) {
       ([commandType]) => commandType === Trait.commandType,
     );
     for (const command of commands) {
-      cmdCount++;
+      // cmdCount++;
       const [_, payload] = command;
       const eid = NetworkState.getEntityId(payload.nid)!;
       const trait = TraitState.getTrait(Trait, eid);
