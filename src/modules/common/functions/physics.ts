@@ -197,6 +197,10 @@ export function simulatePositionWithVelocity(
   deltaTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {
+  if (options.friction) {
+    velocity.extend(-options.friction * deltaTime, velocity);
+  }
+
   accumulate(position, deltaTime, velocity);
 
   if (options.worldDimensions) {
@@ -219,10 +223,6 @@ export function simulatePositionWithVelocity(
       velocity.y = 0;
       position.y = options.worldDimensions.yMax;
     }
-  }
-
-  if (options.friction) {
-    velocity.extend(-options.friction * deltaTime, velocity);
   }
 }
 

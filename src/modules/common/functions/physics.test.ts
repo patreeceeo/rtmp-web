@@ -16,6 +16,7 @@ const originalPosition = new Vec2();
 Deno.test("deterministic physics: resting position with velocity & friction", () => {
   const position = new Vec2();
   const velocity = new Vec2(3, 3); // space units per time unit squared
+  originalPosition.copy(position);
   originalVelocity.copy(velocity);
 
   const options = new SimulateOptions();
@@ -23,9 +24,17 @@ Deno.test("deterministic physics: resting position with velocity & friction", ()
   determineRestingPosition(position, velocity, options);
 
   // since x and y velocities are equal, the friction divided is divided evenly between them
-  assertEquals(position.x, 2.5 + 2 + 1.5 + 1 + 0.5);
-  assertEquals(position.y, 2.5 + 2 + 1.5 + 1 + 0.5);
+  const expected = 2.5 + 2 + 1.5 + 1 + 0.5;
+  assertEquals(position.x, expected);
+  assertEquals(position.y, expected);
   assertEquals(velocity, originalVelocity);
+
+  position.copy(originalPosition);
+  while (!velocity.isZero) {
+    simulatePositionWithVelocity(position, velocity, 1, options);
+  }
+  assertEquals(position.x, expected);
+  assertEquals(position.y, expected);
 });
 
 Deno.test("deterministic physics: resting position Infinity because zero friction", () => {
@@ -51,12 +60,22 @@ Deno.test("deterministic physics: resting position unchanged because zero veloci
 Deno.test("deterministic physics: resting position with friction and negative velocity", () => {
   const position = new Vec2(20, 0);
   const velocity = new Vec2(-3, 0); // space units per time unit squared
+  originalPosition.copy(position);
 
   const options = new SimulateOptions();
   options.friction = 1;
 
   determineRestingPosition(position, velocity, options);
-  assertEquals(position.x, 20 - 2 - 1);
+
+  const expected = 20 - 2 - 1;
+  assertEquals(position.x, expected);
+
+  position.copy(originalPosition);
+  while (!velocity.isZero) {
+    simulatePositionWithVelocity(position, velocity, 1, options);
+  }
+
+  assertEquals(position.x, expected);
 });
 
 Deno.test("deterministic physics: resting position with worldDimensions", () => {
