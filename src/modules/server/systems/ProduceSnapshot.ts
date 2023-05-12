@@ -79,11 +79,13 @@ function exec(context: ISystemExecutionContext) {
             const playerIsAtTarget = player.targetPosition.almostEquals(
               player.position,
             );
+            const intermediateUpdateInterval = 2 /
+              Math.sqrt(player.velocity.lengthSquared);
             const timeSinceLastUpdate = context.elapsedTime -
               (lastUpdatedTime.get(nid) ?? -1);
             if (
               playerIsAtTarget ||
-              timeSinceLastUpdate > INTERMEDIATE_SNAPSHOT_UPDATE_INTERVAL_MIN
+              timeSinceLastUpdate > intermediateUpdateInterval
             ) {
               const payload = MessageState.addSnapshot(type, write);
               trait.applySnapshot(payload, context);

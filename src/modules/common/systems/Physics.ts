@@ -27,14 +27,15 @@ export const PhysicsSystem: SystemLoader<
         tempPositionDelta.lengthSquared > 0.1
       ) {
         tempPositionDelta.clamp(
-          Math.max(0.1, Math.sqrt(player.velocity.lengthSquared)),
+          Math.max(0.1, Math.sqrt(player.velocity.lengthSquared)) *
+            fixedDeltaTime,
         );
         player.position.add(tempPositionDelta);
       }
       tempVelocityDelta.copy(player.targetVelocity).sub(player.velocity);
       if (tempVelocityDelta.lengthSquared > 0.01) {
         tempVelocityDelta.copy(player.targetVelocity).sub(player.velocity);
-        player.velocity.add(tempVelocityDelta, 0.5);
+        player.velocity.add(tempVelocityDelta, fixedDeltaTime / 400);
       }
       player.pose = player.acceleration.x == 0
         ? player.pose
@@ -53,6 +54,12 @@ export const PhysicsSystem: SystemLoader<
         fixedDeltaTime,
         options,
       );
+      // if(!player.acceleration.isZero) {
+      //   console.log("acceleration sq", player.acceleration.lengthSquared);
+      // }
+      // if(!player.velocity.isZero) {
+      //   console.log("velocity sq", player.velocity.lengthSquared, fixedDeltaTime);
+      // }
     }
   }
   return { exec };
