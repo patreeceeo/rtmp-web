@@ -49,6 +49,10 @@ function drawBackground() {
   } = OutputState;
   const ctx = context2d!;
   ctx.clearRect(0, 0, resolution.x, resolution.y);
+  if (DebugState.enabled) {
+    ctx.strokeStyle = "blue";
+    ctx.strokeRect(0, 0, resolution.x, resolution.y);
+  }
 }
 
 function drawTweenHelpers() {
