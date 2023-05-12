@@ -36,8 +36,8 @@ export const PhysicsSystem: SystemLoader<
         tempPositionDelta.lengthSquared > 0.1
       ) {
         tempPositionDelta.clamp(
-          Math.max(0.1, Math.sqrt(player.velocity.lengthSquared)) *
-            fixedDeltaTime,
+          Math.max(0.1, Math.sqrt(player.targetVelocity.lengthSquared)) *
+            fixedDeltaTime / 2,
         );
         player.position.add(tempPositionDelta);
       }
