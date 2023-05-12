@@ -29,7 +29,6 @@ export const PhysicsSystem: SystemLoader<
       }
       tempPositionDelta.copy(player.targetPosition).sub(player.position);
       if (
-        player.velocity.lengthSquared < 0.02 &&
         tempPositionDelta.lengthSquared > 0.1
       ) {
         tempPositionDelta.clamp(
