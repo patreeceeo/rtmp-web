@@ -58,17 +58,8 @@ function drawTweenHelpers() {
   const ctx = context2d!;
 
   const players = PlayerState.getPlayers();
-  const positionTweenPairs = map(
-    filter(
-      players,
-      (player) =>
-        TweenState.has(PositionTween, player.eid) &&
-        TweenState.isActive(PositionTween, player.eid),
-    ),
-    (player) => [TweenState.get(PositionTween, player.eid)!, player] as const,
-  );
-  for (const [tween, player] of positionTweenPairs) {
-    const { x, y } = tween.end;
+  for (const player of players) {
+    const { x, y } = player.targetPosition;
     const { h, w } = player.hitBox;
     ctx.strokeStyle = "red";
     ctx.strokeRect(x, y, w, h);
