@@ -1,7 +1,6 @@
 import { PlayerState, PoseType } from "../state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
-  determineRestingPosition,
   simulatePositionWithVelocity,
   simulateVelocityWithAcceleration,
 } from "../../../modules/common/functions/physics.ts";
@@ -21,12 +20,6 @@ export const PhysicsSystem: SystemLoader<
       const options = getPhysicsOptions(player);
       if (!isClient) {
         player.targetPosition.copy(player.position);
-        tempVelocityDelta.copy(player.velocity);
-        determineRestingPosition(
-          player.targetPosition,
-          tempVelocityDelta,
-          options,
-        );
       }
       tempPositionDelta.copy(player.targetPosition).sub(player.position);
       if (
