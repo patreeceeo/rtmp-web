@@ -8,6 +8,8 @@ import {
 import { getPhysicsOptions } from "../functions/physicsHelpers.ts";
 import { isClient } from "../env.ts";
 import { Vec2 } from "../Vec2.ts";
+import { MessageState } from "../state/Message.ts";
+import { NetworkState } from "../state/Network.ts";
 
 const tempPositionDelta = new Vec2();
 const tempVelocityDelta = new Vec2();
@@ -22,10 +24,13 @@ export const PhysicsSystem: SystemLoader<
       if (!isClient) {
         player.targetPosition.copy(player.position);
       } else {
-        // predict target position while waiting for authoritative snapshot
-        // TODO this can cause clients to be slightly out-of-sync with each other, usually the last
-        // snapshot for a command is applied after or near when the velocity in the local simulation has reached zero
-        player.targetPosition.add(player.velocity, fixedDeltaTime);
+        const nid = NetworkState.getId(player.eid)!;
+        if (
+          MessageState.lastSentStepId > MessageState.getLastReceivedStepId(nid)
+        ) {
+          // predict target position while waiting for authoritative snapshot
+          player.targetPosition.add(player.velocity, fixedDeltaTime);
+        }
       }
       tempPositionDelta.copy(player.targetPosition).sub(player.position);
       if (
