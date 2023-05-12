@@ -22,8 +22,6 @@ export const PhysicsSystem: SystemLoader<
       if (!isClient) {
         player.targetPosition.copy(player.position);
         tempVelocityDelta.copy(player.velocity);
-        // TODO understand why determineRestingPosition overshoots the eventual result of simulatePositionWithVelocity
-        tempVelocityDelta.scale(0.5);
         determineRestingPosition(
           player.targetPosition,
           tempVelocityDelta,
@@ -35,7 +33,10 @@ export const PhysicsSystem: SystemLoader<
         player.velocity.lengthSquared < 0.02 &&
         tempPositionDelta.lengthSquared > 0.1
       ) {
-        player.position.add(tempPositionDelta, 0.1);
+        tempPositionDelta.clamp(
+          Math.max(0.1, Math.sqrt(player.velocity.lengthSquared)),
+        );
+        player.position.add(tempPositionDelta);
       }
       tempVelocityDelta.copy(player.targetVelocity).sub(player.velocity);
       if (tempVelocityDelta.lengthSquared > 0.01) {
