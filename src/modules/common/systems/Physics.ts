@@ -1,7 +1,6 @@
 import { PlayerState, PoseType } from "../state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
-  determineRestingPosition,
   simulatePositionWithVelocity,
   simulateVelocityWithAcceleration,
 } from "../../../modules/common/functions/physics.ts";
@@ -10,7 +9,6 @@ import { isClient } from "../env.ts";
 import { Vec2 } from "../Vec2.ts";
 
 const tempPositionDelta = new Vec2();
-const tempVelocityDelta = new Vec2();
 
 export const PhysicsSystem: SystemLoader<
   ISystemExecutionContext,
@@ -36,11 +34,6 @@ export const PhysicsSystem: SystemLoader<
             fixedDeltaTime,
         );
         player.position.add(tempPositionDelta);
-      }
-      tempVelocityDelta.copy(player.targetVelocity).sub(player.velocity);
-      if (tempVelocityDelta.lengthSquared > 0.01) {
-        tempVelocityDelta.copy(player.targetVelocity).sub(player.velocity);
-        player.velocity.add(tempVelocityDelta, fixedDeltaTime / 400);
       }
       player.pose = player.acceleration.x == 0
         ? player.pose

@@ -28,7 +28,6 @@ export class Player {
   readonly position: Vec2;
   readonly targetPosition: Vec2;
   readonly velocity: Vec2;
-  readonly targetVelocity: Vec2;
   readonly acceleration: Vec2;
   readonly maxVelocity = 0.2;
   readonly maxVelocitySq = this.maxVelocity ** 2;
@@ -43,10 +42,6 @@ export class Player {
     this.targetPosition = Vec2.fromEntityComponent(
       this.targetEntity,
       PositionStore,
-    );
-    this.targetVelocity = Vec2.fromEntityComponent(
-      this.targetEntity,
-      VelocityStore,
     );
     this.acceleration = Vec2.fromEntityComponent(eid, AccelerationStore);
   }
