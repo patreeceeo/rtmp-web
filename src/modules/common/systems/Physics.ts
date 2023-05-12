@@ -1,6 +1,7 @@
 import { PlayerState, PoseType } from "../state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
+  determineRestingPosition,
   simulatePositionWithVelocity,
   simulateVelocityWithAcceleration,
 } from "../../../modules/common/functions/physics.ts";
@@ -20,6 +21,11 @@ export const PhysicsSystem: SystemLoader<
       const options = getPhysicsOptions(player);
       if (!isClient) {
         player.targetPosition.copy(player.position);
+      } else {
+        // predict target position while waiting for authoritative snapshot
+        // TODO this can cause clients to be slightly out-of-sync with each other, usually the last
+        // snapshot for a command is applied after or near when the velocity in the local simulation has reached zero
+        player.targetPosition.add(player.velocity, fixedDeltaTime);
       }
       tempPositionDelta.copy(player.targetPosition).sub(player.position);
       if (
