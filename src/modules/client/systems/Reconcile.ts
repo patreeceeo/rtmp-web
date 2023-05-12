@@ -6,14 +6,19 @@ import {
 import { MessageState } from "~/common/state/Message.ts";
 import { TraitState } from "../../common/state/Trait.ts";
 import { filter, map } from "../../common/Iterable.ts";
+import { NetworkId } from "../../common/NetworkApi.ts";
 
+const lastAppliedSnapshotStep = new Map<NetworkId, number>();
 function exec(context: ISystemExecutionContext) {
   for (const nid of ClientNetworkState.getAllIds()) {
     const lastReceivedSid = MessageState.getLastReceivedStepId(nid);
     const lastSentSid = MessageState.getLastSentStepId(nid);
+    const stepsSinceApplyingSnapshot = MessageState.currentStep -
+      lastAppliedSnapshotStep.get(nid)!;
     if (
       (lastReceivedSid === lastSentSid || !lastSentSid) &&
-      lastReceivedSid > MessageState.getLastHandledStepId(nid)
+        lastReceivedSid >= MessageState.getLastHandledStepId(nid) ||
+      stepsSinceApplyingSnapshot > 100
     ) {
       for (const Trait of TraitState.getTypes()) {
         const snapshotPayloadsForTrait = map(
@@ -35,6 +40,7 @@ function exec(context: ISystemExecutionContext) {
             if (payload.velocity.isZero) {
               MessageState.setLastHandledStepId(nid, lastReceivedSid);
             }
+            lastAppliedSnapshotStep.set(nid, MessageState.currentStep);
             trait.applySnapshot(payload, context);
           }
         }
