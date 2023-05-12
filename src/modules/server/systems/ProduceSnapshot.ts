@@ -1,6 +1,7 @@
 import { filter, map } from "../../common/Iterable.ts";
 import { flattenMaybes, Nothing } from "../../common/Maybe.ts";
 import { IPayloadAny } from "../../common/Message.ts";
+import { NetworkId } from "../../common/NetworkApi.ts";
 import { MessageState } from "../../common/state/Message.ts";
 import { NetworkState } from "../../common/state/Network.ts";
 import { PlayerState } from "../../common/state/Player.ts";
@@ -10,13 +11,19 @@ import {
   SystemLoader,
 } from "../../common/systems/mod.ts";
 
+const lastCompletedCommandStep = new Map<NetworkId, number>();
+const lastUpdatedTime = new Map<NetworkId, number>();
+
+/** limit intermediate update snapshots to 5hz */
+const INTERMEDIATE_SNAPSHOT_UPDATE_INTERVAL_MIN = 1000 / 5;
+
 function exec(context: ISystemExecutionContext) {
   for (const nid of NetworkState.getAllIds()) {
     for (const Trait of TraitState.getTypes()) {
       const commands = map(
         filter(
           MessageState.getCommandsByStepCreated(
-            MessageState.getLastHandledStepId(nid) + 1, // client's step
+            (lastCompletedCommandStep.get(nid) ?? -1) + 1, // client's step
             MessageState.currentStep, // the server's step will always be ahead of all clients
           ),
           ([commandType, payload]) =>
@@ -45,16 +52,26 @@ function exec(context: ISystemExecutionContext) {
           }),
         );
         for (const [type, write] of snapshots) {
-          const payload = MessageState.addSnapshot(type, write);
-          const eid = NetworkState.getEntityId(payload.nid)!;
+          const eid = NetworkState.getEntityId(nid)!;
           const trait = TraitState.getTrait(Trait, eid);
           if (trait && PlayerState.hasPlayer(eid)) {
             const player = PlayerState.getPlayer(eid);
-            if (player.targetPosition.equals(player.position)) {
-              MessageState.setLastHandledStepId(nid, payload.sid);
+            const playerIsAtTarget = player.targetPosition.almostEquals(
+              player.position,
+            );
+            const timeSinceLastUpdate = context.elapsedTime -
+              (lastUpdatedTime.get(nid) ?? -1);
+            if (
+              playerIsAtTarget ||
+              timeSinceLastUpdate > INTERMEDIATE_SNAPSHOT_UPDATE_INTERVAL_MIN
+            ) {
+              const payload = MessageState.addSnapshot(type, write);
+              trait.applySnapshot(payload, context);
+              lastUpdatedTime.set(nid, context.elapsedTime);
+              if (playerIsAtTarget) {
+                lastCompletedCommandStep.set(nid, payload.sid);
+              }
             }
-            trait.applySnapshot(payload, context);
-            MessageState.addSnapshot(type, write);
           }
         }
       }
