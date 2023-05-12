@@ -1,4 +1,5 @@
 import { filter } from "../../common/Iterable.ts";
+import { NetworkId } from "../../common/NetworkApi.ts";
 import { MessageState } from "../../common/state/Message.ts";
 import { NetworkState } from "../../common/state/Network.ts";
 import { TraitState } from "../../common/state/Trait.ts";
@@ -8,7 +9,7 @@ import {
 } from "../../common/systems/mod.ts";
 
 let lastHandledStep = -1;
-let lastHandledCommandStep = -1;
+const lastHandledCommandStep = new Map<NetworkId, number>();
 
 function exec(context: ISystemExecutionContext) {
   let cmdCount = 0;
@@ -26,9 +27,11 @@ function exec(context: ISystemExecutionContext) {
       const eid = NetworkState.getEntityId(payload.nid)!;
       const trait = TraitState.getTrait(Trait, eid);
       // TODO pipeline this
-      if (trait && payload.sid > lastHandledCommandStep) {
+      if (
+        trait && payload.sid > (lastHandledCommandStep.get(payload.nid) ?? -1)
+      ) {
         trait.applyCommand(payload, context);
-        lastHandledCommandStep = payload.sid;
+        lastHandledCommandStep.set(payload.nid, payload.sid);
       }
     }
   }
