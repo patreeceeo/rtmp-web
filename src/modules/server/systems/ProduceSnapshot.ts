@@ -48,8 +48,8 @@ function exec(context: ISystemExecutionContext) {
           const payload = MessageState.addSnapshot(type, write);
           const eid = NetworkState.getEntityId(payload.nid)!;
           const trait = TraitState.getTrait(Trait, eid);
-          const player = PlayerState.getPlayer(eid);
-          if (trait) {
+          if (trait && PlayerState.hasPlayer(eid)) {
+            const player = PlayerState.getPlayer(eid);
             if (player.targetPosition.equals(player.position)) {
               MessageState.setLastHandledStepId(nid, payload.sid);
             }
