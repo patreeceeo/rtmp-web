@@ -89,15 +89,13 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
     player.acceleration.copy(acceleration);
   }
   applySnapshot(
-    { pose, position, velocity, nid }: IPlayerSnapshot,
+    { pose, position, velocity }: IPlayerSnapshot,
     context: ISystemExecutionContext,
   ) {
     const player = this.#player;
     player.lastActiveTime = context.elapsedTime;
     player.targetPosition.copy(position);
-    if (!NetworkState.isLocal(nid)) {
-      player.velocity.copy(velocity);
-    }
+    player.targetVelocity.copy(velocity);
     player.pose = pose;
   }
 }

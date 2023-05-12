@@ -118,7 +118,7 @@ class DotsServerApp implements ServerApp {
 const handleMessagePipeline = new Pipeline(
   [
     ConsumeCommandSystem(),
-    PhysicsSystem({ fixedDeltaTime: 8 }), // fixedDeltaTime slighty longer than that of client
+    PhysicsSystem({ fixedDeltaTime: 80 }), // fixedDeltaTime slighty longer than that of client
   ],
   new DemandDriver(),
 );
