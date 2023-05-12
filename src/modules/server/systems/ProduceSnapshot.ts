@@ -11,20 +11,35 @@ import {
   SystemLoader,
 } from "../../common/systems/mod.ts";
 
-const lastCompletedCommandStep = new Map<NetworkId, number>();
+/** TODO should also map each trait */
+const activeCommandForTraitPerClient = new Map<
+  number,
+  Map<NetworkId, IPayloadAny>
+>();
 const lastUpdatedTime = new Map<NetworkId, number>();
+
+const setDefault = <K, V>(map: Map<K, V>, key: K, value: V) => {
+  if (!map.has(key)) {
+    map.set(key, value);
+  }
+};
 
 /** limit intermediate update snapshots to 5hz */
 const INTERMEDIATE_SNAPSHOT_UPDATE_INTERVAL_MIN = 1000 / 5;
 
+/** Ignore commands received more than a certain number of steps ago */
+const COMMAND_WINDOW = 500;
+
 function exec(context: ISystemExecutionContext) {
   for (const nid of NetworkState.getAllIds()) {
     for (const Trait of TraitState.getTypes()) {
+      setDefault(activeCommandForTraitPerClient, Trait.commandType, new Map());
       const commands = map(
         filter(
-          MessageState.getCommandsByStepCreated(
-            (lastCompletedCommandStep.get(nid) ?? -1) + 1, // client's step
-            MessageState.currentStep, // the server's step will always be ahead of all clients
+          MessageState.getCommandsByStepReceived(
+            // Ignore commands received more than 1/2 second ago
+            Math.max(0, MessageState.currentStep - COMMAND_WINDOW),
+            MessageState.currentStep,
           ),
           ([commandType, payload]) =>
             payload.nid === nid && commandType === Trait.commandType,
@@ -32,9 +47,14 @@ function exec(context: ISystemExecutionContext) {
         ([_, payload]) => payload,
       );
 
-      let lastCommand: IPayloadAny | undefined;
+      let lastCommand = activeCommandForTraitPerClient.get(Trait.commandType)!
+        .get(nid);
       for (const command of commands) {
         if (!lastCommand || command.sid > lastCommand.sid) {
+          activeCommandForTraitPerClient.get(Trait.commandType)!.set(
+            nid,
+            command,
+          );
           lastCommand = command;
         }
       }
@@ -69,7 +89,9 @@ function exec(context: ISystemExecutionContext) {
               trait.applySnapshot(payload, context);
               lastUpdatedTime.set(nid, context.elapsedTime);
               if (playerIsAtTarget) {
-                lastCompletedCommandStep.set(nid, payload.sid);
+                activeCommandForTraitPerClient.get(Trait.commandType)!.delete(
+                  nid,
+                );
               }
             }
           }
