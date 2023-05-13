@@ -26,15 +26,19 @@ export interface Trait<
   getCommandMaybe(
     context: ISystemExecutionContext,
   ): MaybeAddMessageParameters<CommandPayload>;
+  getSnapshotMaybe(
+    command: CommandPayload,
+    context: ISystemExecutionContext,
+  ): MaybeAddMessageParameters<SnapshotPayload>;
+  shouldApplySnapshot(
+    payload: SnapshotPayload,
+    context: ISystemExecutionContext,
+  ): boolean;
   applyCommand(payload: CommandPayload, context: ISystemExecutionContext): void;
   applySnapshot(
     payload: SnapshotPayload,
     context: ISystemExecutionContext,
   ): void;
-  getSnapshotMaybe(
-    command: CommandPayload,
-    context: ISystemExecutionContext,
-  ): MaybeAddMessageParameters<SnapshotPayload>;
 }
 export type TraitAny = Trait<IPayloadAny, IPayloadAny>;
 

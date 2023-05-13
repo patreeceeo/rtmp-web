@@ -23,13 +23,7 @@ export const PhysicsSystem: SystemLoader<
       if (!isClient) {
         player.targetPosition.copy(player.position);
       } else {
-        const nid = NetworkState.getId(player.eid)!;
-        if (
-          MessageState.lastSentStepId > MessageState.getLastReceivedStepId(nid)
-        ) {
-          // predict target position while waiting for authoritative snapshot
-          player.targetPosition.add(player.velocity, fixedDeltaTime);
-        }
+        player.targetPosition.add(player.velocity, fixedDeltaTime);
       }
       tempPositionDelta.copy(player.targetPosition).sub(player.position);
       if (
