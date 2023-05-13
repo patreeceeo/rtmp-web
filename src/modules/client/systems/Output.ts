@@ -1,11 +1,8 @@
 import { OutputState } from "~/client/state/Output.ts";
-import { Player, PlayerState, PoseType } from "~/common/state/Player.ts";
-import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
-import { PositionTween } from "../../../examples/platformer/common/tweens.ts";
-import { filter, map, toArray } from "../../common/Iterable.ts";
+import { PlayerState, PoseType } from "~/common/state/Player.ts";
+import { SystemLoader } from "~/common/systems/mod.ts";
 import { DebugState } from "../state/Debug.ts";
 import { Sprite, SpriteState, SpriteType } from "../state/Sprite.ts";
-import { TweenState } from "../state/Tween.ts";
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
