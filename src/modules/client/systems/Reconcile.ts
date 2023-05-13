@@ -7,6 +7,7 @@ import { MessageState } from "~/common/state/Message.ts";
 import { TraitState } from "../../common/state/Trait.ts";
 import { filter, map } from "../../common/Iterable.ts";
 import { NetworkId } from "../../common/NetworkApi.ts";
+import { NetworkState } from "../../common/state/Network.ts";
 
 const lastAppliedSnapshotStep = new Map<NetworkId, number>();
 function exec(context: ISystemExecutionContext) {
@@ -15,10 +16,10 @@ function exec(context: ISystemExecutionContext) {
     const lastSentSid = MessageState.getLastSentStepId(nid);
     const stepsSinceApplyingSnapshot = MessageState.currentStep -
       lastAppliedSnapshotStep.get(nid)!;
+    const isLocal = NetworkState.isLocal(nid);
     if (
-      (lastReceivedSid === lastSentSid || !lastSentSid) &&
-        lastReceivedSid >= MessageState.getLastHandledStepId(nid) ||
-      stepsSinceApplyingSnapshot > 100
+      lastReceivedSid >= MessageState.getLastHandledStepId(nid) ||
+      stepsSinceApplyingSnapshot > 5
     ) {
       for (const Trait of TraitState.getTypes()) {
         const snapshotPayloadsForTrait = map(
@@ -28,7 +29,12 @@ function exec(context: ISystemExecutionContext) {
               lastReceivedSid,
             ),
             ([type, payload]) => {
-              return payload.nid === nid && type === Trait.snapshotType;
+              console.log(payload.sid, lastSentSid);
+              return (
+                payload.nid === nid &&
+                type === Trait.snapshotType &&
+                (payload.sid === lastSentSid || !isLocal)
+              );
             },
           ),
           ([_type, payload]) => payload,
@@ -36,10 +42,8 @@ function exec(context: ISystemExecutionContext) {
         for (const payload of snapshotPayloadsForTrait) {
           const eid = ClientNetworkState.getEntityId(nid)!;
           const trait = TraitState.getTrait(Trait, eid);
-          if (trait) {
-            if (payload.velocity.isZero) {
-              MessageState.setLastHandledStepId(nid, lastReceivedSid);
-            }
+          if (trait?.shouldApplySnapshot(payload, context)) {
+            MessageState.setLastHandledStepId(nid, lastReceivedSid);
             lastAppliedSnapshotStep.set(nid, MessageState.currentStep);
             trait.applySnapshot(payload, context);
           }
