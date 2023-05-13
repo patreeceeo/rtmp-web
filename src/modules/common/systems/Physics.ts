@@ -7,8 +7,6 @@ import {
 import { getPhysicsOptions } from "../functions/physicsHelpers.ts";
 import { isClient } from "../env.ts";
 import { Vec2 } from "../Vec2.ts";
-import { MessageState } from "../state/Message.ts";
-import { NetworkState } from "../state/Network.ts";
 
 const tempPositionDelta = new Vec2();
 const tempVelocityDelta = new Vec2();
