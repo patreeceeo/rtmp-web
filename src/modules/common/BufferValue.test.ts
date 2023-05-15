@@ -2,6 +2,7 @@ import * as asserts from "asserts";
 import { IVec2, Vec2 } from "./Vec2.ts";
 import {
   createBufferProxyObjectConstructor,
+  Int24Box,
   PrimitiveType,
   Vec2Proxy,
 } from "./BufferValue.ts";
@@ -121,6 +122,24 @@ Deno.test("createBufferProxyObjectConstructor: pojo", () => {
     position: { x: 22, y: 33 },
     isEvil: true,
   });
+});
+
+Deno.test("Int24Box", () => {
+  const buf = new DataViewMovable(new ArrayBuffer(128));
+  const int24 = new Int24Box();
+
+  const testValues = [2 ** 8 / 2, 2 ** 8 + 1, 2 ** 16 + 1, 2 ** 23 - 1];
+
+  for (const v of testValues) {
+    int24.write(buf, 0, v);
+
+    asserts.assertEquals(int24.read(buf, 0), v);
+  }
+  for (const v of testValues) {
+    int24.write(buf, 0, -v);
+
+    asserts.assertEquals(int24.read(buf, 0), -v);
+  }
 });
 
 // TODO test reading/writing at every possible position in a buffer

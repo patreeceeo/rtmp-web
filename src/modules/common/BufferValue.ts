@@ -99,6 +99,20 @@ class NetworkIdBox implements IBufferPrimativeBox<NetworkId> {
     buf.setUint16(offset, value);
   }
 }
+export class Int24Box implements IBufferPrimativeBox<number> {
+  byteLength = 3;
+  read(buf: DataViewMovable, offset: number): number {
+    const val = buf.getUint8(offset) |
+      (buf.getUint8(offset + 1) << 8) |
+      (buf.getUint8(offset + 2) << 16);
+    return (val << 8) >> 8; // This line is used to extend the sign bit
+  }
+  write(buf: DataViewMovable, offset: number, value: number): void {
+    buf.setUint8(offset, value & 0xff);
+    buf.setUint8(offset + 1, (value >> 8) & 0xff);
+    buf.setUint8(offset + 2, (value >> 16) & 0xff);
+  }
+}
 
 export const PrimitiveType = {
   // TypeScript is so stupid sometimes...
@@ -112,6 +126,7 @@ export const PrimitiveType = {
   Float64: new Float64Box(),
   StepId: new StepIdBox(),
   NetworkId: new NetworkIdBox(),
+  Int24: new Int24Box(),
 };
 
 export type IBufferPrimativeBoxBoolean =
@@ -121,8 +136,7 @@ export type IBufferPrimativeBoxBoolean =
 export type IBufferValue<
   Iface,
   Klass extends Iface = Iface,
-> // deno-lint-ignore no-explicit-any
- = Iface extends Record<string, any>
+> = Iface extends Record<string, any> // deno-lint-ignore no-explicit-any
   ? Iface extends OpaqueType<string> ? IBufferPrimativeBox<Iface>
   : IBufferProxyObjectConstructor<Partial<Iface>, Klass>
   : IBufferPrimativeBox<Iface>;
@@ -172,13 +186,15 @@ const ERROR_MESSAGE_RESERVED_FIELD_NAME = "`meta` is a reserved field name";
 export type IBufferProxyObjectSpec<
   Iface extends Record<string, any>,
   Klass extends Iface = Iface,
-> = Iface extends // deno-lint-ignore no-explicit-any
-{ meta: any } ? typeof ERROR_MESSAGE_RESERVED_FIELD_NAME
+> = Iface extends { meta: any } // deno-lint-ignore no-explicit-any
+  ? typeof ERROR_MESSAGE_RESERVED_FIELD_NAME
   : {
     [K in keyof Iface]: K extends keyof Iface ? IBufferValue<Iface[K], Klass[K]>
       : never | "missing key";
   };
 
+// TODO change this to not instantiate the boxes, let the definitions of objects do that so that they can specifiy the offset in the array buffer relative to the start of the object for each box, so that
+// we can have multiple properties with their own representation of the same data.
 export function createBufferProxyObjectConstructor<
   // deno-lint-ignore no-explicit-any
   Iface extends Record<string, any>,
@@ -254,11 +270,7 @@ export function createBufferProxyObjectConstructor<
           if ("isObject" in fieldCoder) {
             const proxy = new (fieldCoder as IBufferProxyObjectConstructor<
               Klass[keyof Iface]
-            >)(
-              buf,
-              fieldByteOffset,
-              options,
-            );
+            >)(buf, fieldByteOffset, options);
             proxy.meta.byteOffset = fieldByteOffset;
             fieldDescriptor.get = () => proxy;
           } else {
@@ -270,11 +282,7 @@ export function createBufferProxyObjectConstructor<
             if ("isObject" in fieldCoder) {
               const proxy = new (fieldCoder as IBufferProxyObjectConstructor<
                 Klass[keyof Iface]
-              >)(
-                buf,
-                fieldByteOffset,
-                options,
-              );
+              >)(buf, fieldByteOffset, options);
               fieldDescriptor.set = (v: Iface[keyof Iface]) => {
                 for (const key of Object.keys(proxy.meta.spec)) {
                   // deno-lint-ignore no-explicit-any
@@ -308,7 +316,10 @@ export function asPlainObject<T extends Record<string, any>>(
   return proxy as T;
 }
 
-export const Vec2Proxy = createBufferProxyObjectConstructor<IVec2, Vec2>({
-  x: PrimitiveType.Float64,
-  y: PrimitiveType.Float64,
-}, Vec2);
+export const Vec2Proxy = createBufferProxyObjectConstructor<IVec2, Vec2>(
+  {
+    x: PrimitiveType.Float64,
+    y: PrimitiveType.Float64,
+  },
+  Vec2,
+);
