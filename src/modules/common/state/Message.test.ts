@@ -6,7 +6,7 @@ import {
   MAX_MESSAGE_BYTE_LENGTH,
 } from "../../common/Message.ts";
 import { map, toArray } from "../Iterable.ts";
-import { PrimitiveType } from "../BufferValue.ts";
+import { PrimitiveValue } from "../BufferValue.ts";
 import { NetworkId } from "../NetworkApi.ts";
 
 interface ITestPayload {
@@ -14,8 +14,8 @@ interface ITestPayload {
   nid: number;
 }
 const TestMsg = defMessageType<ITestPayload>(0, {
-  sid: PrimitiveType.Uint8,
-  nid: PrimitiveType.Uint8,
+  sid: [0, PrimitiveValue.Uint8],
+  nid: [1, PrimitiveValue.Uint8],
 });
 
 function mapPayloadNid(iter: Iterable<[unknown, IPayloadAny]>) {

@@ -1,6 +1,6 @@
 import {
   IBufferProxyObjectSpec,
-  PrimitiveType,
+  PrimitiveValue,
   Vec2Proxy,
 } from "../../../modules/common/BufferValue.ts";
 import { defMessageType } from "../../../modules/common/Message.ts";
@@ -32,8 +32,8 @@ interface INilPayload {
 }
 
 const NilPayloadSpec: IBufferProxyObjectSpec<INilPayload> = {
-  nid: PrimitiveType.NetworkId,
-  sid: PrimitiveType.StepId,
+  nid: [0, PrimitiveValue.NetworkId],
+  sid: [2, PrimitiveValue.StepId],
 };
 
 defMessageType<INilPayload>(MsgType.nil, NilPayloadSpec);
@@ -44,7 +44,7 @@ interface IPingMsg {
 
 const PingMsgSpec: IBufferProxyObjectSpec<IPingMsg> = {
   // TODO(perf) This could probably be a uint8, since any ping that hasn't been ponged less than 256 steps ago is probably a lost cause
-  id: PrimitiveType.StepId,
+  id: [10, PrimitiveValue.StepId],
 };
 
 const PingMsg = defMessageType<IPingMsg>(MsgType.ping, PingMsgSpec);
@@ -54,14 +54,10 @@ interface IPlayerAdd extends INilPayload {
   isLocal: boolean;
 }
 
-const PlayerAddSpec: IBufferProxyObjectSpec<IPlayerAdd> = Object.assign(
-  {},
-  NilPayloadSpec,
-  {
-    position: Vec2Proxy,
-    isLocal: PrimitiveType.Bool,
-  },
-);
+const PlayerAddSpec = Object.assign({}, NilPayloadSpec, {
+  position: [10, Vec2Proxy],
+  isLocal: [26, PrimitiveValue.Bool],
+}) as IBufferProxyObjectSpec<IPlayerAdd>;
 
 const PlayerAdd = defMessageType<IPlayerAdd>(
   MsgType.playerAdded,
@@ -75,12 +71,11 @@ interface IPlayerSnapshot extends INilPayload {
   pose: PoseType;
 }
 
-const PlayerSnapshotSpec: IBufferProxyObjectSpec<IPlayerSnapshot> = Object
-  .assign({}, NilPayloadSpec, {
-    position: Vec2Proxy,
-    velocity: Vec2Proxy,
-    pose: PrimitiveType.Uint8,
-  });
+const PlayerSnapshotSpec = Object.assign({}, NilPayloadSpec, {
+  position: [10, Vec2Proxy],
+  velocity: [26, Vec2Proxy],
+  pose: [42, PrimitiveValue.Uint8],
+}) as IBufferProxyObjectSpec<IPlayerSnapshot>;
 
 const PlayerSnapshot = defMessageType<IPlayerSnapshot>(
   MsgType.playerSnapshot,
@@ -100,13 +95,13 @@ interface IPlayerMove extends INilPayload {
   acceleration: Vec2;
 }
 
-const PlayerMoveSpec: IBufferProxyObjectSpec<IPlayerMove> = Object.assign(
+const PlayerMoveSpec = Object.assign(
   {},
   NilPayloadSpec,
   {
-    acceleration: Vec2Proxy,
+    acceleration: [10, Vec2Proxy],
   },
-);
+) as IBufferProxyObjectSpec<IPlayerMove>;
 
 const PlayerMove = defMessageType<IPlayerMove>(
   MsgType.playerMoved,

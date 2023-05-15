@@ -9,7 +9,7 @@ import { OpaqueType } from "./state/mod.ts";
 import { NetworkId } from "./state/Network.ts";
 import { IVec2, Vec2 } from "./Vec2.ts";
 
-export interface IBufferPrimativeBox<Type, BoxType = Type> {
+export interface IBufferPrimativeValue<Type, BoxType = Type> {
   byteLength: number;
   read(buf: DataViewMovable, offset: number): BoxType;
   write(buf: DataViewMovable, offset: number, value: Type): void;
@@ -25,121 +25,118 @@ export interface IBufferPrimativeBox<Type, BoxType = Type> {
 //     buf.setUint8(offset, value ? 1 : 0);
 //   }
 // }
-class BoolBox implements IBufferPrimativeBox<boolean> {
-  byteLength = 1;
-  read(buf: DataViewMovable, offset: number): boolean {
+class BoolValue {
+  static byteLength = 1;
+  static read(buf: DataViewMovable, offset: number): boolean {
     return buf.getBool(offset);
   }
-  write(buf: DataViewMovable, offset: number, value: boolean): void {
+  static write(buf: DataViewMovable, offset: number, value: boolean): void {
     buf.setBool(offset, value);
   }
 }
 
-class Uint8Box implements IBufferPrimativeBox<number> {
-  byteLength = 1;
-  read(buf: DataViewMovable, offset: number): number {
+class Uint8Value {
+  static byteLength = 1;
+  static read(buf: DataViewMovable, offset: number): number {
     return buf.getUint8(offset);
   }
-  write(buf: DataViewMovable, offset: number, value: number): void {
+  static write(buf: DataViewMovable, offset: number, value: number): void {
     buf.setUint8(offset, value);
   }
 }
 
-class Uint16Box implements IBufferPrimativeBox<number> {
-  byteLength = 2;
-  read(buf: DataViewMovable, offset: number): number {
+class Uint16Value {
+  static byteLength = 2;
+  static read(buf: DataViewMovable, offset: number): number {
     return buf.getUint16(offset);
   }
-  write(buf: DataViewMovable, offset: number, value: number): void {
+  static write(buf: DataViewMovable, offset: number, value: number): void {
     buf.setUint16(offset, value);
   }
 }
-class Int16Box implements IBufferPrimativeBox<number> {
-  byteLength = 2;
-  read(buf: DataViewMovable, offset: number): number {
+
+class Int16Value {
+  static byteLength = 2;
+  static read(buf: DataViewMovable, offset: number): number {
     return buf.getInt16(offset);
   }
-  write(buf: DataViewMovable, offset: number, value: number): void {
+  static write(buf: DataViewMovable, offset: number, value: number): void {
     buf.setInt16(offset, value);
   }
 }
-class BigUint64Box implements IBufferPrimativeBox<bigint> {
-  byteLength = 2;
-  read(buf: DataViewMovable, offset: number): bigint {
+class BigUint64Value {
+  static byteLength = 2;
+  static read(buf: DataViewMovable, offset: number): bigint {
     return buf.getBigUint64(offset);
   }
-  write(buf: DataViewMovable, offset: number, value: bigint): void {
+  static write(buf: DataViewMovable, offset: number, value: bigint): void {
     buf.setBigUint64(offset, value);
   }
 }
-class Float64Box implements IBufferPrimativeBox<number> {
-  byteLength = 8;
-  read(buf: DataViewMovable, offset: number): number {
+class Float64Value {
+  static byteLength = 8;
+  static read(buf: DataViewMovable, offset: number): number {
     return buf.getFloat64(offset);
   }
-  write(buf: DataViewMovable, offset: number, value: number): void {
+  static write(buf: DataViewMovable, offset: number, value: number): void {
     buf.setFloat64(offset, value);
   }
 }
-class StepIdBox implements IBufferPrimativeBox<number> {
-  byteLength = 8;
-  read(buf: DataViewMovable, offset: number): number {
+class StepIdValue {
+  static byteLength = 8;
+  static read(buf: DataViewMovable, offset: number): number {
     return buf.getFloat64(offset);
   }
-  write(buf: DataViewMovable, offset: number, value: number): void {
+  static write(buf: DataViewMovable, offset: number, value: number): void {
     buf.setFloat64(offset, value);
   }
 }
-class NetworkIdBox implements IBufferPrimativeBox<NetworkId> {
-  byteLength = 2;
-  read(buf: DataViewMovable, offset: number): NetworkId {
+class NetworkIdValue {
+  static byteLength = 2;
+  static read(buf: DataViewMovable, offset: number): NetworkId {
     return buf.getUint16(offset) as NetworkId;
   }
-  write(buf: DataViewMovable, offset: number, value: NetworkId): void {
+  static write(buf: DataViewMovable, offset: number, value: NetworkId): void {
     buf.setUint16(offset, value);
   }
 }
-export class Int24Box implements IBufferPrimativeBox<number> {
-  byteLength = 3;
-  read(buf: DataViewMovable, offset: number): number {
+export class Int24Value {
+  static byteLength = 3;
+  static read(buf: DataViewMovable, offset: number): number {
     const val = buf.getUint8(offset) |
       (buf.getUint8(offset + 1) << 8) |
       (buf.getUint8(offset + 2) << 16);
     return (val << 8) >> 8; // This line is used to extend the sign bit
   }
-  write(buf: DataViewMovable, offset: number, value: number): void {
+  static write(buf: DataViewMovable, offset: number, value: number): void {
     buf.setUint8(offset, value & 0xff);
     buf.setUint8(offset + 1, (value >> 8) & 0xff);
     buf.setUint8(offset + 2, (value >> 16) & 0xff);
   }
 }
 
-export const PrimitiveType = {
+export const PrimitiveValue = {
   // TypeScript is so stupid sometimes...
-  Bool: new BoolBox() as
-    | IBufferPrimativeBox<boolean, true>
-    | IBufferPrimativeBox<boolean, false>,
-  Uint8: new Uint8Box(),
-  Uint16: new Uint16Box(),
-  Int16: new Int16Box(),
-  BigUint64: new BigUint64Box(),
-  Float64: new Float64Box(),
-  StepId: new StepIdBox(),
-  NetworkId: new NetworkIdBox(),
-  Int24: new Int24Box(),
+  Bool: BoolValue as
+    | IBufferPrimativeValue<boolean, true>
+    | IBufferPrimativeValue<boolean, false>,
+  Uint8: Uint8Value as IBufferPrimativeValue<number>,
+  Uint16: Uint16Value as IBufferPrimativeValue<number>,
+  Int16: Int16Value as IBufferPrimativeValue<number>,
+  BigUint64: BigUint64Value as IBufferPrimativeValue<bigint>,
+  Float64: Float64Value as IBufferPrimativeValue<number>,
+  StepId: StepIdValue as IBufferPrimativeValue<number>,
+  NetworkId: NetworkIdValue as IBufferPrimativeValue<NetworkId>,
+  Int24: Int24Value as IBufferPrimativeValue<number>,
 };
-
-export type IBufferPrimativeBoxBoolean =
-  | IBufferPrimativeBox<true>
-  | IBufferPrimativeBox<false>;
 
 export type IBufferValue<
   Iface,
   Klass extends Iface = Iface,
 > = Iface extends Record<string, any> // deno-lint-ignore no-explicit-any
-  ? Iface extends OpaqueType<string> ? IBufferPrimativeBox<Iface>
+  ? Iface extends OpaqueType<string> ? IBufferPrimativeValue<Iface>
   : IBufferProxyObjectConstructor<Partial<Iface>, Klass>
-  : IBufferPrimativeBox<Iface>;
+  : IBufferPrimativeValue<Iface>;
 
 interface IBufferProxyObjectConstructorOptions {
   readOnly: boolean;
@@ -174,10 +171,16 @@ export type IBufferProxyObject<
 };
 
 // deno-lint-ignore no-explicit-any
-export function getByteLength<Type extends Record<string, any>>(
-  spec: Record<keyof Type, IBufferValue<Type[keyof Type]>>,
+export function getByteLength<
+  Iface extends Record<string, any>,
+  Klass extends Iface = Iface,
+>(
+  spec: IBufferProxyObjectSpec<Iface, Klass>,
 ) {
-  return Object.values(spec).reduce((sum, field) => sum + field.byteLength, 0);
+  return Object.values(spec).reduce(
+    (sum, [_, field]) => sum + field.byteLength,
+    0,
+  );
 }
 
 const ERROR_MESSAGE_RESERVED_FIELD_NAME = "`meta` is a reserved field name";
@@ -189,7 +192,8 @@ export type IBufferProxyObjectSpec<
 > = Iface extends { meta: any } // deno-lint-ignore no-explicit-any
   ? typeof ERROR_MESSAGE_RESERVED_FIELD_NAME
   : {
-    [K in keyof Iface]: K extends keyof Iface ? IBufferValue<Iface[K], Klass[K]>
+    [K in keyof Iface]: K extends keyof Iface
+      ? [number, IBufferValue<Iface[K], Klass[K]>]
       : never | "missing key";
   };
 
@@ -205,10 +209,11 @@ export function createBufferProxyObjectConstructor<
 ): IBufferProxyObjectConstructor<Iface, Klass> {
   if (!("meta" in spec)) {
     // deno-lint-ignore no-explicit-any
-    const validFields = spec as Record<string, any>;
+    const validFields = spec;
+    const byteLength = getByteLength(validFields);
     class BufferProxyObject {
       static isObject = true;
-      static byteLength = getByteLength(validFields);
+      static byteLength = byteLength;
       static spec = spec;
       constructor(
         buf: DataViewMovable,
@@ -216,8 +221,6 @@ export function createBufferProxyObjectConstructor<
         options: Partial<IBufferProxyObjectConstructorOptions> = {},
       ) {
         const instance = Klass === null ? this : new Klass();
-        let nextByteOffset = byteOffset;
-        const byteLength = getByteLength(validFields);
         // TODO this doesn't work if the same property is written to more than once
         let bytesRemainingSelf = byteLength;
         const meta = Object.create(null, {
@@ -230,8 +233,8 @@ export function createBufferProxyObjectConstructor<
             get: () => {
               // deno-lint-ignore no-explicit-any
               const o: any = {} as any;
-              for (const [fieldName, fieldCoder] of Object.entries(spec)) {
-                if ("isObject" in fieldCoder) {
+              for (const [fieldName, [_, Value]] of Object.entries(spec)) {
+                if ("isObject" in Value) {
                   o[fieldName as keyof Iface] =
                     // deno-lint-ignore no-explicit-any
                     (instance as any)[fieldName].meta.plain;
@@ -248,12 +251,12 @@ export function createBufferProxyObjectConstructor<
               let bytesRemaining = bytesRemainingSelf;
               const proxyEntries = filter(
                 Object.entries(spec),
-                ([_key, coder]) => "isObject" in coder,
+                ([_key, [_, coder]]) => "isObject" in coder,
               );
-              for (const [key, coder] of proxyEntries) {
+              for (const [key, [_, Value]] of proxyEntries) {
                 // deno-lint-ignore no-explicit-any
                 const { meta } = (this as any)[key] as IBufferProxyObject<any>;
-                bytesRemaining -= coder.byteLength - meta.bytesRemaining;
+                bytesRemaining -= Value.byteLength - meta.bytesRemaining;
               }
               return bytesRemaining;
             },
@@ -264,25 +267,24 @@ export function createBufferProxyObjectConstructor<
             get: () => meta,
           },
         };
-        for (const [fieldName, fieldCoder] of Object.entries(validFields)) {
-          const fieldByteOffset = nextByteOffset;
+        for (
+          const [fieldName, [relativeByteOffset, Value]] of Object.entries(
+            validFields,
+          )
+        ) {
+          const fieldByteOffset = byteOffset + relativeByteOffset;
           const fieldDescriptor: PropertyDescriptor = {};
-          if ("isObject" in fieldCoder) {
-            const proxy = new (fieldCoder as IBufferProxyObjectConstructor<
-              Klass[keyof Iface]
-            >)(buf, fieldByteOffset, options);
-            proxy.meta.byteOffset = fieldByteOffset;
+          if ("isObject" in Value) {
+            const proxy = new Value(buf, fieldByteOffset, options);
             fieldDescriptor.get = () => proxy;
           } else {
             fieldDescriptor.get = () => {
-              return fieldCoder.read(buf, fieldByteOffset);
+              return Value.read(buf, fieldByteOffset);
             };
           }
           if (!options.readOnly) {
-            if ("isObject" in fieldCoder) {
-              const proxy = new (fieldCoder as IBufferProxyObjectConstructor<
-                Klass[keyof Iface]
-              >)(buf, fieldByteOffset, options);
+            if ("isObject" in Value) {
+              const proxy = new Value(buf, fieldByteOffset, options);
               fieldDescriptor.set = (v: Iface[keyof Iface]) => {
                 for (const key of Object.keys(proxy.meta.spec)) {
                   // deno-lint-ignore no-explicit-any
@@ -291,13 +293,12 @@ export function createBufferProxyObjectConstructor<
               };
             } else {
               fieldDescriptor.set = (v: Iface[keyof Iface]) => {
-                bytesRemainingSelf -= fieldCoder.byteLength;
-                fieldCoder.write(buf, fieldByteOffset, v);
+                bytesRemainingSelf -= Value.byteLength;
+                Value.write(buf, fieldByteOffset, v);
               };
             }
           }
           propertyDescriptors[fieldName] = fieldDescriptor;
-          nextByteOffset += fieldCoder.byteLength;
         }
         Object.defineProperties(instance, propertyDescriptors);
         return instance as IBufferProxyObject<Iface, Klass>;
@@ -318,8 +319,23 @@ export function asPlainObject<T extends Record<string, any>>(
 
 export const Vec2Proxy = createBufferProxyObjectConstructor<IVec2, Vec2>(
   {
-    x: PrimitiveType.Float64,
-    y: PrimitiveType.Float64,
+    x: [0, PrimitiveValue.Float64],
+    y: [8, PrimitiveValue.Float64],
   },
   Vec2,
 );
+
+export class Int24Roundedto16 {
+  static byteLength = 2;
+  static read(buf: DataViewMovable, byteOffset: number) {
+    let value = Int24Value.read(buf, byteOffset);
+    value = value >> 8;
+    if ((value & 128) !== 0) {
+      value += 1;
+    }
+    return value;
+  }
+  static write(_buf: DataViewMovable, _byteOffset: number, _value: number) {
+    throw new Error("not implemented");
+  }
+}

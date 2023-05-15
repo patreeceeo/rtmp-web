@@ -2,38 +2,42 @@ import * as asserts from "asserts";
 import { IVec2, Vec2 } from "./Vec2.ts";
 import {
   createBufferProxyObjectConstructor,
-  Int24Box,
-  PrimitiveType,
+  Int24Roundedto16,
+  Int24Value,
+  PrimitiveValue,
   Vec2Proxy,
 } from "./BufferValue.ts";
 import { DataViewMovable } from "./DataView.ts";
 
-Deno.test("createBufferProxyObjectConstructor: 2 objs of same type differing data", () => {
-  interface IMyObject {
-    score: number;
-    type: number;
-  }
-  const MyObject = createBufferProxyObjectConstructor<IMyObject>({
-    score: PrimitiveType.Uint16,
-    type: PrimitiveType.Uint8,
-  });
-  const buf = new DataViewMovable(new ArrayBuffer(128));
+Deno.test(
+  "createBufferProxyObjectConstructor: 2 objs of same type differing data",
+  () => {
+    interface IMyObject {
+      score: number;
+      type: number;
+    }
+    const MyObject = createBufferProxyObjectConstructor<IMyObject>({
+      score: [0, PrimitiveValue.Uint16],
+      type: [2, PrimitiveValue.Uint8],
+    });
+    const buf = new DataViewMovable(new ArrayBuffer(128));
 
-  const obj = new MyObject(buf, 0);
-  const obj2 = new MyObject(buf, MyObject.byteLength);
+    const obj = new MyObject(buf, 0);
+    const obj2 = new MyObject(buf, MyObject.byteLength);
 
-  obj.score = 1234;
-  obj.type = 13;
+    obj.score = 1234;
+    obj.type = 13;
 
-  obj2.score = 100;
-  obj2.type = 8;
+    obj2.score = 100;
+    obj2.type = 8;
 
-  asserts.assertEquals(obj.score, 1234);
-  asserts.assertEquals(obj.type, 13);
+    asserts.assertEquals(obj.score, 1234);
+    asserts.assertEquals(obj.type, 13);
 
-  asserts.assertEquals(obj2.score, 100);
-  asserts.assertEquals(obj2.type, 8);
-});
+    asserts.assertEquals(obj2.score, 100);
+    asserts.assertEquals(obj2.type, 8);
+  },
+);
 
 Deno.test("createBufferProxyObjectConstructor: metadata", () => {
   interface IMyObject {
@@ -41,8 +45,8 @@ Deno.test("createBufferProxyObjectConstructor: metadata", () => {
     type: number;
   }
   const MyObject = createBufferProxyObjectConstructor<IMyObject>({
-    score: PrimitiveType.Uint16,
-    type: PrimitiveType.Uint8,
+    score: [0, PrimitiveValue.Uint16],
+    type: [2, PrimitiveValue.Uint8],
   });
   const buf = new DataViewMovable(new ArrayBuffer(128));
 
@@ -64,7 +68,7 @@ Deno.test("createBufferProxyObjectConstructor: obj with obj properties", () => {
     position: IVec2;
   }
   const MyObject = createBufferProxyObjectConstructor<IMyObject>({
-    position: Vec2Proxy,
+    position: [0, Vec2Proxy],
   });
   const buf = new DataViewMovable(new ArrayBuffer(128));
 
@@ -83,8 +87,8 @@ Deno.test("createBufferProxyObjectConstructor: classes", () => {
     isEvil: boolean;
   }
   const MyObject = createBufferProxyObjectConstructor<IMyObject>({
-    isEvil: PrimitiveType.Bool,
-    position: Vec2Proxy,
+    isEvil: [0, PrimitiveValue.Bool],
+    position: [1, Vec2Proxy],
   });
   const buf = new DataViewMovable(new ArrayBuffer(128));
 
@@ -106,8 +110,8 @@ Deno.test("createBufferProxyObjectConstructor: plain", () => {
     isEvil: boolean;
   }
   const MyObject = createBufferProxyObjectConstructor<IMyObject>({
-    isEvil: PrimitiveType.Bool,
-    position: Vec2Proxy,
+    isEvil: [0, PrimitiveValue.Bool],
+    position: [1, Vec2Proxy],
   });
   const buf = new DataViewMovable(new ArrayBuffer(128));
 
@@ -124,21 +128,39 @@ Deno.test("createBufferProxyObjectConstructor: plain", () => {
   });
 });
 
+Deno.test("Multiple representations of the same data", () => {
+  interface IMyObject {
+    int24: number;
+    int16Rounded: number;
+  }
+  const MyObject = createBufferProxyObjectConstructor<IMyObject>({
+    int24: [0, PrimitiveValue.Int24],
+    int16Rounded: [0, Int24Roundedto16],
+  });
+  const buf = new DataViewMovable(new ArrayBuffer(4));
+  const expectedInt24 = 2 ** 15 + 2 ** 7 + 2 ** 5;
+
+  const obj = new MyObject(buf, 0);
+  obj.int24 = expectedInt24;
+
+  asserts.assertEquals(obj.int24, expectedInt24);
+  asserts.assertEquals(obj.int16Rounded, Math.round(expectedInt24 / 2 ** 8));
+});
+
 Deno.test("Int24Box", () => {
   const buf = new DataViewMovable(new ArrayBuffer(128));
-  const int24 = new Int24Box();
 
   const testValues = [2 ** 8 / 2, 2 ** 8 + 1, 2 ** 16 + 1, 2 ** 23 - 1];
 
   for (const v of testValues) {
-    int24.write(buf, 0, v);
+    Int24Value.write(buf, 0, v);
 
-    asserts.assertEquals(int24.read(buf, 0), v);
+    asserts.assertEquals(Int24Value.read(buf, 0), v);
   }
   for (const v of testValues) {
-    int24.write(buf, 0, -v);
+    Int24Value.write(buf, 0, -v);
 
-    asserts.assertEquals(int24.read(buf, 0), -v);
+    asserts.assertEquals(Int24Value.read(buf, 0), -v);
   }
 });
 
