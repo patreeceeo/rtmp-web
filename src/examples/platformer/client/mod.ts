@@ -15,7 +15,6 @@ import {
   sendPingToServer,
 } from "~/client/systems/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { TweenState } from "~/client/state/Tween.ts";
 import { TraitSystem } from "~/client/systems/Trait.ts";
 import { OutputState } from "~/client/state/Output.ts";
 import { OutputSystem } from "~/client/systems/Output.ts";
@@ -28,7 +27,6 @@ import { IPlayerAdd, IPlayerRemove, MsgType } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { readMessage } from "../../../modules/common/Message.ts";
 import { WasdMoveTrait } from "../common/traits.ts";
-import { PoseTween, PositionTween, VelocityTween } from "../common/tweens.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { DebugSystem } from "~/client/systems/DebugSystem.ts";
 
@@ -94,16 +92,12 @@ function handlePlayerAdded(
   player.targetPosition.copy(position);
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
   TraitState.add(WasdMoveTrait, player.eid);
-  TweenState.add(PositionTween, player.eid);
-  TweenState.add(VelocityTween, player.eid);
-  TweenState.add(PoseTween, player.eid);
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
   // TODO player system
   const eid = ClientNetworkState.getEntityId(playerRemove.nid)!;
   PlayerState.deletePlayer(eid);
   ClientNetworkState.deleteId(playerRemove.nid);
-  TweenState.deleteEntity(eid);
   TraitState.deleteEntity(eid);
 }
 
