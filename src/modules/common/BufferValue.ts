@@ -169,7 +169,7 @@ export type IBufferProxyObject<
     bytesRemaining: number;
     spec: IBufferProxyObjectSpec<Iface, Klass>;
     // deno-lint-ignore no-explicit-any
-    pojo: Record<string, any>;
+    plain: Record<string, any>;
   };
 };
 
@@ -226,7 +226,7 @@ export function createBufferProxyObjectConstructor<
               return spec;
             },
           },
-          pojo: {
+          plain: {
             get: () => {
               // deno-lint-ignore no-explicit-any
               const o: any = {} as any;
@@ -234,7 +234,7 @@ export function createBufferProxyObjectConstructor<
                 if ("isObject" in fieldCoder) {
                   o[fieldName as keyof Iface] =
                     // deno-lint-ignore no-explicit-any
-                    (instance as any)[fieldName].meta.pojo;
+                    (instance as any)[fieldName].meta.plain;
                 } else {
                   // deno-lint-ignore no-explicit-any
                   o[fieldName as keyof Iface] = (instance as any)[fieldName];

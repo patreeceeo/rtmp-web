@@ -100,7 +100,7 @@ Deno.test("createBufferProxyObjectConstructor: classes", () => {
   asserts.assertEquals(obj.meta.bytesRemaining, 0);
 });
 
-Deno.test("createBufferProxyObjectConstructor: pojo", () => {
+Deno.test("createBufferProxyObjectConstructor: plain", () => {
   interface IMyObject {
     position: Vec2;
     isEvil: boolean;
@@ -118,7 +118,7 @@ Deno.test("createBufferProxyObjectConstructor: pojo", () => {
   obj.position = vec2;
   obj.isEvil = true;
 
-  asserts.assertEquals(obj.meta.pojo, {
+  asserts.assertEquals(obj.meta.plain, {
     position: { x: 22, y: 33 },
     isEvil: true,
   });
