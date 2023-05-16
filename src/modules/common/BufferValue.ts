@@ -5,7 +5,6 @@
 // TODO rename this file
 import { DataViewMovable } from "./DataView.ts";
 import { filter } from "./Iterable.ts";
-import { roundTo8thBit } from "./math.ts";
 import { OpaqueType } from "./state/mod.ts";
 import { NetworkId } from "./state/Network.ts";
 import { IVec2, Vec2 } from "./Vec2.ts";
@@ -120,6 +119,7 @@ class NetworkIdValue {
     buf.setUint16(offset, value);
   }
 }
+
 export class Int24Value {
   static byteLength = 3;
   static read(buf: DataViewMovable, offset: number): number {
@@ -144,12 +144,12 @@ export const PrimitiveValue = {
   Int8: Int8Value as IBufferPrimativeValue<number>,
   Uint16: Uint16Value as IBufferPrimativeValue<number>,
   Int16: Int16Value as IBufferPrimativeValue<number>,
+  Int24: Int24Value as IBufferPrimativeValue<number>,
   Int32: Int32Value as IBufferPrimativeValue<number>,
   BigUint64: BigUint64Value as IBufferPrimativeValue<bigint>,
   Float64: Float64Value as IBufferPrimativeValue<number>,
   StepId: StepIdValue as IBufferPrimativeValue<number>,
   NetworkId: NetworkIdValue as IBufferPrimativeValue<NetworkId>,
-  Int24: Int24Value as IBufferPrimativeValue<number>,
 };
 
 export type IBufferValue<
@@ -346,16 +346,6 @@ export const Vec2SmallProxy = createBufferProxyObjectConstructor<IVec2, Vec2>(
   },
   Vec2,
 );
-
-export class Int24Roundedto16 {
-  static byteLength = 2;
-  static read(buf: DataViewMovable, byteOffset: number) {
-    return roundTo8thBit(Int24Value.read(buf, byteOffset));
-  }
-  static write(_buf: DataViewMovable, _byteOffset: number, _value: number) {
-    throw new Error("not implemented");
-  }
-}
 
 export const Vec2LargeProxy = createBufferProxyObjectConstructor<IVec2>(
   {

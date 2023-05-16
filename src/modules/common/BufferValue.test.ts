@@ -2,7 +2,6 @@ import * as asserts from "asserts";
 import { IVec2, Vec2 } from "./Vec2.ts";
 import {
   createBufferProxyObjectConstructor,
-  Int24Roundedto16,
   Int24Value,
   PrimitiveValue,
   Vec2LargeProxy,
@@ -131,24 +130,24 @@ Deno.test("createBufferProxyObjectConstructor: plain", () => {
 
 Deno.test("Multiple representations of the same data", () => {
   interface IMyObject {
-    int24: number;
-    int16Rounded: number;
+    int32: number;
+    int16: number;
   }
   const MyObject = createBufferProxyObjectConstructor<IMyObject>({
-    int24: [0, PrimitiveValue.Int24],
-    int16Rounded: [0, Int24Roundedto16],
+    int32: [0, PrimitiveValue.Int32],
+    int16: [2, PrimitiveValue.Int16],
   });
   const buf = new DataViewMovable(new ArrayBuffer(4));
-  const expectedInt24 = 2 ** 15 + 2 ** 7 + 2 ** 5;
+  const expectedInt32 = (1 << 15) + (1 << 31);
 
   const obj = new MyObject(buf, 0);
-  obj.int24 = expectedInt24;
+  obj.int32 = expectedInt32;
 
-  asserts.assertEquals(obj.int24, expectedInt24);
-  asserts.assertEquals(obj.int16Rounded, Math.round(expectedInt24 / 2 ** 8));
+  asserts.assertEquals(obj.int32, expectedInt32);
+  asserts.assertEquals(obj.int16, expectedInt32 >> 16);
 });
 
-Deno.test("Int24Box", () => {
+Deno.test("Int24Value", () => {
   const buf = new DataViewMovable(new ArrayBuffer(128));
 
   const testValues = [2 ** 8 / 2, 2 ** 8 + 1, 2 ** 16 + 1, 2 ** 23 - 1];
