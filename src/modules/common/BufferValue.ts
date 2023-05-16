@@ -219,8 +219,6 @@ export type IBufferProxyObjectSpec<
       : never | "missing key";
   };
 
-// TODO change this to not instantiate the boxes, let the definitions of objects do that so that they can specifiy the offset in the array buffer relative to the start of the object for each box, so that
-// we can have multiple properties with their own representation of the same data.
 export function createBufferProxyObjectConstructor<
   // deno-lint-ignore no-explicit-any
   Iface extends Record<string, any>,
