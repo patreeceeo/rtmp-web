@@ -48,3 +48,7 @@ export function clampLine(
 
   return new Vec2(newX, newY);
 }
+
+export function roundTo8thBit(value: number) {
+  return value & 128 ? (value >> 8) + 1 : value >> 8;
+}

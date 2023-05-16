@@ -25,16 +25,16 @@ export const PhysicsSystem: SystemLoader<
       }
       tempPositionDelta.copy(player.targetPosition).sub(player.position);
       if (
-        tempPositionDelta.lengthSquared > 0.1
+        tempPositionDelta.lengthSquared > 1
       ) {
         tempPositionDelta.clamp(
-          Math.max(0.1, Math.sqrt(player.targetVelocity.lengthSquared)) *
+          Math.max(20, Math.sqrt(player.targetVelocity.lengthSquared)) *
             fixedDeltaTime / 2,
         );
         player.position.add(tempPositionDelta);
       }
       tempVelocityDelta.copy(player.targetVelocity).sub(player.velocity);
-      if (tempVelocityDelta.lengthSquared > 0.01) {
+      if (tempVelocityDelta.lengthSquared > 1) {
         tempVelocityDelta.copy(player.targetVelocity).sub(player.velocity);
         player.velocity.add(tempVelocityDelta, fixedDeltaTime / 400);
       }

@@ -44,6 +44,11 @@ export class Vec2ReadOnly implements IVec2Readonly {
   }
 }
 
+function getAbsMin(a: number, b: number) {
+  return Math.min(Math.abs(a), Math.abs(b)) *
+    (a !== 0 ? Math.sign(a) : 1);
+}
+
 export class Vec2 extends Vec2ReadOnly implements IVec2 {
   static ZERO = new Vec2ReadOnly(0, 0);
   static INFINITY = new Vec2ReadOnly(Infinity, Infinity);
@@ -61,8 +66,10 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
     return this;
   }
   add(d: IVec2, scale = 1) {
-    this.x += d.x * scale;
-    this.y += d.y * scale;
+    const dx = d.x * scale;
+    const dy = d.y * scale;
+    this.x += dx;
+    this.y += dy;
     return this;
   }
   scale(s: number) {
@@ -137,32 +144,45 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
     this.x = snap.x;
     this.y = snap.y;
   }
-  static fromEntityComponent(
+
+  static fromEntityComponent<
+    StoreSchema extends {
+      x: ECS.Type;
+      y: ECS.Type;
+    },
+  >(
     eid: EntityId,
-    store: ECS.ComponentType<typeof Vec2Type>,
+    store: ECS.ComponentType<StoreSchema>,
+    precision: StoreSchema["x"] & StoreSchema["y"],
   ): Vec2 {
+    const absMax = precision === "i8" ? 2 ** 7 - 1 : 2 ** 31 - 1;
     return Object.defineProperties(new Vec2(), {
       x: {
         get() {
-          return store.x[eid];
+          return (store.x as Array<number>)[eid];
         },
         set(v) {
-          store.x[eid] = v;
+          (store.x as Array<number>)[eid] = getAbsMin(v, absMax);
         },
       },
       y: {
         get() {
-          return store.y[eid];
+          return (store.y as Array<number>)[eid];
         },
         set(v) {
-          store.y[eid] = v;
+          return (store.y as Array<number>)[eid] = getAbsMin(v, absMax);
         },
       },
     });
   }
 }
 
-export const Vec2Type = {
-  x: ECS.Types.f32,
-  y: ECS.Types.f32,
+export const Vec2LargeType = {
+  x: ECS.Types.i32,
+  y: ECS.Types.i32,
+};
+
+export const Vec2SmallType = {
+  x: ECS.Types.i8,
+  y: ECS.Types.i8,
 };

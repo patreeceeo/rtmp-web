@@ -16,7 +16,7 @@ import {
 import { MessageState } from "../../../modules/common/state/Message.ts";
 import { ISystemExecutionContext } from "../../../modules/common/systems/mod.ts";
 
-const maxAcceleration = 0.003;
+const maxAcceleration = 3;
 
 const reAcceleration = new Vec2();
 export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
@@ -39,16 +39,16 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
       let ddx = 0,
         ddy = 0;
       if (InputState.isButtonPressed(Button.KeyA)) {
-        ddx = -1;
+        ddx = -maxAcceleration;
       }
       if (InputState.isButtonPressed(Button.KeyW)) {
-        ddy = -1;
+        ddy = -maxAcceleration;
       }
       if (InputState.isButtonPressed(Button.KeyS)) {
-        ddy = 1;
+        ddy = maxAcceleration;
       }
       if (InputState.isButtonPressed(Button.KeyD)) {
-        ddx = 1;
+        ddx = maxAcceleration;
       }
       if (ddx !== this.#lastDdx || ddy !== this.#lastDdy) {
         reAcceleration.set(ddx, ddy);
@@ -102,6 +102,7 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
     player.lastActiveTime = context.elapsedTime;
     player.targetPosition.copy(position);
     player.targetVelocity.copy(velocity);
+
     if (!NetworkState.isLocal(nid)) {
       player.velocity.copy(velocity);
     }

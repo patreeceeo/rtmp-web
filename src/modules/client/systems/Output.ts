@@ -1,6 +1,7 @@
 import { OutputState } from "~/client/state/Output.ts";
 import { PlayerState, PoseType } from "~/common/state/Player.ts";
 import { SystemLoader } from "~/common/systems/mod.ts";
+import { roundTo8thBit } from "../../common/math.ts";
 import { DebugState } from "../state/Debug.ts";
 import { Sprite, SpriteState, SpriteType } from "../state/Sprite.ts";
 
@@ -63,7 +64,7 @@ function drawTweenHelpers() {
     const { x, y } = player.targetPosition;
     const { h, w } = player.hitBox;
     ctx.strokeStyle = "red";
-    ctx.strokeRect(x, y, w, h);
+    ctx.strokeRect(roundTo8thBit(x), roundTo8thBit(y), w, h);
   }
 }
 
@@ -77,7 +78,11 @@ function drawPlayers() {
       ? SpriteType.penguinRight
       : SpriteType.penguinLeft;
     const sprite = SpriteState.get(spriteType)!;
-    ctx.drawImage(sprite.source, player.position.x, player.position.y);
+    ctx.drawImage(
+      sprite.source,
+      roundTo8thBit(player.position.x),
+      roundTo8thBit(player.position.y),
+    );
   }
 }
 async function loadSprite(sprite: Sprite) {

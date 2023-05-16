@@ -18,7 +18,6 @@ import { MessageState } from "~/common/state/Message.ts";
 import { TraitSystem } from "~/client/systems/Trait.ts";
 import { OutputState } from "~/client/state/Output.ts";
 import { OutputSystem } from "~/client/systems/Output.ts";
-import { LevelState } from "~/common/state/LevelState.ts";
 import { InputSystem } from "../../../modules/client/systems/Input.ts";
 import { TraitState } from "~/common/state/Trait.ts";
 import { ReconcileSystem } from "../../../modules/client/systems/Reconcile.ts";
@@ -41,7 +40,7 @@ if (import.meta.hot) {
   });
 }
 
-OutputState.canvas.resolution.fromBox(LevelState.dimensions);
+OutputState.canvas.resolution.set(256, 256);
 
 export class DotsClientApp extends ClientApp {
   handleOpen(_server: WebSocket, _event: Event): void {

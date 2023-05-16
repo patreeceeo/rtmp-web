@@ -5,7 +5,8 @@ import {
   Int24Roundedto16,
   Int24Value,
   PrimitiveValue,
-  Vec2Proxy,
+  Vec2LargeProxy,
+  Vec2SmallProxy,
 } from "./BufferValue.ts";
 import { DataViewMovable } from "./DataView.ts";
 
@@ -68,7 +69,7 @@ Deno.test("createBufferProxyObjectConstructor: obj with obj properties", () => {
     position: IVec2;
   }
   const MyObject = createBufferProxyObjectConstructor<IMyObject>({
-    position: [0, Vec2Proxy],
+    position: [0, Vec2SmallProxy],
   });
   const buf = new DataViewMovable(new ArrayBuffer(128));
 
@@ -88,7 +89,7 @@ Deno.test("createBufferProxyObjectConstructor: classes", () => {
   }
   const MyObject = createBufferProxyObjectConstructor<IMyObject>({
     isEvil: [0, PrimitiveValue.Bool],
-    position: [1, Vec2Proxy],
+    position: [1, Vec2LargeProxy],
   });
   const buf = new DataViewMovable(new ArrayBuffer(128));
 
@@ -111,7 +112,7 @@ Deno.test("createBufferProxyObjectConstructor: plain", () => {
   }
   const MyObject = createBufferProxyObjectConstructor<IMyObject>({
     isEvil: [0, PrimitiveValue.Bool],
-    position: [1, Vec2Proxy],
+    position: [1, Vec2SmallProxy],
   });
   const buf = new DataViewMovable(new ArrayBuffer(128));
 

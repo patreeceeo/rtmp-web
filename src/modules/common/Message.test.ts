@@ -6,7 +6,7 @@ import {
   reset,
 } from "./Message.ts";
 import * as asserts from "asserts";
-import { PrimitiveValue, Vec2Proxy } from "./BufferValue.ts";
+import { PrimitiveValue, Vec2SmallProxy } from "./BufferValue.ts";
 import { DataViewMovable } from "./DataView.ts";
 import { Vec2 } from "./Vec2.ts";
 
@@ -63,8 +63,8 @@ Deno.test("Message Vec2 bug", () => {
   const type = 2;
 
   const Msg = defMessageType<IMyMessage>(type, {
-    delta: [0, Vec2Proxy],
-    isEvil: [16, PrimitiveValue.Bool],
+    delta: [0, Vec2SmallProxy],
+    isEvil: [2, PrimitiveValue.Bool],
   });
 
   const bufferLength = Msg.byteLength * 2;

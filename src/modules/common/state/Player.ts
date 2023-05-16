@@ -1,4 +1,4 @@
-import { Vec2, Vec2Type } from "../Vec2.ts";
+import { Vec2, Vec2LargeType, Vec2SmallType } from "../Vec2.ts";
 import { defaultWorld, EntityId } from "./mod.ts";
 import * as ECS from "bitecs";
 import { BoxReadOnly } from "../Box.ts";
@@ -30,25 +30,29 @@ export class Player {
   readonly velocity: Vec2;
   readonly targetVelocity: Vec2;
   readonly acceleration: Vec2;
-  readonly maxVelocity = 0.2;
+  /** in 256ths of a pixel per millisecond */
+  readonly maxVelocity = 60;
   readonly maxVelocitySq = this.maxVelocity ** 2;
-  readonly friction = 0.0004;
+  /** in 256ths of a pixel per millisecond */
+  readonly friction = 0.1;
   constructor(readonly eid: EntityId) {
     // Don't overwrite value from ECS
     this.lastActiveTime = this.lastActiveTime || performance.now();
     this.targetEntity = this.targetEntity ||
       ECS.addEntity(defaultWorld) as EntityId;
-    this.position = Vec2.fromEntityComponent(eid, PositionStore);
-    this.velocity = Vec2.fromEntityComponent(eid, VelocityStore);
+    this.position = Vec2.fromEntityComponent(eid, PositionStore, "i32");
+    this.velocity = Vec2.fromEntityComponent(eid, VelocityStore, "i8");
     this.targetPosition = Vec2.fromEntityComponent(
       this.targetEntity,
       PositionStore,
+      "i32",
     );
     this.targetVelocity = Vec2.fromEntityComponent(
       this.targetEntity,
       VelocityStore,
+      "i8",
     );
-    this.acceleration = Vec2.fromEntityComponent(eid, AccelerationStore);
+    this.acceleration = Vec2.fromEntityComponent(eid, AccelerationStore, "i8");
   }
   set lastActiveTime(time: number) {
     LastActiveStore.time[this.eid] = Math.round(time);
@@ -109,9 +113,9 @@ export class Player {
 }
 
 const PlayerTagStore = ECS.defineComponent();
-const PositionStore = ECS.defineComponent(Vec2Type);
-const VelocityStore = ECS.defineComponent(Vec2Type);
-const AccelerationStore = ECS.defineComponent(Vec2Type);
+const PositionStore = ECS.defineComponent(Vec2LargeType);
+const VelocityStore = ECS.defineComponent(Vec2SmallType);
+const AccelerationStore = ECS.defineComponent(Vec2SmallType);
 const EntityStore = ECS.defineComponent({ eid: ECS.Types.ui32 });
 // TODO remove
 const LastActiveStore = ECS.defineComponent({ time: ECS.Types.ui32 });

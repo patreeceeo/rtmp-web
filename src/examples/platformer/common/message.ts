@@ -1,7 +1,8 @@
 import {
   IBufferProxyObjectSpec,
   PrimitiveValue,
-  Vec2Proxy,
+  Vec2LargeProxy,
+  Vec2SmallProxy,
 } from "../../../modules/common/BufferValue.ts";
 import { defMessageType } from "../../../modules/common/Message.ts";
 import { NetworkId } from "../../../modules/common/NetworkApi.ts";
@@ -44,7 +45,7 @@ interface IPingMsg {
 
 const PingMsgSpec: IBufferProxyObjectSpec<IPingMsg> = {
   // TODO(perf) This could probably be a uint8, since any ping that hasn't been ponged less than 256 steps ago is probably a lost cause
-  id: [10, PrimitiveValue.StepId],
+  id: [0, PrimitiveValue.StepId],
 };
 
 const PingMsg = defMessageType<IPingMsg>(MsgType.ping, PingMsgSpec);
@@ -55,8 +56,8 @@ interface IPlayerAdd extends INilPayload {
 }
 
 const PlayerAddSpec = Object.assign({}, NilPayloadSpec, {
-  position: [10, Vec2Proxy],
-  isLocal: [26, PrimitiveValue.Bool],
+  position: [10, Vec2LargeProxy],
+  isLocal: [18, PrimitiveValue.Bool],
 }) as IBufferProxyObjectSpec<IPlayerAdd>;
 
 const PlayerAdd = defMessageType<IPlayerAdd>(
@@ -72,9 +73,9 @@ interface IPlayerSnapshot extends INilPayload {
 }
 
 const PlayerSnapshotSpec = Object.assign({}, NilPayloadSpec, {
-  position: [10, Vec2Proxy],
-  velocity: [26, Vec2Proxy],
-  pose: [42, PrimitiveValue.Uint8],
+  position: [10, Vec2LargeProxy],
+  velocity: [18, Vec2SmallProxy],
+  pose: [20, PrimitiveValue.Uint8],
 }) as IBufferProxyObjectSpec<IPlayerSnapshot>;
 
 const PlayerSnapshot = defMessageType<IPlayerSnapshot>(
@@ -99,7 +100,7 @@ const PlayerMoveSpec = Object.assign(
   {},
   NilPayloadSpec,
   {
-    acceleration: [10, Vec2Proxy],
+    acceleration: [10, Vec2SmallProxy],
   },
 ) as IBufferProxyObjectSpec<IPlayerMove>;
 
