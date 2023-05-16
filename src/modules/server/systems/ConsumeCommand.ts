@@ -8,15 +8,19 @@ import {
   SystemLoader,
 } from "../../common/systems/mod.ts";
 
-let lastHandledStep = -1;
-const lastHandledCommandStep = new Map<NetworkId, number>();
+let lastHandledStep = 0;
+
+const lastHandledClientStep = new Map<NetworkId, number>();
+function getLastHandledClientStep(nid: NetworkId) {
+  return lastHandledClientStep.get(nid) ?? -1;
+}
 
 function exec(context: ISystemExecutionContext) {
   // let cmdCount = 0;
   for (const Trait of TraitState.getTypes()) {
     const commands = filter(
       MessageState.getCommandsByStepReceived(
-        lastHandledStep,
+        lastHandledStep - 1,
         MessageState.currentStep,
       ),
       ([commandType]) => commandType === Trait.commandType,
@@ -28,10 +32,10 @@ function exec(context: ISystemExecutionContext) {
       const trait = TraitState.getTrait(Trait, eid);
       // TODO pipeline this
       if (
-        trait && payload.sid > (lastHandledCommandStep.get(payload.nid) ?? -1)
+        trait && payload.sid >= getLastHandledClientStep(payload.nid)
       ) {
         trait.applyCommand(payload, context);
-        lastHandledCommandStep.set(payload.nid, payload.sid);
+        lastHandledClientStep.set(payload.nid, payload.sid);
       }
     }
   }

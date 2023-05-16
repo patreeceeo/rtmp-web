@@ -10,7 +10,7 @@ export const ClientNetworkSystem: SystemLoader = () => {
   function exec() {
     for (
       const view of MessageState.getCommandDataViewsByStepCreated(
-        lastHandledStep + 1,
+        lastHandledStep,
         MessageState.currentStep,
       )
     ) {
