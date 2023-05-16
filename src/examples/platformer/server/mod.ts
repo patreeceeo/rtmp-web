@@ -125,7 +125,7 @@ handleMessagePipeline.start();
 
 const fastPipeline = new Pipeline(
   [
-    PhysicsSystem({ fixedDeltaTime: 8 }), // fixedDeltaTime matches that interval of this pipeline
+    PhysicsSystem({ fixedDeltaTime: 9 }), // fixedDeltaTime matches that interval of this pipeline
     ProduceSnapshotSystem(),
     NetworkSystem(),
   ],

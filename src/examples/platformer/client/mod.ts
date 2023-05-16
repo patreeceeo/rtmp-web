@@ -103,21 +103,21 @@ function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
 const app = new DotsClientApp();
 
 const inputPipeline = new Pipeline(
-  [InputSystem(), TraitSystem(), ClientNetworkSystem()],
+  [InputSystem()],
   new EventQueueDriver(app.inputEvents),
 );
 inputPipeline.start();
 
 const handleMessagePipeline = new Pipeline(
-  [
-    ReconcileSystem(),
-  ],
+  [ReconcileSystem()],
   new DemandDriver(),
 );
 handleMessagePipeline.start();
 
 const fastPipeline = new Pipeline(
   [
+    TraitSystem(),
+    ClientNetworkSystem(),
     PhysicsSystem({ fixedDeltaTime: 8 }),
     DebugSystem(),
   ],
