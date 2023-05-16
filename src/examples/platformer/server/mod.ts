@@ -32,12 +32,12 @@ const idleTimeout = 300;
 class DotsServerApp implements ServerApp {
   idleTimeout = idleTimeout;
   handleOpen(ws: WebSocket, _: Event) {
-    const addedPlayer = PlayerState.createPlayer();
+    const player = PlayerState.createPlayer();
     const playerNid = ServerNetworkState.createId();
     const client = ServerNetworkState.getClientForSocket(ws)!;
     client.addNetworkId(playerNid);
 
-    addedPlayer.position.set(
+    player.position.set(
       getRandomIntBetween(
         LevelState.dimensions.xMin,
         LevelState.dimensions.xMax,
@@ -48,12 +48,12 @@ class DotsServerApp implements ServerApp {
       ),
     );
 
-    addedPlayer.targetPosition.copy(addedPlayer.position);
-    ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
-    TraitState.add(WasdMoveTrait, addedPlayer.eid);
+    player.targetPosition.copy(player.position);
+    ServerNetworkState.setNetworkEntity(playerNid, player.eid, false);
+    TraitState.add(WasdMoveTrait, player.eid);
 
     sendMessageToClient(ws, PlayerAdd, (p) => {
-      p.position.copy(addedPlayer.position);
+      p.position.copy(player.position);
       p.isLocal = true;
       p.nid = playerNid;
       p.sid = MessageState.currentStep;
@@ -62,7 +62,7 @@ class DotsServerApp implements ServerApp {
     broadcastMessage(
       PlayerAdd,
       (p) => {
-        p.position.copy(addedPlayer.position);
+        p.position.copy(player.position);
         p.isLocal = false;
         p.nid = playerNid;
         p.sid = MessageState.currentStep;
@@ -73,7 +73,7 @@ class DotsServerApp implements ServerApp {
     // Catch up new client on current state of the world
     for (const eid of PlayerState.getEntityIds()) {
       const player = PlayerState.getPlayer(eid);
-      if (eid !== addedPlayer.eid) {
+      if (eid !== player.eid) {
         sendMessageToClient(ws, PlayerAdd, (p) => {
           p.position.copy(player.position);
           p.isLocal = false;
@@ -118,7 +118,6 @@ class DotsServerApp implements ServerApp {
 const handleMessagePipeline = new Pipeline(
   [
     ConsumeCommandSystem(),
-    PhysicsSystem({ fixedDeltaTime: 80 }), // fixedDeltaTime slighty longer than that of client
   ],
   new DemandDriver(),
 );
@@ -126,11 +125,11 @@ handleMessagePipeline.start();
 
 const fastPipeline = new Pipeline(
   [
-    PhysicsSystem({ fixedDeltaTime: 80 }), // fixedDeltaTime matches that interval of this pipeline
+    PhysicsSystem({ fixedDeltaTime: 10 }), // fixedDeltaTime matches that interval of this pipeline
     ProduceSnapshotSystem(),
     NetworkSystem(),
   ],
-  new FixedIntervalDriver(80),
+  new FixedIntervalDriver(8),
 );
 fastPipeline.start();
 
