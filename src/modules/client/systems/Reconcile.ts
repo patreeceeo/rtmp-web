@@ -29,7 +29,6 @@ function exec(context: ISystemExecutionContext) {
               lastReceivedSid,
             ),
             ([type, payload]) => {
-              console.log(payload.sid, lastSentSid);
               return (
                 payload.nid === nid &&
                 type === Trait.snapshotType &&
