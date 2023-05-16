@@ -32,12 +32,12 @@ const idleTimeout = 300;
 class DotsServerApp implements ServerApp {
   idleTimeout = idleTimeout;
   handleOpen(ws: WebSocket, _: Event) {
-    const player = PlayerState.createPlayer();
+    const addedPlayer = PlayerState.createPlayer();
     const playerNid = ServerNetworkState.createId();
     const client = ServerNetworkState.getClientForSocket(ws)!;
     client.addNetworkId(playerNid);
 
-    player.position.set(
+    addedPlayer.position.set(
       getRandomIntBetween(
         LevelState.dimensions.xMin,
         LevelState.dimensions.xMax,
@@ -48,12 +48,12 @@ class DotsServerApp implements ServerApp {
       ),
     );
 
-    player.targetPosition.copy(player.position);
-    ServerNetworkState.setNetworkEntity(playerNid, player.eid, false);
-    TraitState.add(WasdMoveTrait, player.eid);
+    addedPlayer.targetPosition.copy(addedPlayer.position);
+    ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
+    TraitState.add(WasdMoveTrait, addedPlayer.eid);
 
     sendMessageToClient(ws, PlayerAdd, (p) => {
-      p.position.copy(player.position);
+      p.position.copy(addedPlayer.position);
       p.isLocal = true;
       p.nid = playerNid;
       p.sid = MessageState.currentStep;
@@ -62,7 +62,7 @@ class DotsServerApp implements ServerApp {
     broadcastMessage(
       PlayerAdd,
       (p) => {
-        p.position.copy(player.position);
+        p.position.copy(addedPlayer.position);
         p.isLocal = false;
         p.nid = playerNid;
         p.sid = MessageState.currentStep;
@@ -71,13 +71,12 @@ class DotsServerApp implements ServerApp {
     );
 
     // Catch up new client on current state of the world
-    for (const eid of PlayerState.getEntityIds()) {
-      const player = PlayerState.getPlayer(eid);
-      if (eid !== player.eid) {
+    for (const player of PlayerState.getPlayers()) {
+      if (player.eid !== addedPlayer.eid) {
         sendMessageToClient(ws, PlayerAdd, (p) => {
           p.position.copy(player.position);
           p.isLocal = false;
-          p.nid = ServerNetworkState.getId(eid)!;
+          p.nid = ServerNetworkState.getId(player.eid)!;
           p.sid = MessageState.currentStep;
         });
       }
@@ -116,9 +115,7 @@ class DotsServerApp implements ServerApp {
 }
 
 const handleMessagePipeline = new Pipeline(
-  [
-    ConsumeCommandSystem(),
-  ],
+  [ConsumeCommandSystem()],
   new DemandDriver(),
 );
 handleMessagePipeline.start();
@@ -134,9 +131,7 @@ const fastPipeline = new Pipeline(
 fastPipeline.start();
 
 const slowPipeline = new Pipeline(
-  [
-    PurgeSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] }),
-  ],
+  [PurgeSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] })],
   new FixedIntervalDriver(500),
 );
 slowPipeline.start();
