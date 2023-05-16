@@ -9,7 +9,6 @@ import { isClient } from "../env.ts";
 import { Vec2 } from "../Vec2.ts";
 
 const tempPositionDelta = new Vec2();
-const tempVelocityDelta = new Vec2();
 
 export const PhysicsSystem: SystemLoader<
   ISystemExecutionContext,
@@ -27,16 +26,8 @@ export const PhysicsSystem: SystemLoader<
       if (
         tempPositionDelta.lengthSquared > 1
       ) {
-        tempPositionDelta.clamp(
-          Math.max(20, Math.sqrt(player.targetVelocity.lengthSquared)) *
-            fixedDeltaTime / 2,
-        );
+        tempPositionDelta.clamp(50);
         player.position.add(tempPositionDelta);
-      }
-      tempVelocityDelta.copy(player.targetVelocity).sub(player.velocity);
-      if (tempVelocityDelta.lengthSquared > 1) {
-        tempVelocityDelta.copy(player.targetVelocity).sub(player.velocity);
-        player.velocity.add(tempVelocityDelta, fixedDeltaTime / 400);
       }
       player.pose = player.acceleration.x == 0
         ? player.pose
@@ -55,12 +46,6 @@ export const PhysicsSystem: SystemLoader<
         fixedDeltaTime,
         options,
       );
-      // if(!player.acceleration.isZero) {
-      //   console.log("acceleration sq", player.acceleration.lengthSquared);
-      // }
-      // if(!player.velocity.isZero) {
-      //   console.log("velocity sq", player.velocity.lengthSquared, fixedDeltaTime);
-      // }
     }
   }
   return { exec };

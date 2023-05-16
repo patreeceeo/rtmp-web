@@ -16,7 +16,7 @@ import {
 import { MessageState } from "../../../modules/common/state/Message.ts";
 import { ISystemExecutionContext } from "../../../modules/common/systems/mod.ts";
 
-const maxAcceleration = 3;
+const maxAcceleration = 2;
 
 const reAcceleration = new Vec2();
 export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {

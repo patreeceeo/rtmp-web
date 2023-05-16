@@ -24,9 +24,6 @@ const setDefault = <K, V>(map: Map<K, V>, key: K, value: V) => {
   }
 };
 
-/** limit intermediate update snapshots to 5hz */
-const INTERMEDIATE_SNAPSHOT_UPDATE_INTERVAL_MIN = 1000 / 5;
-
 /** Ignore commands received more than a certain number of steps ago */
 const COMMAND_WINDOW = 500;
 
@@ -79,8 +76,8 @@ function exec(context: ISystemExecutionContext) {
             const playerIsAtTarget = player.targetPosition.almostEquals(
               player.position,
             );
-            const intermediateUpdateInterval = player.velocity.lengthSquared *
-              10 ** 3;
+            const speedSquared = player.velocity.lengthSquared;
+            const intermediateUpdateInterval = speedSquared / 10;
             const timeSinceLastUpdate = context.elapsedTime -
               (lastUpdatedTime.get(nid) ?? -1);
             if (

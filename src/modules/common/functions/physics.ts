@@ -73,7 +73,7 @@ function determinePositionWithVelocity(
 ) {
   const { x: xFriction, y: yFriction } = getFrictionVector(
     initialVelocity,
-    options.friction,
+    options.friction / 256,
   );
   position.x = determinePositionWithVelocity1D(
     position.x,
@@ -149,7 +149,7 @@ export function determineVelocityAtTime(
 ) {
   const { x: xFriction, y: yFriction } = getFrictionVector(
     initialVelocity,
-    options.friction,
+    options.friction / 256,
   );
   velocity.x = initialVelocity.x - xFriction * elapsedTime;
   velocity.y = initialVelocity.y - yFriction * elapsedTime;
@@ -198,7 +198,7 @@ export function simulatePositionWithVelocity(
   options: ISimulateOptions = defaultOptions,
 ) {
   if (options.friction) {
-    velocity.extend(-options.friction * deltaTime, velocity);
+    velocity.extend(-(options.friction / 256) * deltaTime, velocity);
   }
 
   accumulate(position, deltaTime, velocity);

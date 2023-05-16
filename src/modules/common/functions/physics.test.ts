@@ -20,7 +20,7 @@ Deno.test("deterministic physics: resting position with velocity & friction", ()
   originalVelocity.copy(velocity);
 
   const options = new SimulateOptions();
-  options.friction = 1;
+  options.friction = 256;
   determineRestingPosition(position, velocity, options);
 
   // since x and y velocities are equal, the friction divided is divided evenly between them
@@ -63,7 +63,7 @@ Deno.test("deterministic physics: resting position with friction and negative ve
   originalPosition.copy(position);
 
   const options = new SimulateOptions();
-  options.friction = 1;
+  options.friction = 256;
 
   determineRestingPosition(position, velocity, options);
 
@@ -106,7 +106,7 @@ Deno.test("deterministic physics: resting position with friction and worldDimens
 
   const options = new SimulateOptions();
   options.worldDimensions = new Box(0, 0, 20, 6);
-  options.friction = 1;
+  options.friction = 256;
 
   determineRestingPosition(position, velocity, options);
   assertEquals(position.x, 2.5 + 2 + 1.5 + 1 + 0.5);
@@ -121,7 +121,7 @@ Deno.test("deterministic physics: position at time with friction", () => {
   originalPosition.copy(position);
 
   const options = new SimulateOptions();
-  options.friction = 1;
+  options.friction = 256;
   determinePositionAtTime(position, velocity, 1, options);
 
   assertEquals(position.x, 2);
@@ -148,7 +148,7 @@ Deno.test("deterministic physics: velocity at time with friction", () => {
   const velocity = new Vec2().copy(initialVelocity);
 
   const options = new SimulateOptions();
-  options.friction = 1;
+  options.friction = 256;
   determineVelocityAtTime(velocity, initialVelocity, 1, options);
 
   assertEquals(velocity.x, 2);
@@ -227,7 +227,7 @@ Deno.test("physics: friction", () => {
   const velocity = new Vec2(4);
   const options = new SimulateOptions();
 
-  options.friction = 0.5;
+  options.friction = 128;
 
   simulatePositionWithVelocity(position, velocity, timeDelta, options);
 
