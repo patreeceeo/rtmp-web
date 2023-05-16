@@ -77,7 +77,7 @@ function exec(context: ISystemExecutionContext) {
               player.position,
             );
             const speedSquared = player.velocity.lengthSquared;
-            const intermediateUpdateInterval = speedSquared / 10;
+            const intermediateUpdateInterval = speedSquared / 80;
             const timeSinceLastUpdate = context.elapsedTime -
               (lastUpdatedTime.get(nid) ?? -1);
             if (
