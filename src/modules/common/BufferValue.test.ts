@@ -4,6 +4,7 @@ import {
   createBufferProxyObjectConstructor,
   Int24Value,
   PrimitiveValue,
+  ValueBoxStacker,
   Vec2LargeProxy,
   Vec2SmallProxy,
 } from "./BufferValue.ts";
@@ -162,6 +163,20 @@ Deno.test("Int24Value", () => {
 
     asserts.assertEquals(Int24Value.read(buf, 0), -v);
   }
+});
+
+Deno.test("value box stacker", () => {
+  const stack = new ValueBoxStacker();
+  const int24Box = stack.box(PrimitiveValue.Int24);
+  const vec2LargeBox = stack.box(Vec2LargeProxy);
+  const forked = stack.fork();
+  const boolBox = stack.box(PrimitiveValue.Bool);
+  const uint8Box = forked.box(PrimitiveValue.Uint8);
+
+  asserts.assertEquals(int24Box, [0, PrimitiveValue.Int24]);
+  asserts.assertEquals(vec2LargeBox, [3, Vec2LargeProxy]);
+  asserts.assertEquals(boolBox, [11, PrimitiveValue.Bool]);
+  asserts.assertEquals(uint8Box, [11, PrimitiveValue.Uint8]);
 });
 
 // TODO test reading/writing at every possible position in a buffer

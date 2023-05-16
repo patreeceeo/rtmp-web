@@ -1,6 +1,7 @@
 import {
   IBufferProxyObjectSpec,
   PrimitiveValue,
+  ValueBoxStacker,
   Vec2LargeProxy,
   Vec2SmallProxy,
 } from "../../../modules/common/BufferValue.ts";
@@ -32,9 +33,10 @@ interface INilPayload {
   sid: number;
 }
 
+const stack = new ValueBoxStacker();
 const NilPayloadSpec: IBufferProxyObjectSpec<INilPayload> = {
-  nid: [0, PrimitiveValue.NetworkId],
-  sid: [2, PrimitiveValue.StepId],
+  nid: stack.box(PrimitiveValue.NetworkId),
+  sid: stack.box(PrimitiveValue.StepId),
 };
 
 defMessageType<INilPayload>(MsgType.nil, NilPayloadSpec);
@@ -55,10 +57,15 @@ interface IPlayerAdd extends INilPayload {
   isLocal: boolean;
 }
 
-const PlayerAddSpec = Object.assign({}, NilPayloadSpec, {
-  position: [10, Vec2LargeProxy],
-  isLocal: [18, PrimitiveValue.Bool],
-}) as IBufferProxyObjectSpec<IPlayerAdd>;
+const playerAddStack = stack.fork();
+const PlayerAddSpec: IBufferProxyObjectSpec<IPlayerAdd> = Object.assign(
+  {},
+  NilPayloadSpec,
+  {
+    position: playerAddStack.box(Vec2LargeProxy),
+    isLocal: playerAddStack.box(PrimitiveValue.Bool),
+  },
+);
 
 const PlayerAdd = defMessageType<IPlayerAdd>(
   MsgType.playerAdded,
@@ -72,11 +79,13 @@ interface IPlayerSnapshot extends INilPayload {
   pose: PoseType;
 }
 
-const PlayerSnapshotSpec = Object.assign({}, NilPayloadSpec, {
-  position: [10, Vec2LargeProxy],
-  velocity: [18, Vec2SmallProxy],
-  pose: [20, PrimitiveValue.Uint8],
-}) as IBufferProxyObjectSpec<IPlayerSnapshot>;
+const playerSnapshotStack = stack.fork();
+const PlayerSnapshotSpec: IBufferProxyObjectSpec<IPlayerSnapshot> = Object
+  .assign({}, NilPayloadSpec, {
+    position: playerSnapshotStack.box(Vec2LargeProxy),
+    velocity: playerSnapshotStack.box(Vec2SmallProxy),
+    pose: playerSnapshotStack.box(PrimitiveValue.Uint8),
+  });
 
 const PlayerSnapshot = defMessageType<IPlayerSnapshot>(
   MsgType.playerSnapshot,
@@ -96,13 +105,14 @@ interface IPlayerMove extends INilPayload {
   acceleration: Vec2;
 }
 
-const PlayerMoveSpec = Object.assign(
+const playerMoveStack = stack.fork();
+const PlayerMoveSpec: IBufferProxyObjectSpec<IPlayerMove> = Object.assign(
   {},
   NilPayloadSpec,
   {
-    acceleration: [10, Vec2SmallProxy],
+    acceleration: playerMoveStack.box(Vec2SmallProxy),
   },
-) as IBufferProxyObjectSpec<IPlayerMove>;
+);
 
 const PlayerMove = defMessageType<IPlayerMove>(
   MsgType.playerMoved,

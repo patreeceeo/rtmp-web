@@ -215,7 +215,7 @@ export type IBufferProxyObjectSpec<
   ? typeof ERROR_MESSAGE_RESERVED_FIELD_NAME
   : {
     [K in keyof Iface]: K extends keyof Iface
-      ? [number, IBufferValue<Iface[K], Klass[K]>]
+      ? readonly [number, IBufferValue<Iface[K], Klass[K]>]
       : never | "missing key";
   };
 
@@ -332,6 +332,21 @@ export function createBufferProxyObjectConstructor<
   }
 }
 
+export class ValueBoxStacker {
+  #byteOffset: number;
+  constructor(byteOffset = 0) {
+    this.#byteOffset = byteOffset;
+  }
+  box<ValueKlass extends { byteLength: number }>(Value: ValueKlass) {
+    const byteOffset = this.#byteOffset;
+    this.#byteOffset += Value.byteLength;
+    return [byteOffset, Value] as const;
+  }
+  fork() {
+    return new ValueBoxStacker(this.#byteOffset);
+  }
+}
+
 // deno-lint-ignore no-explicit-any
 export function asPlainObject<T extends Record<string, any>>(
   proxy: IBufferProxyObject<T>,
@@ -347,7 +362,7 @@ export const Vec2SmallProxy = createBufferProxyObjectConstructor<IVec2, Vec2>(
   Vec2,
 );
 
-export const Vec2LargeProxy = createBufferProxyObjectConstructor<IVec2>(
+export const Vec2LargeProxy = createBufferProxyObjectConstructor<IVec2, Vec2>(
   {
     x: [0, PrimitiveValue.Int32],
     y: [4, PrimitiveValue.Int32],
