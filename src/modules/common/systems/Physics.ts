@@ -25,7 +25,14 @@ export const PhysicsSystem: SystemLoader<
         if (
           tempPositionDelta.lengthSquared > 1
         ) {
-          tempPositionDelta.clamp(5 * fixedDeltaTime);
+          if (
+            tempPositionDelta.lengthSquared <
+              (player.velocity.lengthSquared * fixedDeltaTime ** 2)
+          ) {
+            tempPositionDelta.scale(0.8);
+          } else {
+            tempPositionDelta.clamp(8 * fixedDeltaTime);
+          }
           player.position.add(tempPositionDelta);
         }
       }
