@@ -4,10 +4,11 @@ import {
   createBufferProxyObjectConstructor,
   IBufferProxyObjectConstructor,
   IBufferProxyObjectSpec,
+  MAX_BYTE_LENGTH,
 } from "./BufferValue.ts";
 import { invariant } from "./Error.ts";
 
-export const MAX_MESSAGE_BYTE_LENGTH = 64; // arbitrary, seems like plenty for now
+export const MAX_MESSAGE_BYTE_LENGTH = MAX_BYTE_LENGTH;
 
 // deno-lint-ignore no-explicit-any
 export type IPayloadAny = Record<string, any>;

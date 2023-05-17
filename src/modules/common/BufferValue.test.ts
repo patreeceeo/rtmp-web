@@ -2,7 +2,9 @@ import * as asserts from "asserts";
 import { IVec2, Vec2 } from "./Vec2.ts";
 import {
   createBufferProxyObjectConstructor,
+  getDataView,
   Int24Value,
+  MAX_BYTE_LENGTH,
   PrimitiveValue,
   ValueBoxStacker,
   Vec2LargeProxy,
@@ -179,5 +181,26 @@ Deno.test("value box stacker", () => {
   asserts.assertEquals(uint8Box, [11, PrimitiveValue.Uint8]);
 });
 
+Deno.test("getDataView can wrap around to beginning of buffer", () => {
+  const buffer = new ArrayBuffer(MAX_BYTE_LENGTH);
+  const view = new DataView(buffer);
+
+  // Initialize buffer with values 1 through 16
+  for (let i = 0; i < MAX_BYTE_LENGTH; i++) {
+    view.setUint8(i, i);
+  }
+
+  for (let start = 0; start < MAX_BYTE_LENGTH; start++) {
+    const result = getDataView(buffer, start);
+    // values should be shifted to the left by `start`
+    for (let i = 0; i < result.byteLength - start; i++) {
+      asserts.assertEquals(result.getUint8(i), i + start);
+    }
+    // `start` values from beginning should be at the end
+    for (let i = 0; i < start; i++) {
+      asserts.assertEquals(result.getUint8(result.byteLength - start + i), i);
+    }
+  }
+});
 // TODO test reading/writing at every possible position in a buffer
 // TODO test reading/writing every possible value for every data type

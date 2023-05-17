@@ -9,12 +9,12 @@ let lastHandledStep = -1;
 export const ClientNetworkSystem: SystemLoader = () => {
   function exec() {
     for (
-      const view of MessageState.getCommandDataViewsByStepCreated(
+      const [_, command] of MessageState.getCommandsByStepCreated(
         lastHandledStep,
         MessageState.currentStep,
       )
     ) {
-      sendMessageToServer(view);
+      sendMessageToServer(command.meta.dataView);
     }
     lastHandledStep = MessageState.currentStep;
   }

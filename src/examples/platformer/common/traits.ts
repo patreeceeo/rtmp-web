@@ -15,6 +15,7 @@ import {
 } from "./message.ts";
 import { MessageState } from "../../../modules/common/state/Message.ts";
 import { ISystemExecutionContext } from "../../../modules/common/systems/mod.ts";
+import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 
 const maxAcceleration = 2;
 
@@ -87,6 +88,13 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
   ) {
     const player = this.#player;
     player.acceleration.copy(acceleration);
+  }
+
+  shouldSendSnapshot(snapshot: IPlayerSnapshot, nidReceiver: NetworkId) {
+    const client = ServerNetworkState.getClient(nidReceiver)!;
+    return client.hasNetworkId(snapshot.nid)
+      ? this.#player.acceleration.isZero
+      : true;
   }
   shouldApplySnapshot(
     { nid, velocity }: IPlayerSnapshot,

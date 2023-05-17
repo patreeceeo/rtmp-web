@@ -1,4 +1,4 @@
-import { getDataView, MessageStateApi } from "./Message.ts";
+import { MessageStateApi } from "./Message.ts";
 import { assertEquals } from "asserts";
 import {
   defMessageType,
@@ -124,26 +124,4 @@ Deno.test("get commands received at different step than when created", () => {
   assertMessageNidsForServer(state, 2, 2, [0]);
   assertMessageNidsForServer(state, 3, 3, [2]);
   assertMessageNidsForServer(state, 4, 4, [1, 2]);
-});
-
-Deno.test("getDataView can wrap around to beginning of buffer", () => {
-  const buffer = new ArrayBuffer(MAX_MESSAGE_BYTE_LENGTH);
-  const view = new DataView(buffer);
-
-  // Initialize buffer with values 1 through 16
-  for (let i = 0; i < MAX_MESSAGE_BYTE_LENGTH; i++) {
-    view.setUint8(i, i);
-  }
-
-  for (let start = 0; start < MAX_MESSAGE_BYTE_LENGTH; start++) {
-    const result = getDataView(buffer, start);
-    // values should be shifted to the left by `start`
-    for (let i = 0; i < result.byteLength - start; i++) {
-      assertEquals(result.getUint8(i), i + start);
-    }
-    // `start` values from beginning should be at the end
-    for (let i = 0; i < start; i++) {
-      assertEquals(result.getUint8(result.byteLength - start + i), i);
-    }
-  }
 });

@@ -4,6 +4,7 @@
 // TODO maybe just use plain old DataView and manage the byte offset and circular behavior at a higher level
 // TODO rename this file
 import { DataViewMovable } from "./DataView.ts";
+import { invariant } from "./Error.ts";
 import { filter } from "./Iterable.ts";
 import { OpaqueType } from "./state/mod.ts";
 import { NetworkId } from "./state/Network.ts";
@@ -243,7 +244,11 @@ export function createBufferProxyObjectConstructor<
         const instance = Klass === null ? this : new Klass();
         // TODO this doesn't work if the same property is written to more than once
         let bytesRemainingSelf = byteLength;
+        let dataView: DataView;
         const meta = Object.create(null, {
+          byteOffset: {
+            get: () => byteOffset,
+          },
           spec: {
             get: () => {
               return spec;
@@ -279,6 +284,18 @@ export function createBufferProxyObjectConstructor<
                 bytesRemaining -= Value.byteLength - meta.bytesRemaining;
               }
               return bytesRemaining;
+            },
+          },
+          dataView: {
+            get: () => {
+              if (!dataView) {
+                // TODO why is this off by one?
+                dataView = getDataView(
+                  buf.buffer,
+                  (byteOffset - 1) % buf.buffer.byteLength,
+                );
+              }
+              return dataView;
             },
           },
         });
@@ -367,3 +384,34 @@ export const Vec2LargeProxy = createBufferProxyObjectConstructor<IVec2, Vec2>(
   },
   Vec2,
 );
+
+export const MAX_BYTE_LENGTH = 64; // arbitrary, seems like plenty for now
+const tempBuffer = new ArrayBuffer(MAX_BYTE_LENGTH);
+export function getDataView(buffer: ArrayBuffer, byteOffset: number): DataView {
+  invariant(
+    byteOffset < buffer.byteLength,
+    "byteOffset exceeds length of buffer",
+  );
+  const byteLength = MAX_BYTE_LENGTH;
+  if (byteOffset + byteLength <= buffer.byteLength) {
+    return new DataView(buffer, byteOffset, byteLength);
+  } else {
+    const newView = new DataView(tempBuffer);
+    const originalView = new DataView(buffer);
+
+    let newIndex = 0;
+    for (
+      let i = byteOffset;
+      i < buffer.byteLength && newIndex < byteLength;
+      i++, newIndex++
+    ) {
+      newView.setUint8(newIndex, originalView.getUint8(i));
+    }
+
+    for (let i = 0; newIndex < byteLength; i++, newIndex++) {
+      newView.setUint8(newIndex, originalView.getUint8(i));
+    }
+
+    return newView;
+  }
+}

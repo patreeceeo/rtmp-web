@@ -2,12 +2,10 @@ import {
   copyMessage,
   IMessageDef,
   IPayloadAny,
-  MAX_MESSAGE_BYTE_LENGTH,
   readMessage,
 } from "../../common/Message.ts";
 import { DataViewMovable } from "../DataView.ts";
 import { isClient } from "../env.ts";
-import { invariant } from "../Error.ts";
 import { NetworkId } from "../NetworkApi.ts";
 import { SetRing } from "../SetRing.ts";
 
@@ -113,20 +111,6 @@ export class MessageStateApi {
     this.#recordCommandMetadata(MsgDef.byteLength, sidReceivedAt, payload.sid);
   }
 
-  *getCommandDataViewsByStepCreated(
-    start = this.currentStep,
-    end = start,
-  ) {
-    for (
-      const byteOffset of this.#commandsByStepCreated.sliceValues(start, end)
-    ) {
-      yield getDataView(
-        this.#commandBuffer,
-        byteOffset % BUFFER_SIZE_BYTES,
-      );
-    }
-  }
-
   *getCommandsByStepCreated(
     start = this.currentStep,
     end = start,
@@ -218,20 +202,6 @@ export class MessageStateApi {
     );
   }
 
-  *getSnapshotDataViewsByStepCreated(
-    start = this.currentStep,
-    end = start,
-  ) {
-    for (
-      const byteOffset of this.#snapshotsByStepCreated.sliceValues(start, end)
-    ) {
-      yield getDataView(
-        this.#snapshotBuffer,
-        byteOffset % BUFFER_SIZE_BYTES,
-      );
-    }
-  }
-
   *getSnapshotsByStepCreated(
     start = this.currentStep,
     end = start,
@@ -239,7 +209,13 @@ export class MessageStateApi {
     for (
       const byteOffset of this.#snapshotsByStepCreated.sliceValues(start, end)
     ) {
-      yield readMessage(this.#snapshotBufferView, byteOffset);
+      const [type, payload] = readMessage(this.#snapshotBufferView, byteOffset);
+      if (payload.meta.byteOffset - 1 !== byteOffset) {
+        throw new Error(
+          `byteOffset mismatch ${payload.meta.byteOffset} !== ${byteOffset}`,
+        );
+      }
+      yield [type, payload] as [number, IPayloadAny];
     }
   }
 
@@ -259,33 +235,3 @@ export class MessageStateApi {
 }
 
 export const MessageState = new MessageStateApi();
-
-const tempBuffer = new ArrayBuffer(MAX_MESSAGE_BYTE_LENGTH);
-export function getDataView(buffer: ArrayBuffer, byteOffset: number): DataView {
-  invariant(
-    byteOffset < buffer.byteLength,
-    "byteOffset exceeds length of buffer",
-  );
-  const byteLength = MAX_MESSAGE_BYTE_LENGTH;
-  if (byteOffset + byteLength <= buffer.byteLength) {
-    return new DataView(buffer, byteOffset, byteLength);
-  } else {
-    const newView = new DataView(tempBuffer);
-    const originalView = new DataView(buffer);
-
-    let newIndex = 0;
-    for (
-      let i = byteOffset;
-      i < buffer.byteLength && newIndex < byteLength;
-      i++, newIndex++
-    ) {
-      newView.setUint8(newIndex, originalView.getUint8(i));
-    }
-
-    for (let i = 0; newIndex < byteLength; i++, newIndex++) {
-      newView.setUint8(newIndex, originalView.getUint8(i));
-    }
-
-    return newView;
-  }
-}

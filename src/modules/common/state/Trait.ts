@@ -2,6 +2,7 @@ import { EntityId } from "./mod.ts";
 import { Maybe } from "../Maybe.ts";
 import { IMessageDef, IPayloadAny, IWritePayload } from "../Message.ts";
 import { ISystemExecutionContext } from "../systems/mod.ts";
+import { NetworkId } from "../NetworkApi.ts";
 
 export type MaybeAddMessageParameters<P extends IPayloadAny> = Maybe<
   [IMessageDef<P>, IWritePayload<P>]
@@ -30,6 +31,10 @@ export interface Trait<
     command: CommandPayload,
     context: ISystemExecutionContext,
   ): MaybeAddMessageParameters<SnapshotPayload>;
+  shouldSendSnapshot(
+    snapshot: SnapshotPayload,
+    nidReceiver: NetworkId,
+  ): boolean;
   shouldApplySnapshot(
     payload: SnapshotPayload,
     context: ISystemExecutionContext,
@@ -45,6 +50,7 @@ export type TraitAny = Trait<IPayloadAny, IPayloadAny>;
 class TraitStateApi {
   #instanceMap = new Map<ITraitConstructorAny, Record<EntityId, TraitAny>>();
   #commandTypeMap = new Map<number, ITraitConstructorAny>();
+  #snapshotTypeMap = new Map<number, ITraitConstructorAny>();
   #getEntityMap<C extends IPayloadAny, P extends IPayloadAny>(
     type: ITraitConstructor<C, P>,
   ) {
@@ -59,6 +65,7 @@ class TraitStateApi {
     entityMap[trait.entityId] = trait as TraitAny;
     this.#instanceMap.set(type as ITraitConstructorAny, entityMap);
     this.#commandTypeMap.set(type.commandType, type as ITraitConstructorAny);
+    this.#snapshotTypeMap.set(type.snapshotType, type as ITraitConstructorAny);
   }
   deleteEntity(eid: EntityId) {
     for (const map of Object.entries(this.#instanceMap)) {
@@ -77,6 +84,9 @@ class TraitStateApi {
   }
   getTypeByCommandType(commandType: number) {
     return this.#commandTypeMap.get(commandType);
+  }
+  getTypeBySnapshotType(commandType: number) {
+    return this.#snapshotTypeMap.get(commandType);
   }
   getTrait<
     CommandPayload extends IPayloadAny,

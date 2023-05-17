@@ -9,27 +9,28 @@ import { readMessage } from "../../common/Message.ts";
 import { ServerNetworkState } from "../state/Network.ts";
 import { PlayerState } from "../../common/state/Player.ts";
 import { sendIfOpen } from "../../common/socket.ts";
+import { getDataView } from "../../common/BufferValue.ts";
+import { TraitState } from "../../common/state/Trait.ts";
 
 let lastHandledStep = -1;
 export const NetworkSystem: SystemLoader = () => {
   function exec() {
     for (
-      const view of MessageState.getSnapshotDataViewsByStepCreated(
+      const [type, snapshot] of MessageState.getSnapshotsByStepCreated(
         lastHandledStep + 1,
         MessageState.currentStep,
       )
     ) {
-      const mv = new DataViewMovable(view.buffer);
-      const [_, payload] = readMessage(mv, 0);
-      const eid = ServerNetworkState.getEntityId(payload.nid)!;
-      const player = PlayerState.getPlayer(eid);
+      const eid = ServerNetworkState.getEntityId(snapshot.nid)!;
+      const Trait = TraitState.getTypeBySnapshotType(type);
+      const trait = Trait ? TraitState.getTrait(Trait, eid) : undefined;
       for (const client of ServerNetworkState.getClients()) {
         if (
-          client.hasNetworkId(payload.nid) ? player.acceleration.isZero : true
+          trait ? trait.shouldSendSnapshot(snapshot, client.nid) : true
         ) {
           sendIfOpen(
             client.ws,
-            view,
+            snapshot.meta.dataView,
           );
         }
       }
