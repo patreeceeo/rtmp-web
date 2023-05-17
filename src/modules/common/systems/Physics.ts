@@ -21,13 +21,13 @@ export const PhysicsSystem: SystemLoader<
         player.targetPosition.copy(player.position);
       } else {
         player.targetPosition.add(player.velocity, fixedDeltaTime);
-      }
-      tempPositionDelta.copy(player.targetPosition).sub(player.position);
-      if (
-        tempPositionDelta.lengthSquared > 1
-      ) {
-        tempPositionDelta.clamp(50);
-        player.position.add(tempPositionDelta);
+        tempPositionDelta.copy(player.targetPosition).sub(player.position);
+        if (
+          tempPositionDelta.lengthSquared > 1
+        ) {
+          tempPositionDelta.clamp(50);
+          player.position.add(tempPositionDelta);
+        }
       }
       player.pose = player.acceleration.x == 0
         ? player.pose
