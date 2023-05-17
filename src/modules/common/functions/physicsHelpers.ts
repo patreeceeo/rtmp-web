@@ -9,6 +9,5 @@ export function getPhysicsOptions(player: Player, target = reOptions) {
   target.maxVelocity = player.maxVelocity;
   target.friction = player.friction;
   target.hitBox = player.hitBox;
-  target.bounce = player.acceleration;
   return target;
 }
