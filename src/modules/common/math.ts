@@ -60,8 +60,9 @@ for (let i = 0; i < sqrtLut.length; i++) {
 }
 
 export function fastSqrt(x: number) {
-  if (x < sqrtLut.length) {
-    return sqrtLut[Math.floor(x)];
+  const xRounded = Math.round(x);
+  if (xRounded < sqrtLut.length) {
+    return sqrtLut[xRounded];
   } else {
     return Math.sqrt(x);
   }
