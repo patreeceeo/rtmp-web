@@ -58,16 +58,17 @@ const sqrtLut = new Float32Array(2 ** 22);
 for (let i = 0; i <= Math.sqrt(sqrtLut.length); i++) {
   sqrtLut[i ** 2] = i;
 }
-let lastSquareIndex = 0;
+let lastSqr = 0;
+let lastSqrt = 0;
+let nextSqr = 0;
 for (let i = 0; i < 2 ** 22; i++) {
   if (sqrtLut[i] !== 0) {
-    lastSquareIndex = i;
+    lastSqrt = sqrtLut[i];
+    lastSqr = lastSqrt * lastSqrt;
+    nextSqr = (lastSqrt + 1) * (lastSqrt + 1);
   } else {
-    const lastSqrt = sqrtLut[lastSquareIndex];
-    const sqr = lastSqrt ** 2;
-    const diff = i - sqr;
-    const nextSqr = (lastSqrt + 1) ** 2;
-    sqrtLut[i] = lastSqrt + diff / (nextSqr - sqr);
+    const diff = i - lastSqr;
+    sqrtLut[i] = lastSqrt + diff / (nextSqr - lastSqr);
   }
 }
 
