@@ -53,10 +53,22 @@ export function roundTo8thBit(value: number) {
   return value & 128 ? (value >> 8) + 1 : value >> 8;
 }
 
-const sqrtLut = new Float32Array(2 ** 20);
+const sqrtLut = new Float32Array(2 ** 22);
 
-for (let i = 0; i < sqrtLut.length; i++) {
-  sqrtLut[i] = Math.sqrt(i);
+for (let i = 0; i <= Math.sqrt(sqrtLut.length); i++) {
+  sqrtLut[i ** 2] = i;
+}
+let lastSquareIndex = 0;
+for (let i = 0; i < 2 ** 22; i++) {
+  if (sqrtLut[i] !== 0) {
+    lastSquareIndex = i;
+  } else {
+    const lastSqrt = sqrtLut[lastSquareIndex];
+    const sqr = lastSqrt ** 2;
+    const diff = i - sqr;
+    const nextSqr = (lastSqrt + 1) ** 2;
+    sqrtLut[i] = lastSqrt + diff / (nextSqr - sqr);
+  }
 }
 
 export function fastSqrt(x: number) {
