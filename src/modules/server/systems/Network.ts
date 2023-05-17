@@ -4,6 +4,11 @@ import { Ping, PingState } from "../../common/state/Ping.ts";
 import { PingMsg } from "../../../examples/platformer/common/message.ts";
 import { average, filter } from "../../common/Iterable.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
+import { DataViewMovable } from "../../common/DataView.ts";
+import { readMessage } from "../../common/Message.ts";
+import { ServerNetworkState } from "../state/Network.ts";
+import { PlayerState } from "../../common/state/Player.ts";
+import { sendIfOpen } from "../../common/socket.ts";
 
 let lastHandledStep = -1;
 export const NetworkSystem: SystemLoader = () => {
@@ -14,12 +19,20 @@ export const NetworkSystem: SystemLoader = () => {
         MessageState.currentStep,
       )
     ) {
-      // `payload.sid` is the stepId of the command to which this snapshot is responding,
-      // not MessageState.currentStep, which will deviate from the corresponding value
-      // on the client
-      broadcastData(
-        view,
-      );
+      const mv = new DataViewMovable(view.buffer);
+      const [_, payload] = readMessage(mv, 0);
+      const eid = ServerNetworkState.getEntityId(payload.nid)!;
+      const player = PlayerState.getPlayer(eid);
+      for (const client of ServerNetworkState.getClients()) {
+        if (
+          client.hasNetworkId(payload.nid) ? player.acceleration.isZero : true
+        ) {
+          sendIfOpen(
+            client.ws,
+            view,
+          );
+        }
+      }
     }
     lastHandledStep = MessageState.currentStep;
     // Play a little ping pong to calculate average network round-trip time
