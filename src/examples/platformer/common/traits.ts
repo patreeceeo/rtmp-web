@@ -144,9 +144,10 @@ export class NegotiatePhysicsTrait
     const speedSquared = this.#player.velocity.lengthSquared;
     const interval = speedSquared / 80;
     if (
-      context.elapsedTime - this.#lastSendTime > interval &&
       NetworkState.isLocal(this.#nid) &&
-      !this.#player.targetPosition.equals(this.#player.position)
+      context.elapsedTime - this.#lastSendTime > interval &&
+      !this.#player.targetPosition.almostEquals(this.#player.position) &&
+      speedSquared > 0
     ) {
       this.#lastSendTime = context.elapsedTime;
       return this.#justCommand;
