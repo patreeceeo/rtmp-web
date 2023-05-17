@@ -144,9 +144,9 @@ export class NegotiatePhysicsTrait
     const speedSquared = this.#player.velocity.lengthSquared;
     const interval = speedSquared / 80;
     if (
+      context.elapsedTime - this.#lastSendTime > interval &&
       NetworkState.isLocal(this.#nid) &&
-      !this.#player.targetPosition.equals(this.#player.position) &&
-      context.elapsedTime - this.#lastSendTime > interval
+      !this.#player.targetPosition.equals(this.#player.position)
     ) {
       this.#lastSendTime = context.elapsedTime;
       return this.#justCommand;
@@ -163,17 +163,8 @@ export class NegotiatePhysicsTrait
     NegotiatePhysics,
     this.#writeCommand,
   ]) as MaybeAddMessageParameters<INegotiatePhysics>;
-  getSnapshotMaybe({ nid, sid }: INegotiatePhysics) {
-    return Just([
-      NegotiatePhysics,
-      (p: INegotiatePhysics) => {
-        const player = this.#player;
-        p.position.copy(player.position);
-        p.velocity.copy(player.velocity);
-        p.nid = nid;
-        p.sid = sid;
-      },
-    ]) as MaybeAddMessageParameters<INegotiatePhysics>;
+  getSnapshotMaybe() {
+    return Nothing();
   }
   applyCommand(
     { position, velocity }: INegotiatePhysics,
