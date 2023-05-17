@@ -8,7 +8,7 @@ class SetRingItem {
 /**
  * An abstract data structure with the following properties:
  * - maps a number key to a set of number values
- * - allows no more than X keys at any time, and if there are X keys, then any newly added key pushes out the least-recenlty added key and its values
+ * - allows no more than X keys at any time, and if there are X keys, then any newly added key pushes out the least-recently added key and its values
  * - allows the values to be within the range L - Y to Y, where L is the largest value and Y is a controlled variable. If a value larger than L is added, then that becomes the new value of L and any values outside the range are discarded.
  */
 export class SetRing {
@@ -28,7 +28,10 @@ export class SetRing {
   add(key: number, value: number) {
     // TODO if the struct at the mapped key's key doesn't equal key then clear its set and update its key
     const mapKey = this.#mapKey(key);
-    const item = this.#map[mapKey]!;
+    const item = this.#map[mapKey];
+    if (!item) {
+      throw new Error(`item at key ${key} (mapKey ${mapKey}) is undefined`);
+    }
     if (item.key !== key) {
       item.set.clear();
       item.key = key;

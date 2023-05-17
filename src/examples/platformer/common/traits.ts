@@ -2,72 +2,70 @@ import { Button } from "../../../modules/common/Button.ts";
 import { Just, Nothing } from "../../../modules/common/Maybe.ts";
 import { NetworkId } from "../../../modules/common/NetworkApi.ts";
 import { InputState } from "../../../modules/common/state/Input.ts";
-import { LevelState } from "../../../modules/common/state/LevelState.ts";
 import { NetworkState } from "../../../modules/common/state/Network.ts";
-import {
-  Player,
-  PlayerState,
-  PoseType,
-} from "../../../modules/common/state/Player.ts";
-import { Time } from "../../../modules/common/state/Time.ts";
+import { Player, PlayerState } from "../../../modules/common/state/Player.ts";
 import { EntityId } from "../../../modules/common/state/mod.ts";
 import { Vec2 } from "~/common/Vec2.ts";
 import { MaybeAddMessageParameters, Trait } from "~/common/state/Trait.ts";
 import {
+  INegotiatePhysics,
   IPlayerMove,
   IPlayerSnapshot,
+  MsgType,
+  NegotiatePhysics,
   PlayerMove,
   PlayerSnapshot,
 } from "./message.ts";
 import { MessageState } from "../../../modules/common/state/Message.ts";
-import { clampLine, getDistanceSquared } from "../../../modules/common/math.ts";
+import { ISystemExecutionContext } from "../../../modules/common/systems/mod.ts";
+import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 
-const origin = Object.freeze(new Vec2(0, 0));
-const reVec2 = new Vec2();
+const maxAcceleration = 2;
+
+const reAcceleration = new Vec2();
 export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
   static readonly commandType = PlayerMove.type;
   static readonly snapshotType = PlayerSnapshot.type;
-  readonly #player: Player;
   readonly #nid: NetworkId;
+  readonly #player: Player;
+  #lastDdx = 0;
+  #lastDdy = 0;
 
   constructor(readonly entityId: EntityId) {
-    this.#player = PlayerState.getPlayer(this.entityId);
     this.#nid = NetworkState.getId(this.entityId)!;
+    this.#player = PlayerState.getPlayer(this.entityId)!;
   }
   getType() {
-    return this.constructor as (typeof WasdMoveTrait);
+    return this.constructor as typeof WasdMoveTrait;
   }
   getCommandMaybe() {
-    const velocity = this.#player.MAX_VELOCITY;
-    const { x, y } = this.#player.position;
-    let dx = 0,
-      dy = 0;
-    if (InputState.isButtonPressed(Button.KeyA) && x > this.#player.width) {
-      dx = -1 * velocity * Time.delta;
-    }
-    if (InputState.isButtonPressed(Button.KeyW) && y > this.#player.height) {
-      dy = -1 * velocity * Time.delta;
-    }
-    if (
-      InputState.isButtonPressed(Button.KeyS) &&
-      y < LevelState.dimensions.y - this.#player.height
-    ) {
-      dy = velocity * Time.delta;
-    }
-    if (
-      InputState.isButtonPressed(Button.KeyD) &&
-      x < LevelState.dimensions.x - this.#player.width
-    ) {
-      dx = velocity * Time.delta;
-    }
-    if (dx !== 0 || dy !== 0) {
-      reVec2.set(dx, dy);
-      return this.#justCommand;
+    if (NetworkState.isLocal(this.#nid)) {
+      let ddx = 0,
+        ddy = 0;
+      if (InputState.isButtonPressed(Button.KeyA)) {
+        ddx = -maxAcceleration;
+      }
+      if (InputState.isButtonPressed(Button.KeyW)) {
+        ddy = -maxAcceleration;
+      }
+      if (InputState.isButtonPressed(Button.KeyS)) {
+        ddy = maxAcceleration;
+      }
+      if (InputState.isButtonPressed(Button.KeyD)) {
+        ddx = maxAcceleration;
+      }
+      if (ddx !== this.#lastDdx || ddy !== this.#lastDdy) {
+        reAcceleration.set(ddx, ddy);
+        reAcceleration.clamp(maxAcceleration);
+        this.#lastDdx = ddx;
+        this.#lastDdy = ddy;
+        return this.#justCommand;
+      }
     }
     return Nothing();
   }
   #writeCommand = (p: IPlayerMove) => {
-    p.delta.copy(reVec2);
+    p.acceleration.copy(reAcceleration);
     p.nid = this.#nid;
     p.sid = MessageState.currentStep;
   };
@@ -75,61 +73,126 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
     PlayerMove,
     this.#writeCommand,
   ]) as MaybeAddMessageParameters<IPlayerMove>;
-  static getSnapshotMaybe({
-    delta,
-    nid,
-    sid,
-  }: IPlayerMove) {
-    const eid = NetworkState.getEntityId(nid);
-    // TODO filter out invalid commands
-    if (PlayerState.hasPlayer(eid!)) {
-      const player = PlayerState.getPlayer(eid!);
-      const timeSinceLastMove = Time.elapsed * player.lastActiveTime;
-      const pose = delta.x == 0
-        ? player.pose
-        : delta.x > 0
-        ? PoseType.facingRight
-        : PoseType.facingLeft;
-      const clampDelta =
-        getDistanceSquared(origin, delta) < player.MAX_VELOCITY_SQR
-          ? delta
-          : clampLine(origin, delta, player.MAX_VELOCITY * timeSinceLastMove);
-      reVec2.copy(player.position);
-      reVec2.add(clampDelta);
-      return Just([PlayerSnapshot, (p: IPlayerSnapshot) => {
-        p.position.copy(reVec2);
-        p.pose = pose;
+  getSnapshotMaybe({ nid, sid }: IPlayerMove) {
+    return Just([
+      PlayerSnapshot,
+      (p: IPlayerSnapshot) => {
+        const player = this.#player;
+        p.position.copy(player.targetPosition);
+        p.velocity.copy(player.velocity);
+        p.pose = player.pose;
         p.nid = nid;
         p.sid = sid;
-      }]) as MaybeAddMessageParameters<IPlayerSnapshot>;
+      },
+    ]) as MaybeAddMessageParameters<IPlayerSnapshot>;
+  }
+  applyCommand(
+    { acceleration }: IPlayerMove,
+  ) {
+    const player = this.#player;
+    player.acceleration.copy(acceleration);
+  }
+
+  shouldSendSnapshot(snapshot: IPlayerSnapshot, nidReceiver: NetworkId) {
+    const client = ServerNetworkState.getClient(nidReceiver)!;
+    return client.hasNetworkId(snapshot.nid)
+      ? this.#player.acceleration.isZero
+      : true;
+  }
+  shouldApplySnapshot(
+    { nid, velocity }: IPlayerSnapshot,
+  ) {
+    return velocity.lengthSquared < this.#player.maxVelocitySq &&
+        this.#player.acceleration.isZero || !NetworkState.isLocal(nid);
+  }
+  applySnapshot(
+    { pose, position, velocity, nid }: IPlayerSnapshot,
+    context: ISystemExecutionContext,
+  ) {
+    const player = this.#player;
+    player.lastActiveTime = context.elapsedTime;
+    player.targetPosition.copy(position);
+    player.targetVelocity.copy(velocity);
+
+    if (!NetworkState.isLocal(nid)) {
+      player.velocity.copy(velocity);
+    }
+    player.pose = pose;
+  }
+}
+
+const tempPositionDelta = new Vec2();
+const tempVelocityDelta = new Vec2();
+const MAX_POSITION_DELTA = 2000;
+const MAX_VELOCITY_DELTA = 1500;
+export class NegotiatePhysicsTrait
+  implements Trait<INegotiatePhysics, INegotiatePhysics> {
+  static readonly commandType = MsgType.negotiatePhysics;
+  static readonly snapshotType = MsgType.negotiatePhysics;
+  readonly #nid: NetworkId;
+  readonly #player: Player;
+  #lastSendTime = 0;
+
+  constructor(readonly entityId: EntityId) {
+    this.#nid = NetworkState.getId(this.entityId)!;
+    this.#player = PlayerState.getPlayer(this.entityId)!;
+  }
+  getType() {
+    return this.constructor as typeof NegotiatePhysicsTrait;
+  }
+  getCommandMaybe(context: ISystemExecutionContext) {
+    const speedSquared = this.#player.velocity.lengthSquared;
+    const interval = speedSquared / 80;
+    if (
+      NetworkState.isLocal(this.#nid) &&
+      context.elapsedTime - this.#lastSendTime > interval &&
+      !this.#player.targetPosition.almostEquals(this.#player.position) &&
+      speedSquared > 0
+    ) {
+      this.#lastSendTime = context.elapsedTime;
+      return this.#justCommand;
     }
     return Nothing();
   }
-  static applyCommand({ nid, delta }: IPlayerMove) {
-    const eid = NetworkState.getEntityId(nid);
-    // TODO filter out invalid commands
-    if (PlayerState.hasPlayer(eid!)) {
-      const player = PlayerState.getPlayer(eid!);
-      player.position.add(delta);
-      player.pose = delta.x == 0
-        ? player.pose
-        : delta.x > 0
-        ? PoseType.facingRight
-        : PoseType.facingLeft;
-    }
+  #writeCommand = (p: INegotiatePhysics) => {
+    p.velocity.copy(this.#player.velocity);
+    p.position.copy(this.#player.position);
+    p.nid = this.#nid;
+    p.sid = MessageState.currentStep;
+  };
+  #justCommand = Just([
+    NegotiatePhysics,
+    this.#writeCommand,
+  ]) as MaybeAddMessageParameters<INegotiatePhysics>;
+  getSnapshotMaybe() {
+    return Nothing();
   }
-  static applySnapshot({ nid, pose, position }: IPlayerSnapshot) {
-    const eid = NetworkState.getEntityId(nid)!;
-    // TODO filter out invalid snapshots
-    if (PlayerState.hasPlayer(eid)) {
-      const player = PlayerState.getPlayer(eid);
-      // Server sends back correct position
-      player.position.copy(position);
-      player.pose = pose;
-      // TODO what if lastActiveTime is changed by more than just moving?
-      player.lastActiveTime = Time.elapsed;
-    } else {
-      console.warn(`Requested moving unknown player with nid ${nid}`);
+  applyCommand(
+    { position, velocity }: INegotiatePhysics,
+  ) {
+    const player = this.#player;
+    tempPositionDelta.copy(position).sub(player.position);
+    tempVelocityDelta.copy(velocity).sub(player.velocity);
+    tempPositionDelta.clamp(MAX_POSITION_DELTA);
+    tempVelocityDelta.clamp(MAX_VELOCITY_DELTA);
+
+    player.position.add(tempPositionDelta);
+    player.velocity.add(tempVelocityDelta);
+  }
+
+  shouldSendSnapshot() {
+    return true;
+  }
+  shouldApplySnapshot() {
+    return true;
+  }
+  applySnapshot(
+    { position, velocity, nid }: INegotiatePhysics,
+  ) {
+    const player = this.#player;
+    player.targetPosition.copy(position);
+    if (!NetworkState.isLocal(nid)) {
+      player.targetVelocity.copy(velocity);
     }
   }
 }

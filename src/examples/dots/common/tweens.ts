@@ -5,6 +5,7 @@ import { EntityId } from "../../../modules/common/state/mod.ts";
 import { Vec2, Vec2Type } from "../../../modules/common/Vec2.ts";
 import { clampLine } from "../../../modules/common/math.ts";
 import { IColorChange, IPlayerSnapshot, MsgType } from "./messages.ts";
+import { ISystemExecutionContext } from "../../../modules/common/systems/mod.ts";
 
 export class ColorTween implements Tween<ColorId> {
   static readonly store = ECS.defineComponent({ value: ECS.Types.ui8 });
@@ -48,13 +49,13 @@ export class PositionTween implements Tween<Vec2> {
   get end(): Vec2 {
     return this.#end;
   }
-  exec(timeDelta: number) {
+  exec({ deltaTime }: ISystemExecutionContext) {
     const player = PlayerState.getPlayer(this.eid);
     if (player) {
       const mid = clampLine(
         player.position,
         this.end,
-        player.MAX_VELOCITY * timeDelta,
+        player.MAX_VELOCITY * deltaTime,
       );
       player.position.copy(mid);
     }

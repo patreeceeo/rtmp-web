@@ -1,8 +1,13 @@
 import "../mod.ts";
 import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
-import { TimeSystem } from "~/common/systems/Time.ts";
-import { Pipeline, System, SystemPartial } from "~/common/systems/mod.ts";
+import {
+  AnimationDriver,
+  FixedIntervalDriver,
+  Pipeline,
+  System,
+  SystemPartial,
+} from "~/common/systems/mod.ts";
 import { ClientApp, startClient } from "~/client/mod.ts";
 import { ClientNetworkState } from "~/client/state/Network.ts";
 import { ClientNetworkSystem } from "~/client/systems/Network.ts";
@@ -82,22 +87,16 @@ function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
   TraitState.deleteEntity(eid);
 }
 
-const pipeline = new Pipeline([
-  TimeSystem(),
+const fixedPipeline = new Pipeline([
   InputSystem(),
   TraitSystem(),
   ClientNetworkSystem(),
   TweenSystem(),
   ReconcileSystem(),
-] as Array<SystemPartial>);
+], new FixedIntervalDriver(80));
 
 startClient(new DotsClientApp());
-pipeline.start(80);
+fixedPipeline.start();
 
-(OutputSystem() as Promise<Partial<System>>).then((outputSystem) => {
-  function startAnimationPipeline() {
-    outputSystem.exec!();
-    requestAnimationFrame(startAnimationPipeline);
-  }
-  startAnimationPipeline();
-});
+const animationPipeline = new Pipeline([], new AnimationDriver());
+animationPipeline.start();

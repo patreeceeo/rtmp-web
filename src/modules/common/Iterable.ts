@@ -45,4 +45,22 @@ export function* flatten<A, B>(
   }
 }
 
+export function join<T>(...iterables: Array<Iterable<T>>): Iterable<T> {
+  return {
+    *[Symbol.iterator]() {
+      for (const iter of iterables) {
+        yield* iter;
+      }
+    },
+  };
+}
+
+const reuseArray: Array<unknown> = [];
+export function last<T>(iter: Iterable<T>): T {
+  const arry = toArray(iter, reuseArray);
+  const result = arry[arry.length - 1] as T;
+  reuseArray.length = 0;
+  return result;
+}
+
 export const emtpyIterable = (new Set()).values();

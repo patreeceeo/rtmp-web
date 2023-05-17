@@ -1,3 +1,4 @@
+import { join } from "./Iterable.ts";
 import { EntityId } from "./state/mod.ts";
 import { OpaqueType } from "./state/mod.ts";
 
@@ -39,6 +40,7 @@ export class NetworkStateApi {
     this.#state.entityMap.delete(nid);
     this.#state.reverseMap.delete(eid);
     this.#state.localIds.delete(nid);
+    this.#state.remoteIds.delete(nid);
   }
 
   setNetworkEntity(nid: NetworkId, eid: EntityId, isLocal: boolean) {
@@ -57,5 +59,13 @@ export class NetworkStateApi {
 
   getRemoteIds() {
     return this.#state.remoteIds.values();
+  }
+
+  getAllIds() {
+    return join(this.#state.localIds.values(), this.#state.remoteIds.values());
+  }
+
+  isLocal(nid: NetworkId) {
+    return this.#state.localIds.has(nid);
   }
 }

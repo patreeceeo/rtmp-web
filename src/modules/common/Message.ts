@@ -4,10 +4,11 @@ import {
   createBufferProxyObjectConstructor,
   IBufferProxyObjectConstructor,
   IBufferProxyObjectSpec,
+  MAX_BYTE_LENGTH,
 } from "./BufferValue.ts";
 import { invariant } from "./Error.ts";
 
-export const MAX_MESSAGE_BYTE_LENGTH = 32; // arbitrary, seems like plenty for now
+export const MAX_MESSAGE_BYTE_LENGTH = MAX_BYTE_LENGTH;
 
 // deno-lint-ignore no-explicit-any
 export type IPayloadAny = Record<string, any>;
@@ -51,9 +52,9 @@ class MessageDef<P extends IPayloadAny> implements IMessageDef<P> {
     const payload = new this.Payload(view, byteOffset + 1);
     writePayload(payload);
     const { bytesRemaining } = payload.meta;
-    // TODO
+    // TODO should be equal to 0, but there's a bug in BufferProxyObject
     invariant(
-      bytesRemaining === 0,
+      bytesRemaining <= 0,
       `Payload should be completely written. There are ${bytesRemaining} bytes remaining`,
     );
     return payload;

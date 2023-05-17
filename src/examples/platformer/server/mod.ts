@@ -1,8 +1,11 @@
 import "../mod.ts";
 import { PlayerState } from "~/common/state/Player.ts";
-import { TimeSystem } from "~/common/systems/Time.ts";
 import { NetworkSystem } from "~/server/systems/Network.ts";
-import { Pipeline, SystemPartial } from "~/common/systems/mod.ts";
+import {
+  DemandDriver,
+  FixedIntervalDriver,
+  Pipeline,
+} from "~/common/systems/mod.ts";
 import {
   broadcastMessage,
   sendMessageToClient,
@@ -11,13 +14,16 @@ import {
 } from "~/server/mod.ts";
 import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { TraitSystem } from "../../../modules/server/systems/Trait.ts";
+import { ConsumeCommandSystem } from "../../../modules/server/systems/ConsumeCommand.ts";
+import { ProduceSnapshotSystem } from "../../../modules/server/systems/ProduceSnapshot.ts";
 import { LevelState } from "../../../modules/common/state/LevelState.ts";
 import { getRandomIntBetween } from "../../../modules/common/random.ts";
 import { PlayerAdd, PlayerRemove } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { TraitState } from "../../../modules/common/state/Trait.ts";
-import { WasdMoveTrait } from "../common/traits.ts";
+import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
+import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
+import { PurgeSystem } from "../../../modules/server/systems/PurgeSystem.ts";
 
 const idleTimeout = 300;
 
@@ -30,11 +36,20 @@ class DotsServerApp implements ServerApp {
     client.addNetworkId(playerNid);
 
     addedPlayer.position.set(
-      getRandomIntBetween(0, LevelState.dimensions.x),
-      getRandomIntBetween(0, LevelState.dimensions.y),
+      getRandomIntBetween(
+        LevelState.dimensions.xMin,
+        LevelState.dimensions.xMax,
+      ),
+      getRandomIntBetween(
+        LevelState.dimensions.yMin,
+        LevelState.dimensions.yMax,
+      ),
     );
+
+    addedPlayer.targetPosition.copy(addedPlayer.position);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
     TraitState.add(WasdMoveTrait, addedPlayer.eid);
+    TraitState.add(NegotiatePhysicsTrait, addedPlayer.eid);
 
     sendMessageToClient(ws, PlayerAdd, (p) => {
       p.position.copy(addedPlayer.position);
@@ -55,13 +70,12 @@ class DotsServerApp implements ServerApp {
     );
 
     // Catch up new client on current state of the world
-    for (const eid of PlayerState.getEntityIds()) {
-      const player = PlayerState.getPlayer(eid);
-      if (eid !== addedPlayer.eid) {
+    for (const player of PlayerState.getPlayers()) {
+      if (player.eid !== addedPlayer.eid) {
         sendMessageToClient(ws, PlayerAdd, (p) => {
           p.position.copy(player.position);
           p.isLocal = false;
-          p.nid = ServerNetworkState.getId(eid)!;
+          p.nid = ServerNetworkState.getId(player.eid)!;
           p.sid = MessageState.currentStep;
         });
       }
@@ -74,13 +88,10 @@ class DotsServerApp implements ServerApp {
     for (const nid of client.getNetworkIds()) {
       const eid = ServerNetworkState.getEntityId(nid);
       PlayerState.deletePlayer(eid!);
-      broadcastMessage(
-        PlayerRemove,
-        (p) => {
-          p.nid = nid;
-          p.sid = MessageState.currentStep;
-        },
-      );
+      broadcastMessage(PlayerRemove, (p) => {
+        p.nid = nid;
+        p.sid = MessageState.currentStep;
+      });
     }
   }
 
@@ -91,13 +102,30 @@ class DotsServerApp implements ServerApp {
   handleMessage(_client: WebSocket, message: MessageEvent) {
     const view = new DataViewMovable(message.data);
     MessageState.copyCommandFrom(view);
+    handleMessagePipeline.exec();
   }
 }
 
-const pipeline = new Pipeline([
-  TimeSystem(),
-  TraitSystem(),
-  NetworkSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] }),
-] as Array<SystemPartial>);
-pipeline.start(80);
+const handleMessagePipeline = new Pipeline(
+  [ConsumeCommandSystem()],
+  new DemandDriver(),
+);
+handleMessagePipeline.start();
+
+const fastPipeline = new Pipeline(
+  [
+    PhysicsSystem({ fixedDeltaTime: 9 }), // fixedDeltaTime matches that interval of this pipeline
+    ProduceSnapshotSystem(),
+    NetworkSystem(),
+  ],
+  new FixedIntervalDriver(8),
+);
+fastPipeline.start();
+
+const slowPipeline = new Pipeline(
+  [PurgeSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] })],
+  new FixedIntervalDriver(500),
+);
+slowPipeline.start();
+
 startServer(new DotsServerApp());

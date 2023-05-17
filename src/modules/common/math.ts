@@ -4,10 +4,11 @@ export function getDistanceSquared(a: Vec2, b: Vec2) {
   return Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2);
 }
 
-function isAlmostZero(n: number) {
-  return Math.abs(n) <= Number.EPSILON;
+export function isAlmostZero(n: number, tolerance = Number.EPSILON) {
+  return Math.abs(n) <= tolerance;
 }
 
+/** @deprecated */
 export function clampLine(
   start: Vec2,
   end: Vec2,
@@ -39,11 +40,43 @@ export function clampLine(
     return new Vec2(x1 + Math.min(Math.abs(dx), maxLength) * Math.sign(dx), y1);
   }
 
-  const length = Math.sqrt(lengthSquared);
+  const length = fastSqrt(lengthSquared);
 
   // Calculate the new point that is maxLength away from start in the direction of end
   const newX = x1 + dx * maxLength / length;
   const newY = y1 + dy * maxLength / length;
 
   return new Vec2(newX, newY);
+}
+
+export function roundTo8thBit(value: number) {
+  return value & 128 ? (value >> 8) + 1 : value >> 8;
+}
+
+const sqrtLut = new Float32Array(2 ** 22);
+
+for (let i = 0; i <= Math.sqrt(sqrtLut.length); i++) {
+  sqrtLut[i ** 2] = i;
+}
+let lastSqr = 0;
+let lastSqrt = 0;
+let nextSqr = 0;
+for (let i = 0; i < 2 ** 22; i++) {
+  if (sqrtLut[i] !== 0) {
+    lastSqrt = sqrtLut[i];
+    lastSqr = lastSqrt * lastSqrt;
+    nextSqr = (lastSqrt + 1) * (lastSqrt + 1);
+  } else {
+    const diff = i - lastSqr;
+    sqrtLut[i] = lastSqrt + diff / (nextSqr - lastSqr);
+  }
+}
+
+export function fastSqrt(x: number) {
+  const xRounded = Math.round(x);
+  if (x >= 1 && xRounded < sqrtLut.length) {
+    return sqrtLut[xRounded];
+  } else {
+    return Math.sqrt(x);
+  }
 }

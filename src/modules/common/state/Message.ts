@@ -2,17 +2,19 @@ import {
   copyMessage,
   IMessageDef,
   IPayloadAny,
-  MAX_MESSAGE_BYTE_LENGTH,
   readMessage,
 } from "../../common/Message.ts";
 import { DataViewMovable } from "../DataView.ts";
-import { invariant } from "../Error.ts";
+import { isClient } from "../env.ts";
 import { NetworkId } from "../NetworkApi.ts";
 import { SetRing } from "../SetRing.ts";
 
 // TODO make these values dynamic. The slower the network the bigger they need to be.
 const MAX_LAG = 23;
-const BUFFER_SIZE_BYTES = Math.pow(2, 10); // 32 KB
+// 1 Megabyte, enough space for about 16 seconds of commands if commands have a max length of 64 bytes and are added at a rate of one per millisecond,
+// for clients, and 8 Megabytes for the server. There's currently no mechanism to prevent proxy objects from having their underlying memory overwritten
+// so much care needs to be taken to ensure that the buffer is large enough to prevent that from happening. TODO add a mechanism to prevent that from happening.
+const BUFFER_SIZE_BYTES = (2 ** 20) * (isClient ? 1 : 8);
 
 /**
  * What is this ugly monster? It's covering multiple seperate but intimately related
@@ -29,6 +31,7 @@ const BUFFER_SIZE_BYTES = Math.pow(2, 10); // 32 KB
  */
 export class MessageStateApi {
   // TODO maybe there should only be one buffer for all commands, snapshots, etc
+  // TODO(server) each client should have their own buffer?
   #commandBuffer = new ArrayBuffer(BUFFER_SIZE_BYTES);
   #commandBufferView = new DataViewMovable(this.#commandBuffer, {
     isCircular: true,
@@ -36,37 +39,31 @@ export class MessageStateApi {
   #commandBufferByteOffset = 0;
   #commandsByStepCreated = new SetRing(MAX_LAG, BUFFER_SIZE_BYTES);
   #commandsByStepReceived = new SetRing(MAX_LAG, BUFFER_SIZE_BYTES);
-  #sidNow = 0;
   #lastSentStepId = 0;
+  #lastSentStepIdMap: Array<number> = [];
   #lastReceivedStepIdMap: Array<number> = [];
   #lastHandledStepIdMap: Array<number> = [];
 
-  /** Increment the ID number used to identify executions of the fixed pipeline.
-   * Note: even if called every milisecond, it would take ~571,233 years for this
-   * number to exceed Number.MAX_SAFE_INTEGER
-   * TODO use performance.now()
-   */
-  incrementStepId() {
-    this.#sidNow++;
-  }
-
   get currentStep() {
-    return this.#sidNow;
+    return Math.floor(performance.now());
   }
 
+  setLastSentStepId(nid: NetworkId, sid: number) {
+    this.#lastSentStepId = sid;
+    this.#lastSentStepIdMap[nid] = sid;
+  }
+  getLastSentStepId(nid: NetworkId) {
+    return this.#lastSentStepIdMap[nid];
+  }
   get lastSentStepId() {
     return this.#lastSentStepId;
-  }
-
-  set lastSentStepId(sid: number) {
-    this.#lastSentStepId = sid;
   }
 
   getLastReceivedStepId(nid: NetworkId) {
     return this.#lastReceivedStepIdMap[nid];
   }
   getLastHandledStepId(nid: NetworkId) {
-    return this.#lastHandledStepIdMap[nid];
+    return this.#lastHandledStepIdMap[nid] || 0;
   }
   setLastHandledStepId(nid: NetworkId, sid: number) {
     return this.#lastHandledStepIdMap[nid] = sid;
@@ -75,7 +72,7 @@ export class MessageStateApi {
   addCommand<P extends IPayloadAny>(
     MsgDef: IMessageDef<P>,
     writePayload: (p: P) => void,
-    sidReceivedAt = this.#sidNow,
+    sidReceivedAt = this.currentStep,
   ) {
     const byteOffset = this.#commandBufferByteOffset;
     const payload = MsgDef.write(
@@ -101,7 +98,7 @@ export class MessageStateApi {
   copyCommandFrom(
     view: DataViewMovable,
     byteOffset = 0,
-    sidReceivedAt = this.#sidNow,
+    sidReceivedAt = this.currentStep,
   ) {
     const MsgDef = copyMessage(
       view,
@@ -110,25 +107,12 @@ export class MessageStateApi {
       this.#commandBufferByteOffset,
     );
     const [_type, payload] = readMessage(view, byteOffset);
+    // console.log("received sid", payload.sid);
     this.#recordCommandMetadata(MsgDef.byteLength, sidReceivedAt, payload.sid);
   }
 
-  *getCommandDataViewsByStepCreated(
-    start = this.#sidNow,
-    end = start,
-  ) {
-    for (
-      const byteOffset of this.#commandsByStepCreated.sliceValues(start, end)
-    ) {
-      yield getDataView(
-        this.#commandBuffer,
-        byteOffset % BUFFER_SIZE_BYTES,
-      );
-    }
-  }
-
   *getCommandsByStepCreated(
-    start = this.#sidNow,
+    start = this.currentStep,
     end = start,
   ) {
     for (
@@ -139,7 +123,7 @@ export class MessageStateApi {
   }
 
   *getCommandsByStepReceived(
-    start = this.#sidNow,
+    start = this.currentStep,
     end = start,
   ) {
     for (
@@ -166,7 +150,7 @@ export class MessageStateApi {
   addSnapshot<P extends IPayloadAny>(
     MsgDef: IMessageDef<P>,
     writePayload: (p: P) => void,
-    sidCreatedAt = this.#sidNow,
+    sidCreatedAt = this.currentStep,
   ) {
     const byteOffset = this.#snapshotBufferByteOffset;
     const payload = MsgDef.write(
@@ -201,7 +185,7 @@ export class MessageStateApi {
   copySnapshotFrom(
     view: DataViewMovable,
     byteOffset = 0,
-    sidCreatedAt = this.#sidNow,
+    sidCreatedAt = this.currentStep,
   ) {
     const MsgDef = copyMessage(
       view,
@@ -218,33 +202,25 @@ export class MessageStateApi {
     );
   }
 
-  *getSnapshotDataViewsByStepCreated(
-    start = this.#sidNow,
-    end = start,
-  ) {
-    for (
-      const byteOffset of this.#snapshotsByStepCreated.sliceValues(start, end)
-    ) {
-      yield getDataView(
-        this.#snapshotBuffer,
-        byteOffset % BUFFER_SIZE_BYTES,
-      );
-    }
-  }
-
   *getSnapshotsByStepCreated(
-    start = this.#sidNow,
+    start = this.currentStep,
     end = start,
   ) {
     for (
       const byteOffset of this.#snapshotsByStepCreated.sliceValues(start, end)
     ) {
-      yield readMessage(this.#snapshotBufferView, byteOffset);
+      const [type, payload] = readMessage(this.#snapshotBufferView, byteOffset);
+      if (payload.meta.byteOffset - 1 !== byteOffset) {
+        throw new Error(
+          `byteOffset mismatch ${payload.meta.byteOffset} !== ${byteOffset}`,
+        );
+      }
+      yield [type, payload] as [number, IPayloadAny];
     }
   }
 
   *getSnapshotsByCommandStepCreated(
-    start = this.#sidNow,
+    start = this.currentStep,
     end = start,
   ) {
     for (
@@ -259,33 +235,3 @@ export class MessageStateApi {
 }
 
 export const MessageState = new MessageStateApi();
-
-const tempBuffer = new ArrayBuffer(MAX_MESSAGE_BYTE_LENGTH);
-export function getDataView(buffer: ArrayBuffer, byteOffset: number): DataView {
-  invariant(
-    byteOffset < buffer.byteLength,
-    "byteOffset exceeds length of buffer",
-  );
-  const byteLength = MAX_MESSAGE_BYTE_LENGTH;
-  if (byteOffset + byteLength <= buffer.byteLength) {
-    return new DataView(buffer, byteOffset, byteLength);
-  } else {
-    const newView = new DataView(tempBuffer);
-    const originalView = new DataView(buffer);
-
-    let newIndex = 0;
-    for (
-      let i = byteOffset;
-      i < buffer.byteLength && newIndex < byteLength;
-      i++, newIndex++
-    ) {
-      newView.setUint8(newIndex, originalView.getUint8(i));
-    }
-
-    for (let i = 0; newIndex < byteLength; i++, newIndex++) {
-      newView.setUint8(newIndex, originalView.getUint8(i));
-    }
-
-    return newView;
-  }
-}

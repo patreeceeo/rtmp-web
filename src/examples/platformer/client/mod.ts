@@ -1,18 +1,20 @@
 import "../mod.ts";
 import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
-import { TimeSystem } from "~/common/systems/Time.ts";
-import { Pipeline, System, SystemPartial } from "~/common/systems/mod.ts";
+import {
+  AnimationDriver,
+  DemandDriver,
+  EventQueueDriver,
+  FixedIntervalDriver,
+  Pipeline,
+} from "~/common/systems/mod.ts";
 import { ClientApp, startClient } from "~/client/mod.ts";
 import { ClientNetworkState } from "~/client/state/Network.ts";
 import { ClientNetworkSystem } from "~/client/systems/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { TweenSystem } from "~/client/systems/Tween.ts";
-import { TweenState } from "~/client/state/Tween.ts";
 import { TraitSystem } from "~/client/systems/Trait.ts";
 import { OutputState } from "~/client/state/Output.ts";
 import { OutputSystem } from "~/client/systems/Output.ts";
-import { LevelState } from "~/common/state/LevelState.ts";
 import { InputSystem } from "../../../modules/client/systems/Input.ts";
 import { TraitState } from "~/common/state/Trait.ts";
 import { ReconcileSystem } from "../../../modules/client/systems/Reconcile.ts";
@@ -20,8 +22,9 @@ import { useClient } from "hot_mod/dist/client/mod.js";
 import { IPlayerAdd, IPlayerRemove, MsgType } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { readMessage } from "../../../modules/common/Message.ts";
-import { WasdMoveTrait } from "../common/traits.ts";
-import { PoseTween, PositionTween } from "../common/tweens.ts";
+import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
+import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
+import { DebugSystem } from "~/client/systems/DebugSystem.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -34,7 +37,7 @@ if (import.meta.hot) {
   });
 }
 
-OutputState.canvas.resolution.copy(LevelState.dimensions);
+OutputState.canvas.resolution.set(256, 256);
 
 export class DotsClientApp extends ClientApp {
   handleOpen(_server: WebSocket, _event: Event): void {
@@ -50,7 +53,6 @@ export class DotsClientApp extends ClientApp {
   handleMessage(server: WebSocket, event: MessageEvent<any>): void {
     const view = new DataViewMovable(event.data);
     const [type, payload] = readMessage(view, 0);
-    OutputState.isDirty = true;
 
     switch (type) {
       case MsgType.playerAdded:
@@ -60,9 +62,9 @@ export class DotsClientApp extends ClientApp {
         handlePlayerRemoved(server, payload as IPlayerRemove);
         break;
       default:
-        // console.log("received message", payload.meta.pojo)
         // TODO payload gets read twice
         MessageState.copySnapshotFrom(view);
+        handleMessagePipeline.exec();
     }
   }
   handleIdle(): void {
@@ -78,39 +80,45 @@ function handlePlayerAdded(
   const player = PlayerState.createPlayer();
   console.log("player nid:", nid);
   player.position.copy(position);
+  player.targetPosition.copy(position);
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
-  if (isLocal) {
-    TraitState.add(WasdMoveTrait, player.eid);
-  } else {
-    TweenState.add(PositionTween, player.eid);
-    TweenState.add(PoseTween, player.eid);
-  }
+  TraitState.add(WasdMoveTrait, player.eid);
+  TraitState.add(NegotiatePhysicsTrait, player.eid);
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
   // TODO player system
   const eid = ClientNetworkState.getEntityId(playerRemove.nid)!;
   PlayerState.deletePlayer(eid);
   ClientNetworkState.deleteId(playerRemove.nid);
-  TweenState.deleteEntity(eid);
   TraitState.deleteEntity(eid);
 }
 
-const pipeline = new Pipeline([
-  TimeSystem(),
-  InputSystem(),
-  TraitSystem(),
-  ClientNetworkSystem(),
-  TweenSystem(),
-  ReconcileSystem(),
-] as Array<SystemPartial>);
+const app = new DotsClientApp();
 
-startClient(new DotsClientApp());
-pipeline.start(80);
+const inputPipeline = new Pipeline(
+  [InputSystem()],
+  new EventQueueDriver(app.inputEvents),
+);
+inputPipeline.start();
 
-(OutputSystem() as Promise<Partial<System>>).then((outputSystem) => {
-  function startAnimationPipeline() {
-    outputSystem.exec!();
-    requestAnimationFrame(startAnimationPipeline);
-  }
-  startAnimationPipeline();
-});
+const handleMessagePipeline = new Pipeline(
+  [ReconcileSystem()],
+  new DemandDriver(),
+);
+handleMessagePipeline.start();
+
+const fastPipeline = new Pipeline(
+  [
+    TraitSystem(),
+    ClientNetworkSystem(),
+    PhysicsSystem({ fixedDeltaTime: 8 }),
+    DebugSystem(),
+  ],
+  new FixedIntervalDriver(8),
+);
+fastPipeline.start();
+
+startClient(app);
+
+const framePipeline = new Pipeline([OutputSystem()], new AnimationDriver());
+framePipeline.start();

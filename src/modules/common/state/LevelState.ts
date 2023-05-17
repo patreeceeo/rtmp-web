@@ -1,7 +1,7 @@
-import { Vec2 } from "../Vec2.ts";
+import { Box } from "../Box.ts";
 
 class LevelStateApi {
-  dimensions = new Vec2();
+  dimensions = new Box();
 }
 
 export const LevelState = new LevelStateApi();
