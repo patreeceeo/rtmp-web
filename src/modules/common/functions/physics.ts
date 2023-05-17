@@ -1,5 +1,5 @@
 import { Box, IBox } from "../Box.ts";
-import { IVec2Readonly, Vec2, Vec2ReadOnly } from "../Vec2.ts";
+import { Vec2, Vec2ReadOnly } from "../Vec2.ts";
 
 /**
  * @fileoverview
@@ -9,23 +9,15 @@ import { IVec2Readonly, Vec2, Vec2ReadOnly } from "../Vec2.ts";
 export interface ISimulateOptions {
   friction: number;
   maxVelocity: number;
-  /** the acceleration vector for momentary changes in velocity, like turning, jumping, colliding with a wall, etc. */
-  bounce: Vec2ReadOnly;
-  /** the acceleration vector for steady changes in velocity, like gravity */
-  steadyAcceleration: Vec2ReadOnly;
   worldDimensions: IBox;
   hitBox: IBox;
-  maxSteps: number;
 }
 
 export class SimulateOptions implements ISimulateOptions {
   friction = 0;
   maxVelocity = Infinity;
-  bounce = Vec2.ZERO;
-  steadyAcceleration = Vec2.ZERO;
   worldDimensions = Box.INFINITY;
   hitBox = Box.ZERO;
-  maxSteps = 1000;
 }
 
 const defaultOptions = new SimulateOptions();
@@ -37,158 +29,6 @@ function accumulate(
   deltaVector: Vec2ReadOnly,
 ) {
   targetVector.add(deltaVector, deltaTime);
-}
-
-function sumSeries(start: number, limit: number, step: number): number {
-  if (limit !== start) {
-    if (step === 0) {
-      return Infinity * Math.sign(limit - start);
-    }
-    const steps = Math.floor((limit - start - 0.5 * step) / step) + 1;
-    const last = start + (steps - 1) * step;
-    return (steps * (start + last)) / 2;
-  } else {
-    return 0;
-  }
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-const tempFrictionVector = new Vec2();
-function getFrictionVector(velocity: IVec2Readonly, friction: number) {
-  tempFrictionVector.set(0, 0);
-  tempFrictionVector.extend(friction, velocity);
-  return tempFrictionVector;
-}
-
-/** find the position of object when it has reached `targetVelocity` from `initialVelocity`
- */
-function determinePositionWithVelocity(
-  position: Vec2,
-  initialVelocity: IVec2Readonly,
-  targetVelocity: IVec2Readonly,
-  options: ISimulateOptions = defaultOptions,
-) {
-  const { x: xFriction, y: yFriction } = getFrictionVector(
-    initialVelocity,
-    options.friction / 256,
-  );
-  position.x = determinePositionWithVelocity1D(
-    position.x,
-    initialVelocity.x,
-    targetVelocity.x,
-    options.worldDimensions.xMin,
-    options.worldDimensions.xMax,
-    xFriction,
-  );
-  position.y = determinePositionWithVelocity1D(
-    position.y,
-    initialVelocity.y,
-    targetVelocity.y,
-    options.worldDimensions.yMin,
-    options.worldDimensions.yMax,
-    yFriction,
-  );
-}
-
-function determinePositionWithVelocity1D(
-  position: number,
-  initialVelocity: number,
-  targetVelocity: number,
-  minPosition: number,
-  maxPosition: number,
-  friction: number,
-) {
-  const delta = initialVelocity !== 0
-    ? sumSeries(targetVelocity, initialVelocity, friction)
-    : 0;
-  return clamp(
-    position + delta,
-    minPosition,
-    maxPosition,
-  );
-}
-
-/** calculate the sum of the series of initial velocity minus friction per elapsed time unit until velocity is zero
- */
-export function determineRestingPosition(
-  position: Vec2,
-  velocity: IVec2Readonly,
-  options: ISimulateOptions = defaultOptions,
-) {
-  tempVelocity.copy(velocity);
-  if (options.steadyAcceleration.isZero) {
-    determinePositionWithVelocity(position, tempVelocity, Vec2.ZERO, options);
-  } else {
-    let steps = 0;
-    // console.log("determine");
-    while (
-      steps < options.maxSteps && !(tempVelocity.almostEquals(Vec2.ZERO))
-    ) {
-      steps += 1;
-      simulatePositionWithVelocity(
-        position,
-        tempVelocity,
-        10, /* TODO magic number */
-        options,
-      );
-    }
-    if (steps === options.maxSteps) {
-      console.warn("determineRestingPosition reached maxSteps", steps);
-    }
-  }
-}
-
-export function determineVelocityAtTime(
-  velocity: Vec2,
-  initialVelocity: IVec2Readonly,
-  elapsedTime: number,
-  options: ISimulateOptions = defaultOptions,
-) {
-  const { x: xFriction, y: yFriction } = getFrictionVector(
-    initialVelocity,
-    options.friction / 256,
-  );
-  velocity.x = initialVelocity.x - xFriction * elapsedTime;
-  velocity.y = initialVelocity.y - yFriction * elapsedTime;
-  return velocity;
-}
-
-const tempVelocity = new Vec2();
-export function determinePositionAtTime(
-  position: Vec2,
-  velocity: Vec2ReadOnly,
-  elapsedTime: number,
-  options: ISimulateOptions = defaultOptions,
-) {
-  if (options.bounce.isZero) {
-    const { x: xEndVelocity, y: yEndVelocity } = determineVelocityAtTime(
-      tempVelocity,
-      velocity,
-      elapsedTime,
-      options,
-    );
-    determinePositionWithVelocity(
-      position,
-      velocity,
-      tempVelocity.set(xEndVelocity, yEndVelocity),
-      options,
-    );
-  } else {
-    tempVelocity.copy(velocity);
-    while (elapsedTime > 0) {
-      elapsedTime -= 1;
-      simulateVelocityWithAcceleration(
-        tempVelocity,
-        options.bounce,
-        1,
-        options,
-      );
-      simulatePositionWithVelocity(position, tempVelocity, 1, options);
-    }
-  }
 }
 
 export function simulatePositionWithVelocity(
