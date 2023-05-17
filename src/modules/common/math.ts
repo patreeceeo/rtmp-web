@@ -53,7 +53,7 @@ export function roundTo8thBit(value: number) {
   return value & 128 ? (value >> 8) + 1 : value >> 8;
 }
 
-const sqrtLut = new Float32Array(2 ** 16);
+const sqrtLut = new Float32Array(2 ** 20);
 
 for (let i = 0; i < sqrtLut.length; i++) {
   sqrtLut[i] = Math.sqrt(i);
