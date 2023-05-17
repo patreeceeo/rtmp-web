@@ -45,23 +45,6 @@ export function* flatten<A, B>(
   }
 }
 
-export function average<A>(
-  iter: Iterable<A>,
-  fnOrProperty: ((a: A) => number) | keyof A = (a: A) => a as number,
-) {
-  const transform = typeof fnOrProperty !== "function"
-    ? (el: A) => el[fnOrProperty] as number
-    : (fnOrProperty as (a: A) => number);
-
-  let sum = 0;
-  let count = 0;
-  for (const el of iter) {
-    sum += transform(el);
-    count++;
-  }
-  return sum / count;
-}
-
 export function join<T>(...iterables: Array<Iterable<T>>): Iterable<T> {
   return {
     *[Symbol.iterator]() {

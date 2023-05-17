@@ -18,13 +18,11 @@ import { ConsumeCommandSystem } from "../../../modules/server/systems/ConsumeCom
 import { ProduceSnapshotSystem } from "../../../modules/server/systems/ProduceSnapshot.ts";
 import { LevelState } from "../../../modules/common/state/LevelState.ts";
 import { getRandomIntBetween } from "../../../modules/common/random.ts";
-import { MsgType, PlayerAdd, PlayerRemove } from "../common/message.ts";
+import { PlayerAdd, PlayerRemove } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { TraitState } from "../../../modules/common/state/Trait.ts";
 import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
-import { readMessage } from "../../../modules/common/Message.ts";
-import { PingState } from "../../../modules/common/state/Ping.ts";
 import { PurgeSystem } from "../../../modules/server/systems/PurgeSystem.ts";
 
 const idleTimeout = 300;
@@ -103,15 +101,8 @@ class DotsServerApp implements ServerApp {
 
   handleMessage(_client: WebSocket, message: MessageEvent) {
     const view = new DataViewMovable(message.data);
-
-    const [type, payload] = readMessage(view, 0);
-    if (type === MsgType.ping) {
-      const ping = PingState.get(payload.id);
-      ping?.setReceived();
-    } else {
-      MessageState.copyCommandFrom(view);
-      handleMessagePipeline.exec();
-    }
+    MessageState.copyCommandFrom(view);
+    handleMessagePipeline.exec();
   }
 }
 

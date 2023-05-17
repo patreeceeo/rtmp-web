@@ -10,10 +10,7 @@ import {
 } from "~/common/systems/mod.ts";
 import { ClientApp, startClient } from "~/client/mod.ts";
 import { ClientNetworkState } from "~/client/state/Network.ts";
-import {
-  ClientNetworkSystem,
-  sendPingToServer,
-} from "~/client/systems/Network.ts";
+import { ClientNetworkSystem } from "~/client/systems/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { TraitSystem } from "~/client/systems/Trait.ts";
 import { OutputState } from "~/client/state/Output.ts";
@@ -64,15 +61,10 @@ export class DotsClientApp extends ClientApp {
       case MsgType.playerRemoved:
         handlePlayerRemoved(server, payload as IPlayerRemove);
         break;
-      case MsgType.ping: {
-        sendPingToServer(payload.id);
-        break;
-      }
-      default: {
+      default:
         // TODO payload gets read twice
         MessageState.copySnapshotFrom(view);
         handleMessagePipeline.exec();
-      }
     }
   }
   handleIdle(): void {

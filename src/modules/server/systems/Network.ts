@@ -1,8 +1,4 @@
 import { MessageState } from "~/common/state/Message.ts";
-import { broadcastMessage } from "../mod.ts";
-import { Ping, PingState } from "../../common/state/Ping.ts";
-import { PingMsg } from "../../../examples/platformer/common/message.ts";
-import { average, filter } from "../../common/Iterable.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { ServerNetworkState } from "../state/Network.ts";
 import { sendIfOpen } from "../../common/socket.ts";
@@ -32,28 +28,6 @@ export const NetworkSystem: SystemLoader = () => {
       }
     }
     lastHandledStep = MessageState.currentStep;
-    // Play a little ping pong to calculate average network round-trip time
-    // TODO delete this
-    const ping = new Ping(MessageState.currentStep);
-    PingState.add(ping);
-    broadcastMessage(PingMsg, (p) => {
-      p.id = ping.id;
-    });
-    ping.setSent();
-
-    // clear old pings
-    const oldPings = filter(
-      PingState.getAll(),
-      (pong) => performance.now() - pong.sentTimeMS > 4000,
-    );
-    for (const pong of oldPings) {
-      PingState.delete(pong.id);
-    }
-    const pongs = filter(
-      PingState.getAll(),
-      (ping) => ping.state === Ping.Status.RECEIVED,
-    );
-    PingState.averageRoundTripTime = average(pongs, "roundTripTime");
   }
   return { exec };
 };
