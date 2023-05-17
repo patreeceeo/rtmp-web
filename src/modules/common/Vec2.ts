@@ -1,6 +1,6 @@
 import * as ECS from "bitecs";
 import { IBox } from "./Box.ts";
-import { isAlmostZero } from "./math.ts";
+import { fastSqrt, isAlmostZero } from "./math.ts";
 import { EntityId } from "./state/mod.ts";
 
 export interface IVec2 {
@@ -28,7 +28,10 @@ export class Vec2ReadOnly implements IVec2Readonly {
     return this.x === 0 && this.y === 0;
   }
   get lengthSquared() {
-    return this.x ** 2 + this.y ** 2;
+    return this.x * this.x + this.y * this.y;
+  }
+  get length() {
+    return fastSqrt(this.lengthSquared);
   }
   get snapshot(): IVec2 {
     return { x: this.x, y: this.y };
@@ -104,7 +107,7 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
     const lengthSquared = this.lengthSquared;
 
     // Special case: start and end points are too close
-    if (lengthSquared <= maxLength ** 2) {
+    if (lengthSquared <= maxLength * maxLength) {
       return this;
     }
 
@@ -122,7 +125,7 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
       return this;
     }
 
-    const length = Math.sqrt(lengthSquared);
+    const length = fastSqrt(lengthSquared);
 
     // Calculate the new point that is maxLength away from start in the direction of end
     this.x = (x * maxLength) / length;

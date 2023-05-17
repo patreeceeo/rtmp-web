@@ -40,7 +40,7 @@ export function clampLine(
     return new Vec2(x1 + Math.min(Math.abs(dx), maxLength) * Math.sign(dx), y1);
   }
 
-  const length = Math.sqrt(lengthSquared);
+  const length = fastSqrt(lengthSquared);
 
   // Calculate the new point that is maxLength away from start in the direction of end
   const newX = x1 + dx * maxLength / length;
@@ -51,4 +51,18 @@ export function clampLine(
 
 export function roundTo8thBit(value: number) {
   return value & 128 ? (value >> 8) + 1 : value >> 8;
+}
+
+const sqrtLut = new Float32Array(2 ** 16);
+
+for (let i = 0; i < sqrtLut.length; i++) {
+  sqrtLut[i] = Math.sqrt(i);
+}
+
+export function fastSqrt(x: number) {
+  if (x < sqrtLut.length) {
+    return sqrtLut[Math.floor(x)];
+  } else {
+    return Math.sqrt(x);
+  }
 }
