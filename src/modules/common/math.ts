@@ -74,7 +74,7 @@ for (let i = 0; i < 2 ** 22; i++) {
 
 export function fastSqrt(x: number) {
   const xRounded = Math.round(x);
-  if (xRounded < sqrtLut.length) {
+  if (x >= 1 && xRounded < sqrtLut.length) {
     return sqrtLut[xRounded];
   } else {
     return Math.sqrt(x);
