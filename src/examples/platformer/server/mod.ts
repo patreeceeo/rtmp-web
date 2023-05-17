@@ -21,7 +21,7 @@ import { getRandomIntBetween } from "../../../modules/common/random.ts";
 import { MsgType, PlayerAdd, PlayerRemove } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { TraitState } from "../../../modules/common/state/Trait.ts";
-import { WasdMoveTrait } from "../common/traits.ts";
+import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { readMessage } from "../../../modules/common/Message.ts";
 import { PingState } from "../../../modules/common/state/Ping.ts";
@@ -51,6 +51,7 @@ class DotsServerApp implements ServerApp {
     addedPlayer.targetPosition.copy(addedPlayer.position);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
     TraitState.add(WasdMoveTrait, addedPlayer.eid);
+    TraitState.add(NegotiatePhysicsTrait, addedPlayer.eid);
 
     sendMessageToClient(ws, PlayerAdd, (p) => {
       p.position.copy(addedPlayer.position);

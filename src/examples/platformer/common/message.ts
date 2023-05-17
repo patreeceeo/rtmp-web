@@ -14,11 +14,13 @@ export enum MsgType {
   nil,
   ping,
   playerAdded,
-  playerSnapshot,
-  playerRemoved,
   playerMoved,
+  playerRemoved,
+  playerSnapshot,
+  negotiatePhysics,
 }
 export type {
+  INegotiatePhysics,
   IPingMsg,
   IPlayerAdd,
   IPlayerMove,
@@ -26,7 +28,14 @@ export type {
   IPlayerSnapshot,
 };
 
-export { PingMsg, PlayerAdd, PlayerMove, PlayerRemove, PlayerSnapshot };
+export {
+  NegotiatePhysics,
+  PingMsg,
+  PlayerAdd,
+  PlayerMove,
+  PlayerRemove,
+  PlayerSnapshot,
+};
 
 interface INilPayload {
   nid: NetworkId;
@@ -117,4 +126,21 @@ const PlayerMoveSpec: IBufferProxyObjectSpec<IPlayerMove> = Object.assign(
 const PlayerMove = defMessageType<IPlayerMove>(
   MsgType.playerMoved,
   PlayerMoveSpec,
+);
+
+interface INegotiatePhysics extends INilPayload {
+  position: Vec2;
+  velocity: Vec2;
+}
+
+const negotiateStack = stack.fork();
+const NegotiatePhysicsSpec: IBufferProxyObjectSpec<INegotiatePhysics> = Object
+  .assign({}, NilPayloadSpec, {
+    position: negotiateStack.box(Vec2LargeProxy),
+    velocity: negotiateStack.box(Vec2SmallProxy),
+  });
+
+const NegotiatePhysics = defMessageType<INegotiatePhysics>(
+  MsgType.negotiatePhysics,
+  NegotiatePhysicsSpec,
 );

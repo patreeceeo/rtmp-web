@@ -25,7 +25,7 @@ import { useClient } from "hot_mod/dist/client/mod.js";
 import { IPlayerAdd, IPlayerRemove, MsgType } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { readMessage } from "../../../modules/common/Message.ts";
-import { WasdMoveTrait } from "../common/traits.ts";
+import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { DebugSystem } from "~/client/systems/DebugSystem.ts";
 
@@ -91,6 +91,7 @@ function handlePlayerAdded(
   player.targetPosition.copy(position);
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
   TraitState.add(WasdMoveTrait, player.eid);
+  TraitState.add(NegotiatePhysicsTrait, player.eid);
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
   // TODO player system
