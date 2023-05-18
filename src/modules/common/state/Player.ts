@@ -33,10 +33,10 @@ export class Player {
   readonly targetVelocity: Vec2;
   readonly acceleration: Vec2;
   /** in 256ths of a pixel per millisecond */
-  readonly maxVelocity = 80;
+  readonly maxVelocity = 33;
   readonly maxVelocitySq = this.maxVelocity ** 2;
   /** in 2**16ths of a pixel per millisecond */
-  readonly friction = 1;
+  readonly friction = 80;
   constructor(readonly eid: EntityId) {
     // Don't overwrite value from ECS
     this.lastActiveTime = this.lastActiveTime || performance.now();
