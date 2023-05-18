@@ -2,6 +2,8 @@ import { OutputState } from "~/client/state/Output.ts";
 import { PlayerState, PoseType } from "~/common/state/Player.ts";
 import { SystemLoader } from "~/common/systems/mod.ts";
 import { roundTo8thBit } from "../../common/math.ts";
+import { ICloud, LevelState } from "../../common/state/LevelState.ts";
+import { Vec2ReadOnly } from "../../common/Vec2.ts";
 import { DebugState } from "../state/Debug.ts";
 import { Sprite, SpriteState, SpriteType } from "../state/Sprite.ts";
 
@@ -41,15 +43,79 @@ export const OutputSystem: SystemLoader = async () => {
   return { exec };
 };
 
+const gradients = new Map<string, CanvasGradient>();
+function getOrCreateLinearGradient(
+  key: string,
+  ctx: CanvasRenderingContext2D,
+) {
+  let gradient = gradients.get(key);
+  if (!gradient) {
+    const { x0, y0, x1, y1, stops } = OutputState.gradients.get(key)!;
+    gradient = ctx.createLinearGradient(x0, y0, x1, y1);
+    for (const [offset, color] of stops) {
+      gradient.addColorStop(offset, color);
+    }
+    gradients.set(key, gradient);
+  }
+  return gradient;
+}
+
+const PI2 = 2 * Math.PI;
+
+function drawCloud(
+  cloud: ICloud,
+  ctx: CanvasRenderingContext2D,
+  resolution: Vec2ReadOnly,
+) {
+  const { position, size } = cloud;
+  const yFlipped = resolution.y - position.y;
+  const xRadius = size.x >> 1;
+  const yRadius = size.y >> 1;
+  ctx.fillStyle = "white";
+  ctx.beginPath();
+  ctx.ellipse(position.x, yFlipped + yRadius, xRadius, yRadius, 0, 0, PI2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(
+    position.x + size.x,
+    yFlipped + yRadius,
+    xRadius,
+    yRadius,
+    0,
+    0,
+    PI2,
+  );
+  ctx.fill();
+  ctx.fillRect(
+    position.x,
+    yFlipped,
+    size.x,
+    size.y,
+  );
+}
+
 function drawBackground() {
   const {
     canvas: { resolution, context2d },
   } = OutputState;
   const ctx = context2d!;
-  ctx.clearRect(0, 0, resolution.x, resolution.y);
-  if (DebugState.enabled) {
-    ctx.strokeStyle = "blue";
-    ctx.strokeRect(0, 0, resolution.x, resolution.y);
+  const skyGradient = getOrCreateLinearGradient("sky", ctx);
+
+  ctx.fillStyle = skyGradient;
+  ctx.fillRect(0, 0, resolution.x, resolution.y);
+
+  for (const cloud of LevelState.farClouds) {
+    drawCloud(cloud, ctx, resolution);
+  }
+
+  for (const [pathName, path] of OutputState.paths) {
+    const gradient = getOrCreateLinearGradient(pathName, ctx);
+    ctx.fillStyle = gradient;
+    ctx.fill(path);
+  }
+
+  for (const cloud of LevelState.nearClouds) {
+    drawCloud(cloud, ctx, resolution);
   }
 }
 
