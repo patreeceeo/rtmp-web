@@ -64,7 +64,12 @@ function drawTweenHelpers() {
     const { x, y } = player.targetPosition;
     const { h, w } = player.hitBox;
     ctx.strokeStyle = "red";
-    ctx.strokeRect(roundTo8thBit(x), roundTo8thBit(y), w, h);
+    ctx.strokeRect(
+      roundTo8thBit(x),
+      roundTo8thBit(y),
+      roundTo8thBit(w),
+      roundTo8thBit(h),
+    );
   }
 }
 
