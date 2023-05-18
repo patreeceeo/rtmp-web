@@ -44,24 +44,30 @@ export function simulatePositionWithVelocity(
   accumulate(position, deltaTime, velocity);
 
   if (options.worldDimensions) {
-    if (position.x <= options.worldDimensions.xMin) {
+    const dimensions = options.worldDimensions;
+    const hitBox = options.hitBox;
+    const xMin = dimensions.xMin;
+    const xMax = dimensions.xMax - hitBox.w;
+    const yMin = dimensions.yMin;
+    const yMax = dimensions.yMax - hitBox.h;
+    if (position.x < xMin) {
       velocity.x = 0;
-      position.x = options.worldDimensions.xMin;
+      position.x = xMin;
     }
 
-    if (position.x >= options.worldDimensions.xMax) {
+    if (position.x > xMax) {
       velocity.x = 0;
-      position.x = options.worldDimensions.xMax;
+      position.x = xMax;
     }
 
-    if (position.y <= options.worldDimensions.yMin) {
+    if (position.y < yMin) {
       velocity.y = 0;
-      position.y = options.worldDimensions.yMin;
+      position.y = yMin;
     }
 
-    if (position.y >= options.worldDimensions.yMax) {
+    if (position.y >= yMax) {
       velocity.y = 0;
-      position.y = options.worldDimensions.yMax;
+      position.y = yMax;
     }
   }
 }

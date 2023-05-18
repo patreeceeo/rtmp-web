@@ -23,8 +23,10 @@ const webColors = [
   "violet",
 ];
 
+const hitBox = new BoxReadOnly(0, 0, 16 * 256, 32 * 256);
+
 export class Player {
-  readonly hitBox = new BoxReadOnly(0, 0, 16, 32);
+  readonly hitBox = hitBox;
   readonly position: Vec2;
   readonly targetPosition: Vec2;
   readonly velocity: Vec2;
