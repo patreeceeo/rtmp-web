@@ -45,6 +45,7 @@ class DotsServerApp implements ServerApp {
         LevelState.dimensions.yMax,
       ),
     );
+    addedPlayer.spriteMapId = (addedPlayer.eid / 2) % 2;
 
     addedPlayer.targetPosition.copy(addedPlayer.position);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
@@ -53,6 +54,7 @@ class DotsServerApp implements ServerApp {
 
     sendMessageToClient(ws, PlayerAdd, (p) => {
       p.position.copy(addedPlayer.position);
+      p.spriteMapId = addedPlayer.spriteMapId;
       p.isLocal = true;
       p.nid = playerNid;
       p.sid = MessageState.currentStep;
@@ -62,6 +64,7 @@ class DotsServerApp implements ServerApp {
       PlayerAdd,
       (p) => {
         p.position.copy(addedPlayer.position);
+        p.spriteMapId = addedPlayer.spriteMapId;
         p.isLocal = false;
         p.nid = playerNid;
         p.sid = MessageState.currentStep;
@@ -74,6 +77,7 @@ class DotsServerApp implements ServerApp {
       if (player.eid !== addedPlayer.eid) {
         sendMessageToClient(ws, PlayerAdd, (p) => {
           p.position.copy(player.position);
+          p.spriteMapId = player.spriteMapId;
           p.isLocal = false;
           p.nid = ServerNetworkState.getId(player.eid)!;
           p.sid = MessageState.currentStep;

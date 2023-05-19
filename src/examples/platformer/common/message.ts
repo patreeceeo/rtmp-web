@@ -50,6 +50,7 @@ defMessageType<INilPayload>(MsgType.nil, NilPayloadSpec);
 
 interface IPlayerAdd extends INilPayload {
   position: Vec2;
+  spriteMapId: number;
   isLocal: boolean;
 }
 
@@ -59,6 +60,7 @@ const PlayerAddSpec: IBufferProxyObjectSpec<IPlayerAdd> = Object.assign(
   NilPayloadSpec,
   {
     position: playerAddStack.box(Vec2LargeProxy),
+    spriteMapId: playerAddStack.box(PrimitiveValue.Uint8),
     isLocal: playerAddStack.box(PrimitiveValue.Bool),
   },
 );

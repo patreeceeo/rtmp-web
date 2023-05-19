@@ -140,13 +140,14 @@ export class DotsClientApp extends ClientApp {
 
 function handlePlayerAdded(
   _server: WebSocket,
-  { isLocal, nid, position }: IPlayerAdd,
+  { isLocal, nid, position, spriteMapId }: IPlayerAdd,
 ) {
   // TODO player system
   const player = PlayerState.createPlayer();
   console.log("player nid:", nid);
   player.position.copy(position);
   player.targetPosition.copy(position);
+  player.spriteMapId = spriteMapId;
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
   TraitState.add(WasdMoveTrait, player.eid);
   TraitState.add(NegotiatePhysicsTrait, player.eid);
