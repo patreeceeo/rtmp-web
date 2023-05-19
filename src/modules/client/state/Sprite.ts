@@ -46,3 +46,33 @@ class SpriteStateApi {
 }
 
 export const SpriteState = new SpriteStateApi();
+
+export async function loadSprite(
+  src: string,
+  id: number,
+  width: number,
+  height: number,
+  flipped = false,
+) {
+  const sprite = new Sprite(src, width, height, flipped);
+  SpriteState.set(id, sprite);
+  const source = SpriteState.getSource(sprite.imageUrl);
+  await new Promise((resolve) => (source.onload = resolve));
+  const context = sprite.source.getContext("2d")!;
+  if (sprite.mirror) {
+    context.scale(-1, 1);
+    context.translate(-sprite.width, 0);
+  }
+
+  context.drawImage(
+    source,
+    0,
+    0,
+    sprite.width,
+    sprite.height,
+    0,
+    0,
+    sprite.width,
+    sprite.height,
+  );
+}

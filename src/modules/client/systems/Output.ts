@@ -1,11 +1,11 @@
 import { OutputState } from "~/client/state/Output.ts";
-import { PlayerState, PoseType } from "~/common/state/Player.ts";
+import { PlayerState } from "~/common/state/Player.ts";
 import { SystemLoader } from "~/common/systems/mod.ts";
 import { roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
 import { Vec2ReadOnly } from "../../common/Vec2.ts";
 import { DebugState } from "../state/Debug.ts";
-import { Sprite, SpriteId, SpriteState } from "../state/Sprite.ts";
+import { loadSprite, SpriteId, SpriteState } from "../state/Sprite.ts";
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
@@ -159,34 +159,4 @@ function drawPlayers() {
       roundTo8thBit(player.position.y),
     );
   }
-}
-
-async function loadSprite(
-  src: string,
-  id: number,
-  width: number,
-  height: number,
-  flipped = false,
-) {
-  const sprite = new Sprite(src, width, height, flipped);
-  SpriteState.set(id, sprite);
-  const source = SpriteState.getSource(sprite.imageUrl);
-  await new Promise((resolve) => (source.onload = resolve));
-  const context = sprite.source.getContext("2d")!;
-  if (sprite.mirror) {
-    context.scale(-1, 1);
-    context.translate(-sprite.width, 0);
-  }
-
-  context.drawImage(
-    source,
-    0,
-    0,
-    sprite.width,
-    sprite.height,
-    0,
-    0,
-    sprite.width,
-    sprite.height,
-  );
 }
