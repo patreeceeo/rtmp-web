@@ -13,6 +13,8 @@ export const DebugSystem: SystemLoader = () => {
       console.log(
         DebugState.enabled ? "Debug helpers enabled" : "Debug helpers disabled",
       );
+      document.getElementById("perf-stats-panel")!.style.display =
+        DebugState.enabled ? "block" : "none";
     }
     buttonWasPressed = buttonIsPressed;
   }
