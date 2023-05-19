@@ -52,6 +52,14 @@ export class Player {
     EntityStore.eid[this.eid] = eid;
   }
 
+  get spriteMapId() {
+    return SpriteMapIdStore.value[this.eid];
+  }
+
+  set spriteMapId(value: number) {
+    SpriteMapIdStore.value[this.eid] = value;
+  }
+
   get pose() {
     return PoseStore.value[this.eid] as PoseType;
   }
@@ -68,12 +76,12 @@ const AccelerationStore = ECS.defineComponent(Vec2SmallType);
 const EntityStore = ECS.defineComponent({ eid: ECS.Types.ui32 });
 // TODO remove
 const LastActiveStore = ECS.defineComponent({ time: ECS.Types.ui32 });
-const ColorStore = ECS.defineComponent({ value: ECS.Types.ui8 });
+const SpriteMapIdStore = ECS.defineComponent({ value: ECS.Types.ui8 });
 const PoseStore = ECS.defineComponent({ value: ECS.Types.ui8 });
 
 export enum PoseType {
-  facingLeft,
   facingRight,
+  facingLeft,
 }
 
 class PlayerStateApi {
@@ -90,7 +98,7 @@ class PlayerStateApi {
     ECS.addComponent(this.world, VelocityStore, eid);
     ECS.addComponent(this.world, AccelerationStore, eid);
     ECS.addComponent(this.world, LastActiveStore, eid);
-    ECS.addComponent(this.world, ColorStore, eid);
+    ECS.addComponent(this.world, SpriteMapIdStore, eid);
     ECS.addComponent(this.world, PoseStore, eid);
     return player;
   }
