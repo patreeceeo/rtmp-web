@@ -9,9 +9,11 @@ import { defMessageType } from "../../../modules/common/Message.ts";
 import { NetworkId } from "../../../modules/common/NetworkApi.ts";
 import { Vec2 } from "../../../modules/common/Vec2.ts";
 import { PoseType } from "../../../modules/common/state/Player.ts";
+import { IPingMsg, PingMsgSpec } from "../../../modules/common/state/Ping.ts";
 
 export enum MsgType {
   nil,
+  ping,
   playerAdded,
   playerMoved,
   playerRemoved,
@@ -53,6 +55,8 @@ interface IPlayerAdd extends INilPayload {
   spriteMapId: number;
   isLocal: boolean;
 }
+
+defMessageType<IPingMsg>(MsgType.ping, PingMsgSpec);
 
 const playerAddStack = stack.fork();
 const PlayerAddSpec: IBufferProxyObjectSpec<IPlayerAdd> = Object.assign(

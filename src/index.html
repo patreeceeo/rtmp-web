@@ -1,8 +1,11 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <title>App</title>
-    <script src="/public/examples/platformer/client/mod.js" type="module"></script>
+    <script
+      src="/public/examples/platformer/client/mod.js"
+      type="module"
+    ></script>
     <style>
       body {
         background-color: black;
@@ -18,7 +21,7 @@
         height: inherit;
         width: 100%;
       }
-      #perf-stats-panel {
+      #perf-stats {
         position: absolute;
         bottom: 0;
         left: 0;
@@ -31,11 +34,12 @@
   </head>
   <body>
     <div id="app">
-      <div id="perf-stats-panel" style="display: none">
-        <div id="perf-stats-fps"></div> fps
-        <div id="perf-stats-ping"></div> ping (ms)
+      <div id="perf-stats" style="display: none">
+        <div><span class="perf-stats-fps"></span> fps</div>
+        <div><span class="perf-stats-ping"></span> ping (ms)</div>
+        <div><span class="perf-stats-drops"></span> drops/s</div>
       </div>
-      <canvas id="screen"/>
+      <canvas id="screen" />
     </div>
   </body>
 </html>
