@@ -184,12 +184,7 @@ const handleMessagePipeline = new Pipeline(
 handleMessagePipeline.start();
 
 const fastPipeline = new Pipeline(
-  [
-    TraitSystem(),
-    ClientNetworkSystem(),
-    PhysicsSystem({ fixedDeltaTime: 8 }),
-    DebugSystem(),
-  ],
+  [TraitSystem(), ClientNetworkSystem(), PhysicsSystem({ fixedDeltaTime: 8 })],
   new FixedIntervalDriver(8),
 );
 fastPipeline.start();
@@ -198,8 +193,8 @@ const framePipeline = new Pipeline([OutputSystem()], new AnimationDriver());
 framePipeline.start();
 
 const slowPipeline = new Pipeline(
-  [PingSystem({ timeout: 500 })],
-  new FixedIntervalDriver(500),
+  [PingSystem({ timeout: 500 }), DebugSystem()],
+  new FixedIntervalDriver(250),
 );
 slowPipeline.start();
 
