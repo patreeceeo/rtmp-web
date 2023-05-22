@@ -18,12 +18,14 @@ import { ConsumeCommandSystem } from "../../../modules/server/systems/ConsumeCom
 import { ProduceSnapshotSystem } from "../../../modules/server/systems/ProduceSnapshot.ts";
 import { LevelState } from "../../../modules/common/state/LevelState.ts";
 import { getRandomIntBetween } from "../../../modules/common/random.ts";
-import { PlayerAdd, PlayerRemove } from "../common/message.ts";
+import { MsgType, PlayerAdd, PlayerRemove } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { TraitState } from "../../../modules/common/state/Trait.ts";
 import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { PurgeSystem } from "../../../modules/server/systems/PurgeSystem.ts";
+import { readMessage } from "../../../modules/common/Message.ts";
+import { initPing, sendPing } from "../../../modules/common/state/Ping.ts";
 
 const idleTimeout = 300;
 
@@ -84,6 +86,8 @@ class DotsServerApp implements ServerApp {
         });
       }
     }
+
+    initPing(MsgType.ping);
   }
 
   handleClose(ws: WebSocket, _: Event) {
@@ -103,10 +107,15 @@ class DotsServerApp implements ServerApp {
     console.error("Error!", message);
   }
 
-  handleMessage(_client: WebSocket, message: MessageEvent) {
+  handleMessage(client: WebSocket, message: MessageEvent) {
     const view = new DataViewMovable(message.data);
-    MessageState.copyCommandFrom(view);
-    handleMessagePipeline.exec();
+    const [type, payload] = readMessage(view, 0);
+    if (type === MsgType.ping) {
+      sendPing(payload.id, client);
+    } else {
+      MessageState.copyCommandFrom(view);
+      handleMessagePipeline.exec();
+    }
   }
 }
 
@@ -118,7 +127,7 @@ handleMessagePipeline.start();
 
 const fastPipeline = new Pipeline(
   [
-    PhysicsSystem({ fixedDeltaTime: 9 }), // fixedDeltaTime matches that interval of this pipeline
+    PhysicsSystem({ fixedDeltaTime: 9 }),
     ProduceSnapshotSystem(),
     NetworkSystem(),
   ],

@@ -1,21 +1,45 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <title>App</title>
-    <script src="/public/examples/platformer/client/mod.js" type="module"></script>
+    <script
+      src="/public/examples/platformer/client/mod.js"
+      type="module"
+    ></script>
     <style>
       body {
         background-color: black;
       }
-      #screen {
-        height: calc(min(100vh, 100vw) - 2rem);
-        max-width: calc(100vw - 2rem);
+      #app {
+        min-height: calc(min(100vh, 100vw) - 1rem);
+        max-width: calc(min(100vh, 100vw) - 1rem);
         margin: 0 auto;
         display: block;
+        position: relative;
+      }
+      #screen {
+        height: inherit;
+        width: 100%;
+      }
+      #perf-stats {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        padding: 0.5rem;
+        font-family: monospace;
       }
     </style>
   </head>
   <body>
-    <canvas id="screen"/>
+    <div id="app">
+      <div id="perf-stats" style="display: none">
+        <div><span class="perf-stats-fps"></span> fps</div>
+        <div><span class="perf-stats-ping"></span> ping (ms)</div>
+        <div><span class="perf-stats-drops"></span> drops/s</div>
+      </div>
+      <canvas id="screen" />
+    </div>
   </body>
 </html>

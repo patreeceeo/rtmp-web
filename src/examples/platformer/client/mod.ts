@@ -27,6 +27,11 @@ import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { DebugSystem } from "~/client/systems/DebugSystem.ts";
 import { LevelState } from "../../../modules/common/state/LevelState.ts";
 import { Vec2 } from "../../../modules/common/Vec2.ts";
+import {
+  initPing,
+  updatePingData,
+} from "../../../modules/common/state/Ping.ts";
+import { PingSystem } from "../../../modules/client/systems/Ping.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -108,6 +113,7 @@ OutputState.paths.set("landscape", createLandscapePath());
 export class DotsClientApp extends ClientApp {
   handleOpen(_server: WebSocket, _event: Event): void {
     console.info("socket is open");
+    initPing(MsgType.ping);
   }
   handleClose(_server: WebSocket, _event: Event): void {
     console.info("socket is closed");
@@ -126,6 +132,9 @@ export class DotsClientApp extends ClientApp {
         break;
       case MsgType.playerRemoved:
         handlePlayerRemoved(server, payload as IPlayerRemove);
+        break;
+      case MsgType.ping:
+        updatePingData(payload.id);
         break;
       default:
         // TODO payload gets read twice
@@ -175,17 +184,18 @@ const handleMessagePipeline = new Pipeline(
 handleMessagePipeline.start();
 
 const fastPipeline = new Pipeline(
-  [
-    TraitSystem(),
-    ClientNetworkSystem(),
-    PhysicsSystem({ fixedDeltaTime: 8 }),
-    DebugSystem(),
-  ],
+  [TraitSystem(), ClientNetworkSystem(), PhysicsSystem({ fixedDeltaTime: 8 })],
   new FixedIntervalDriver(8),
 );
 fastPipeline.start();
 
-startClient(app);
-
 const framePipeline = new Pipeline([OutputSystem()], new AnimationDriver());
 framePipeline.start();
+
+const slowPipeline = new Pipeline(
+  [PingSystem({ timeout: 500 }), DebugSystem()],
+  new FixedIntervalDriver(250),
+);
+slowPipeline.start();
+
+startClient(app);

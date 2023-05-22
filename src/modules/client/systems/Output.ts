@@ -1,6 +1,6 @@
 import { OutputState } from "~/client/state/Output.ts";
 import { PlayerState } from "~/common/state/Player.ts";
-import { SystemLoader } from "~/common/systems/mod.ts";
+import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
 import { Vec2ReadOnly } from "../../common/Vec2.ts";
@@ -50,10 +50,13 @@ export const OutputSystem: SystemLoader = async () => {
     throw new Error("Failed to get canvas rendering context");
   }
 
-  function exec() {
+  function exec(context: ISystemExecutionContext) {
+    OutputState.lastFrameDuration = context.elapsedTime -
+      OutputState.lastFrameTime;
     drawBackground();
     drawPlayers();
     DebugState.enabled && drawTweenHelpers();
+    OutputState.lastFrameTime = context.elapsedTime;
   }
   return { exec };
 };
