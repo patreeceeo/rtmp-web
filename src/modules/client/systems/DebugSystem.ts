@@ -27,7 +27,7 @@ export const DebugSystem: SystemLoader = () => {
     }
     fpsEl.textContent = (1000 / (OutputState.lastFrameDuration)).toFixed(2);
     pingEl.textContent = PingState.pingTime.toFixed(2);
-    dropsEl.textContent = (PingState.dropCount / context.elapsedTime * 1000)
+    dropsEl.textContent = (PingState.dropCount / (context.elapsedTime / 1000))
       .toFixed(2);
     buttonWasPressed = buttonIsPressed;
   }
