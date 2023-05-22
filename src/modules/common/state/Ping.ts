@@ -48,6 +48,7 @@ export class Ping {
 
 class PingStateApi {
   #nextId = 0;
+  #lastId = -1;
   #idMap: Map<number, Ping> = new Map();
   /** in milliseconds */
   pingTime = 10;
@@ -65,8 +66,13 @@ class PingStateApi {
     return this.#nextId;
   }
 
+  get lastId() {
+    return this.#lastId;
+  }
+
   add(ping: Ping) {
     this.#idMap.set(ping.id, ping);
+    this.#lastId = this.#nextId;
     this.#nextId = Math.max(this.#nextId, ping.id + 1) % 256;
   }
 
@@ -102,7 +108,7 @@ export function updatePingData(mostRecentlyReceivedPingId: number) {
       "but no such ping exists",
     );
   }
-  if (mostRecentlyReceivedPingId !== PingState.nextId - 1) {
+  if (mostRecentlyReceivedPingId !== PingState.lastId) {
     console.warn(
       "Received ping with id",
       mostRecentlyReceivedPingId,
