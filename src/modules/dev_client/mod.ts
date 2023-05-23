@@ -45,6 +45,7 @@ export async function buildModule(
   }
   if (inPath.endsWith(".js") || inPath.endsWith(".mjs")) {
     const outPath = getOutPath(outDir, inPath);
+    await Deno.mkdir(dirname(outPath), { recursive: true });
     await Deno.copyFile(inPath, outPath);
   }
   console.log(`[${getTimeString()}] built ${inPath}`);
