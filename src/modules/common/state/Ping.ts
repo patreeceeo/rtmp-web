@@ -27,22 +27,26 @@ export class Ping {
     return this.#state;
   }
 
-  get sentTimeMS() {
+  get sentTime() {
     return this.#sentTime;
+  }
+
+  get recvTime() {
+    return this.#recvTime;
   }
 
   get roundTripTime() {
     return this.#recvTime - this.#sentTime;
   }
 
-  setSent() {
+  setSent(time: number) {
     this.#state = PingStatus.SENT;
-    this.#sentTime = performance.now();
+    this.#sentTime = time;
   }
 
-  setReceived() {
+  setReceived(time: number) {
     this.#state = PingStatus.RECEIVED;
-    this.#recvTime = performance.now();
+    this.#recvTime = time;
   }
 }
 
@@ -50,12 +54,17 @@ class PingStateApi {
   #nextId = 0;
   #lastId = -1;
   #idMap: Map<number, Ping> = new Map();
-  /** in milliseconds */
-  pingTime = 10;
   dropCount = 0;
   msgType?: number;
   getAll() {
     return this.#idMap.values();
+  }
+
+  getReceived(windowStart: number, windowEnd: number) {
+    return filter(this.#idMap.values(), (ping) => {
+      return ping.state === Ping.Status.RECEIVED &&
+        ping.recvTime >= windowStart && ping.recvTime <= windowEnd;
+    });
   }
 
   get(id: number) {
@@ -99,45 +108,29 @@ export function sendPing(id: number, socket: WebSocket) {
   }
 }
 
-export function updatePingData(mostRecentlyReceivedPingId: number) {
-  const mostRecentlyReceivedPing = PingState.get(mostRecentlyReceivedPingId);
+export function updatePing(id: number, recvTime: number) {
+  const mostRecentlyReceivedPing = PingState.get(id);
   if (!mostRecentlyReceivedPing) {
     console.error(
-      "Received ping with id",
-      mostRecentlyReceivedPingId,
-      "but no such ping exists",
+      `No such ping: ${id}`,
     );
   }
-  if (mostRecentlyReceivedPingId !== PingState.lastId) {
+  if (id !== PingState.lastId) {
     console.warn(
       "Received ping with id",
-      mostRecentlyReceivedPingId,
+      id,
       "but expected",
       PingState.nextId - 1,
     );
   }
-  mostRecentlyReceivedPing!.setReceived();
-  PingState.pingTime = weightedAverage(
-    PingState.pingTime,
-    mostRecentlyReceivedPing!.roundTripTime,
-  );
+  mostRecentlyReceivedPing!.setReceived(recvTime);
 }
 
-export function weightedAverage(...values: number[]) {
-  let sum = 0;
-  let divisor = 0;
-  for (let i = 0, weight = i + 2; i < values.length; i++, weight += 3) {
-    sum += values[i] * weight;
-    divisor += weight;
-  }
-  return sum / divisor;
-}
-
-export function cleanup(timeout: number) {
+export function cleanup(windowEnd: number) {
   // clear old pings
   const oldPings = filter(
     PingState.getAll(),
-    (pong) => performance.now() - pong.sentTimeMS > timeout,
+    (pong) => pong.sentTime < windowEnd,
   );
   for (const pong of oldPings) {
     if (pong.state === PingStatus.SENT) {

@@ -7,6 +7,8 @@ import { Vec2ReadOnly } from "../../common/Vec2.ts";
 import { DebugState } from "../state/Debug.ts";
 import { loadSprite, SpriteId, SpriteState } from "../state/Sprite.ts";
 
+let frameDataIndex = 0;
+
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
 
@@ -51,8 +53,13 @@ export const OutputSystem: SystemLoader = async () => {
   }
 
   function exec(context: ISystemExecutionContext) {
-    OutputState.lastFrameDuration = context.elapsedTime -
-      OutputState.lastFrameTime;
+    if (DebugState.enabled) {
+      OutputState.lastFrameDuration = context.elapsedTime -
+        OutputState.lastFrameTime;
+      OutputState.frameDurations[frameDataIndex] =
+        OutputState.lastFrameDuration;
+      frameDataIndex = (frameDataIndex + 1) % OutputState.frameDurations.length;
+    }
     drawBackground();
     drawPlayers();
     DebugState.enabled && drawTweenHelpers();

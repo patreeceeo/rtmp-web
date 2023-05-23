@@ -12,13 +12,15 @@ export const PingSystem: SystemLoader<ISystemExecutionContext, [IConfig]> = (
   { timeout },
 ) => {
   function exec() {
+    const now = performance.now();
+
     // Play a little ping pong to calculate average network round-trip time
     const ping = new Ping(PingState.nextId);
     PingState.add(ping);
     sendPing(ping.id, ClientNetworkState.maybeSocket!);
-    ping.setSent();
+    ping.setSent(now);
 
-    cleanup(timeout);
+    cleanup(now - timeout);
   }
   return { exec };
 };

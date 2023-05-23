@@ -63,4 +63,17 @@ export function last<T>(iter: Iterable<T>): T {
   return result;
 }
 
+export function average(iter: Iterable<number>, maxItems = Infinity) {
+  let sum = 0;
+  let count = 0;
+  for (const el of iter) {
+    sum += el;
+    count++;
+    if (count >= maxItems) {
+      break;
+    }
+  }
+  return sum / count;
+}
+
 export const emtpyIterable = (new Set()).values();

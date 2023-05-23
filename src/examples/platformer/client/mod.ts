@@ -27,10 +27,7 @@ import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { DebugSystem } from "~/client/systems/DebugSystem.ts";
 import { LevelState } from "../../../modules/common/state/LevelState.ts";
 import { Vec2 } from "../../../modules/common/Vec2.ts";
-import {
-  initPing,
-  updatePingData,
-} from "../../../modules/common/state/Ping.ts";
+import { initPing, updatePing } from "../../../modules/common/state/Ping.ts";
 import { PingSystem } from "../../../modules/client/systems/Ping.ts";
 
 useClient(import.meta, "ws://localhost:12321");
@@ -134,7 +131,7 @@ export class DotsClientApp extends ClientApp {
         handlePlayerRemoved(server, payload as IPlayerRemove);
         break;
       case MsgType.ping:
-        updatePingData(payload.id);
+        updatePing(payload.id, performance.now());
         break;
       default:
         // TODO payload gets read twice
@@ -193,7 +190,7 @@ const framePipeline = new Pipeline([OutputSystem()], new AnimationDriver());
 framePipeline.start();
 
 const slowPipeline = new Pipeline(
-  [PingSystem({ timeout: 500 }), DebugSystem()],
+  [PingSystem({ timeout: 10 * 1000 }), DebugSystem({ windowDuration: 5000 })],
   new FixedIntervalDriver(250),
 );
 slowPipeline.start();
