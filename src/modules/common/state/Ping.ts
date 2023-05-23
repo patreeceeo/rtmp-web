@@ -59,7 +59,7 @@ class PingStateApi {
   getAll() {
     return this.#idMap.values();
   }
-
+  
   getReceived(windowStart: number, windowEnd: number) {
     return filter(this.#idMap.values(), (ping) => {
       return ping.state === Ping.Status.RECEIVED &&
