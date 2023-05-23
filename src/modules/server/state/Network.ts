@@ -44,6 +44,9 @@ class ServerNetworkStateApi extends NetworkStateApi {
   }
 
   setClient(client: Client): void {
+    if (this.#state.connectedClients.has(client.nid)) {
+      console.warn(`Client already exists with nid ${client.nid}`);
+    }
     this.#state.connectedClients.set(client.nid, client);
     this.#state.connectedClientsByWs.set(client.ws, client);
   }
