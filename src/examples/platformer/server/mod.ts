@@ -76,17 +76,20 @@ class DotsServerApp implements ServerApp {
     );
 
     // Catch up new client on current state of the world
-    for (const player of PlayerState.getPlayers()) {
-      if (player.eid !== addedPlayer.eid) {
-        sendMessageToClient(ws, PlayerAdd, (p) => {
-          p.position.copy(player.position);
-          p.spriteMapId = player.spriteMapId;
-          p.isLocal = false;
-          p.nid = ServerNetworkState.getId(player.eid)!;
-          p.sid = MessageState.currentStep;
-        });
+    // but first, wait a bit for the client to get ready
+    setTimeout(() => {
+      for (const player of PlayerState.getPlayers()) {
+        if (player.eid !== addedPlayer.eid) {
+          sendMessageToClient(ws, PlayerAdd, (p) => {
+            p.position.copy(player.position);
+            p.spriteMapId = player.spriteMapId;
+            p.isLocal = false;
+            p.nid = ServerNetworkState.getId(player.eid)!;
+            p.sid = MessageState.currentStep;
+          });
+        }
       }
-    }
+    }, 1500);
 
     initPing(MsgType.ping);
   }
