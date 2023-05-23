@@ -104,10 +104,11 @@ export function startServer(app: ServerApp) {
     } else if (url.pathname === "/info.json") {
       const info = {
         clients: toArray(
-          map(ServerNetworkState.getClients(), (client: Client) => {
+          map(ServerNetworkState.getClients(true), (client: Client) => {
             return {
               nid: client.nid,
               lastActiveTime: client.lastActiveTime,
+              isBeingRemoved: client.isBeingRemoved,
             };
           }),
         ),
