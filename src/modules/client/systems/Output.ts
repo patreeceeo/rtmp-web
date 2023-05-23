@@ -1,13 +1,11 @@
 import { OutputState } from "~/client/state/Output.ts";
 import { PlayerState } from "~/common/state/Player.ts";
-import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
+import { SystemLoader } from "~/common/systems/mod.ts";
 import { roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
 import { Vec2ReadOnly } from "../../common/Vec2.ts";
 import { DebugState } from "../state/Debug.ts";
 import { loadSprite, SpriteId, SpriteState } from "../state/Sprite.ts";
-
-let frameDataIndex = 0;
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
