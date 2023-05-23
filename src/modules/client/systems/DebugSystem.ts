@@ -1,4 +1,5 @@
 import { Button } from "../../common/Button.ts";
+import { average, map } from "../../common/Iterable.ts";
 import { InputState } from "../../common/state/Input.ts";
 import { PingState } from "../../common/state/Ping.ts";
 import {
@@ -8,7 +9,13 @@ import {
 import { DebugState } from "../state/Debug.ts";
 import { OutputState } from "../state/Output.ts";
 
-export const DebugSystem: SystemLoader = () => {
+interface IConfig {
+  windowDuration: number;
+}
+
+export const DebugSystem: SystemLoader<ISystemExecutionContext, [IConfig]> = (
+  { windowDuration },
+) => {
   let buttonWasPressed = false;
   function exec(context: ISystemExecutionContext) {
     const statsEl = document.getElementById("perf-stats")!;
@@ -30,6 +37,23 @@ export const DebugSystem: SystemLoader = () => {
     dropsEl.textContent = (PingState.dropCount / (context.elapsedTime / 1000))
       .toFixed(2);
     buttonWasPressed = buttonIsPressed;
+
+    if (DebugState.enabled) {
+      const now = performance.now();
+      const averageFrameDuration = average(
+        OutputState.frameDurations,
+        OutputState.frameDurations.length,
+      );
+      const pingTimes = map(
+        PingState.getReceived(now - windowDuration, now),
+        (ping) => ping.roundTripTime,
+      );
+      const averagePingTime = average(pingTimes, 25);
+      fpsEl.textContent = (1000 / averageFrameDuration).toFixed(2);
+      pingEl.textContent = averagePingTime.toFixed(2);
+      dropsEl.textContent = (PingState.dropCount / (context.elapsedTime / 1000))
+        .toFixed(2);
+    }
   }
   return { exec };
 };
