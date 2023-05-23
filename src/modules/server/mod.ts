@@ -116,6 +116,7 @@ export function startServer(app: ServerApp) {
           startTime: stringifyMaybeDate(ServerNetworkState.startTime),
         },
       };
+      console.debug(info);
       return new Response(JSON.stringify(info), {
         headers: {
           "content-type": "application/json",
