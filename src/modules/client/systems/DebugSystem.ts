@@ -13,6 +13,8 @@ interface IConfig {
   windowDuration: number;
 }
 
+let lastExecuteTime = 0;
+
 export const DebugSystem: SystemLoader<ISystemExecutionContext, [IConfig]> = (
   { windowDuration },
 ) => {
@@ -32,27 +34,23 @@ export const DebugSystem: SystemLoader<ISystemExecutionContext, [IConfig]> = (
       statsEl.style.display = DebugState.enabled ? "block" : "none";
       statsEl;
     }
-    fpsEl.textContent = (1000 / (OutputState.lastFrameDuration)).toFixed(2);
-    pingEl.textContent = PingState.pingTime.toFixed(2);
-    dropsEl.textContent = (PingState.dropCount / (context.elapsedTime / 1000))
-      .toFixed(2);
     buttonWasPressed = buttonIsPressed;
 
     if (DebugState.enabled) {
       const now = performance.now();
-      const averageFrameDuration = average(
-        OutputState.frameDurations,
-        OutputState.frameDurations.length,
-      );
+      const averageFrameRate = OutputState.frameCount * 1000 /
+        (now - lastExecuteTime);
       const pingTimes = map(
         PingState.getReceived(now - windowDuration, now),
         (ping) => ping.roundTripTime,
       );
       const averagePingTime = average(pingTimes, 25);
-      fpsEl.textContent = (1000 / averageFrameDuration).toFixed(2);
+      fpsEl.textContent = averageFrameRate.toFixed(2);
       pingEl.textContent = averagePingTime.toFixed(2);
       dropsEl.textContent = (PingState.dropCount / (context.elapsedTime / 1000))
         .toFixed(2);
+      lastExecuteTime = now;
+      OutputState.frameCount = 0;
     }
   }
   return { exec };

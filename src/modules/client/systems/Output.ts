@@ -52,18 +52,13 @@ export const OutputSystem: SystemLoader = async () => {
     throw new Error("Failed to get canvas rendering context");
   }
 
-  function exec(context: ISystemExecutionContext) {
+  function exec() {
     if (DebugState.enabled) {
-      OutputState.lastFrameDuration = context.elapsedTime -
-        OutputState.lastFrameTime;
-      OutputState.frameDurations[frameDataIndex] =
-        OutputState.lastFrameDuration;
-      frameDataIndex = (frameDataIndex + 1) % OutputState.frameDurations.length;
+      OutputState.frameCount++;
     }
     drawBackground();
     drawPlayers();
     DebugState.enabled && drawTweenHelpers();
-    OutputState.lastFrameTime = context.elapsedTime;
   }
   return { exec };
 };
