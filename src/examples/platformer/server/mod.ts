@@ -136,10 +136,10 @@ const fastPipeline = new Pipeline(
 );
 fastPipeline.start();
 
-// const slowPipeline = new Pipeline(
-//   [PurgeSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] })],
-//   new FixedIntervalDriver(500),
-// );
-// slowPipeline.start();
+const slowPipeline = new Pipeline(
+  [PurgeSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] })],
+  new FixedIntervalDriver(500),
+);
+slowPipeline.start();
 
 startServer(new DotsServerApp());
