@@ -88,7 +88,15 @@ function drawCloud(
   const yRadius = size.y >> 1;
   ctx.fillStyle = "white";
   ctx.beginPath();
-  ctx.ellipse(position.x, yFlipped + yRadius, xRadius, yRadius, 0, 0, PI2);
+  ctx.ellipse(
+    position.x,
+    yFlipped + yRadius,
+    xRadius,
+    yRadius,
+    0,
+    0,
+    PI2,
+  );
   ctx.fill();
   ctx.beginPath();
   ctx.ellipse(
