@@ -13,23 +13,21 @@ const buildOptions = {
   catchErrors: watchMode,
   replaceImports: replaceImportMapPath !== null,
   importMapPath: replaceImportMapPath,
-  sourcemap: inlineSourcemap ? "inline" as const : false,
+  sourcemap: inlineSourcemap ? ("inline" as const) : false,
 };
 
 await buildModules(outDir, inPaths, buildOptions);
 
-function getTimeString() {
-  const d = new Date();
-  return d.toLocaleTimeString();
-}
-
 if (watchMode) {
-  addModuleEventHandler(["create", "modify"], (inPaths) => {
-    for (const inPath of inPaths) {
-      buildModule(outDir, inPath, buildOptions);
-      console.log(`[${getTimeString()}] built ${inPath}`);
-    }
-  }, ["src"]);
+  addModuleEventHandler(
+    ["create", "modify"],
+    (inPaths) => {
+      for (const inPath of inPaths) {
+        buildModule(outDir, inPath, buildOptions);
+      }
+    },
+    ["src"],
+  );
   console.log("Watching for changes");
   sleep(Infinity);
 }

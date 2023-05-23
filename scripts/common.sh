@@ -4,7 +4,7 @@ export active_project=platformer
 
 shopt -s globstar
 client_sub_module_rel_paths=$(ls -1rd \
-  src/**/*.ts \
+  src/**/*.{ts,js,mjs} \
   | grep -v test.ts$
 )
 export client_sub_module_rel_paths

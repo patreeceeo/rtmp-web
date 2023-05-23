@@ -9,8 +9,12 @@ function getOutPath(outDir: string, inPath: string) {
   const segments = inPath.split("/");
   const keepSegments = segments.slice(1, -1);
   const baseName = segments[segments.length - 1];
-  const baseNameNoExt = basename(baseName, ".ts");
-  return `${outDir}/${keepSegments.join("/")}/${baseNameNoExt}.js`;
+  if (inPath.endsWith(".ts")) {
+    const baseNameNoExt = basename(baseName, ".ts");
+    return `${outDir}/${keepSegments.join("/")}/${baseNameNoExt}.js`;
+  } else {
+    return `${outDir}/${keepSegments.join("/")}/${baseName}`;
+  }
 }
 
 interface BuildOptions {
@@ -31,6 +35,22 @@ export async function buildModules(
 }
 
 export async function buildModule(
+  outDir: string,
+  inPath: string,
+  options: BuildOptions = {},
+) {
+  if (inPath.endsWith(".d.ts")) return;
+  if (inPath.endsWith(".ts")) {
+    await buildTSModule(outDir, inPath, options);
+  }
+  if (inPath.endsWith(".js") || inPath.endsWith(".mjs")) {
+    const outPath = getOutPath(outDir, inPath);
+    await Deno.copyFile(inPath, outPath);
+  }
+  console.log(`[${getTimeString()}] built ${inPath}`);
+}
+
+async function buildTSModule(
   outDir: string,
   inPath: string,
   options: BuildOptions = {},
@@ -121,4 +141,9 @@ function replaceImports(
   }
 
   return result;
+}
+
+function getTimeString() {
+  const d = new Date();
+  return d.toLocaleTimeString();
 }
