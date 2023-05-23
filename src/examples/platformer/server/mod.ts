@@ -36,6 +36,7 @@ class DotsServerApp implements ServerApp {
     const playerNid = ServerNetworkState.createId();
     const client = ServerNetworkState.getClientForSocket(ws)!;
     client.addNetworkId(playerNid);
+    console.log("player nid", playerNid);
 
     addedPlayer.position.set(
       getRandomIntBetween(
