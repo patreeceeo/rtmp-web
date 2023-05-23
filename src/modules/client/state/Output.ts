@@ -20,9 +20,7 @@ class OutputStateApi {
   };
   readonly gradients = new Map<string, ICanvasGradientParams>();
   readonly paths = new Map<string, Path2D>();
-  lastFrameTime = 0;
-  lastFrameDuration = 0;
-  frameDurations = new Array<number>(25).fill(0);
+  frameCount = 0;
 }
 
 export const OutputState = new OutputStateApi();
