@@ -15,6 +15,7 @@ import {
   MAX_MESSAGE_BYTE_LENGTH,
 } from "../common/Message.ts";
 import { DataViewMovable } from "../common/DataView.ts";
+import { map, toArray } from "../common/Iterable.ts";
 
 const rootDir = Deno.cwd();
 
@@ -41,6 +42,7 @@ export abstract class ServerApp {
 }
 
 export function startServer(app: ServerApp) {
+  ServerNetworkState.start();
   async function handleHttp(request: Request) {
     const url = new URL(request.url);
     if (url.pathname === "/start_web_socket") {
@@ -99,11 +101,35 @@ export function startServer(app: ServerApp) {
           `MIME type for ${url.pathname} is unknown`,
         );
       }
+    } else if (url.pathname === "/info.json") {
+      const info = {
+        clients: toArray(
+          map(ServerNetworkState.getClients(), (client: Client) => {
+            return {
+              nid: client.nid,
+              lastActiveTime: client.lastActiveTime,
+            };
+          }),
+        ),
+        server: {
+          startTime: stringifyMaybeDate(ServerNetworkState.startTime),
+        },
+      };
+      return new Response(JSON.stringify(info), {
+        headers: {
+          "content-type": "application/json",
+        },
+      });
     }
+
     return new NotFoundResponse();
   }
 
   serve(handleHttp);
+}
+
+function stringifyMaybeDate(date?: Date) {
+  return date ? date.toISOString() : `undefined`;
 }
 
 async function isFilePath(path: string) {

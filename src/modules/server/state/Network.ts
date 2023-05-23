@@ -26,6 +26,7 @@ interface IServerNetworkState extends INetworkState {
   connectedClients: Map<NetworkId, Client>;
   // TODO use weakmap?
   connectedClientsByWs: Map<WebSocket, Client>;
+  startTime?: Date;
 }
 
 class ServerNetworkStateApi extends NetworkStateApi {
@@ -75,6 +76,14 @@ class ServerNetworkStateApi extends NetworkStateApi {
       this.#state.connectedClients.delete(client.nid);
       this.#state.connectedClientsByWs.delete(client.ws);
     }
+  }
+
+  start() {
+    this.#state.startTime = new Date();
+  }
+
+  get startTime() {
+    return this.#state.startTime;
   }
 }
 
