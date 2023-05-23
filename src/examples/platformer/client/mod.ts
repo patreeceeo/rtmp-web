@@ -29,6 +29,7 @@ import { LevelState } from "../../../modules/common/state/LevelState.ts";
 import { Vec2 } from "../../../modules/common/Vec2.ts";
 import { initPing, updatePing } from "../../../modules/common/state/Ping.ts";
 import { PingSystem } from "../../../modules/client/systems/Ping.ts";
+import { SCREEN_HEIGHT_PX, SCREEN_WIDTH_PX } from "../mod.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -41,33 +42,38 @@ if (import.meta.hot) {
   });
 }
 
-OutputState.canvas.resolution.set(256, 256);
+OutputState.canvas.resolution.set(SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
 
-LevelState.dimensions.set(0, 0, 256 * 256, 256 * 256);
-LevelState.landscape[0] = new Vec2(0, 50);
-LevelState.landscape[1] = new Vec2(20, 20);
-LevelState.landscape[2] = new Vec2(50, 78);
-LevelState.landscape[3] = new Vec2(55, 80);
-LevelState.landscape[4] = new Vec2(75, 34);
-LevelState.landscape[5] = new Vec2(88, 28);
-LevelState.landscape[6] = new Vec2(110, 44);
-LevelState.landscape[7] = new Vec2(132, 66);
-LevelState.landscape[8] = new Vec2(144, 94);
-LevelState.landscape[9] = new Vec2(155, 77);
-LevelState.landscape[10] = new Vec2(180, 60);
-LevelState.landscape[11] = new Vec2(192, 47);
-LevelState.landscape[12] = new Vec2(212, 63);
-LevelState.landscape[13] = new Vec2(233, 52);
-LevelState.landscape[14] = new Vec2(256, 33);
+const landscapePoints = [
+  [0, 100],
+  [40, 40],
+  [100, 156],
+  [110, 160],
+  [150, 68],
+  [176, 56],
+  [220, 88],
+  [264, 132],
+  [288, 188],
+  [310, 154],
+  [360, 120],
+  [384, 94],
+  [424, 126],
+  [466, 104],
+  [512, 66],
+];
+
+for (const point of landscapePoints) {
+  LevelState.landscape.push(new Vec2(point[0], point[1]));
+}
 
 LevelState.farClouds[0] = {
-  position: new Vec2(180, 76),
-  size: new Vec2(48, 24),
+  position: new Vec2(360, 152),
+  size: new Vec2(96, 48),
 };
 
 LevelState.nearClouds[0] = {
-  position: new Vec2(12, 60),
-  size: new Vec2(32, 16),
+  position: new Vec2(24, 120),
+  size: new Vec2(64, 32),
 };
 
 OutputState.gradients.set("sky", {
