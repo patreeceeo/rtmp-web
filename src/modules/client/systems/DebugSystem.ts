@@ -14,6 +14,7 @@ interface IConfig {
 }
 
 let lastExecuteTime = 0;
+let wasEnabled = false;
 
 export const DebugSystem: SystemLoader<ISystemExecutionContext, [IConfig]> = (
   { windowDuration },
@@ -27,12 +28,14 @@ export const DebugSystem: SystemLoader<ISystemExecutionContext, [IConfig]> = (
     const buttonIsPressed = InputState.isButtonPressed(Button.KeyH) &&
       InputState.isButtonPressed(Button.ShiftLeft);
     if (buttonIsPressed && !buttonWasPressed) {
+      wasEnabled = DebugState.enabled;
       DebugState.enabled = !DebugState.enabled;
+    }
+    if (DebugState.enabled !== wasEnabled) {
       console.log(
         DebugState.enabled ? "Debug helpers enabled" : "Debug helpers disabled",
       );
       statsEl.style.display = DebugState.enabled ? "block" : "none";
-      statsEl;
     }
     buttonWasPressed = buttonIsPressed;
 

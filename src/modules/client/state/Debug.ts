@@ -1,5 +1,7 @@
+const params = new URLSearchParams(window.location.search);
+
 class DebugStateApi {
-  enabled = false;
+  enabled = params.has("debug");
 }
 
 export const DebugState = new DebugStateApi();
