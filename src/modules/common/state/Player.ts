@@ -2,8 +2,9 @@ import { Vec2, Vec2LargeType, Vec2SmallType } from "../Vec2.ts";
 import { defaultWorld, EntityId } from "./mod.ts";
 import * as ECS from "bitecs";
 import { BoxReadOnly } from "../Box.ts";
+import { SUBPIXEL_SCALE } from "../constants.ts";
 
-const hitBox = new BoxReadOnly(0, 0, 16 * 256, 32 * 256);
+const hitBox = new BoxReadOnly(0, 0, 16 * SUBPIXEL_SCALE, 32 * SUBPIXEL_SCALE);
 
 export class Player {
   readonly hitBox = hitBox;
