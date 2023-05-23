@@ -28,7 +28,6 @@ export const DebugSystem: SystemLoader<ISystemExecutionContext, [IConfig]> = (
     const buttonIsPressed = InputState.isButtonPressed(Button.KeyH) &&
       InputState.isButtonPressed(Button.ShiftLeft);
     if (buttonIsPressed && !buttonWasPressed) {
-      wasEnabled = DebugState.enabled;
       DebugState.enabled = !DebugState.enabled;
     }
     if (DebugState.enabled !== wasEnabled) {
@@ -38,6 +37,7 @@ export const DebugSystem: SystemLoader<ISystemExecutionContext, [IConfig]> = (
       statsEl.style.display = DebugState.enabled ? "block" : "none";
     }
     buttonWasPressed = buttonIsPressed;
+    wasEnabled = DebugState.enabled;
 
     if (DebugState.enabled) {
       const now = performance.now();
