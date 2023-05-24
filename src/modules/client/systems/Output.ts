@@ -1,6 +1,6 @@
 import { OutputState } from "~/client/state/Output.ts";
 import { PlayerState } from "~/common/state/Player.ts";
-import { SystemLoader } from "~/common/systems/mod.ts";
+import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
 import { Vec2ReadOnly } from "../../common/Vec2.ts";
@@ -50,14 +50,32 @@ export const OutputSystem: SystemLoader = async () => {
     throw new Error("Failed to get canvas rendering context");
   }
 
-  function exec() {
-    if (DebugState.enabled) {
-      OutputState.frameCount++;
+  const fpsSlider = document.querySelector("#fps-slider")!;
+  let fpsLimit = parseInt(localStorage.getItem("fpsLimit") || "40", 10);
+
+  fpsSlider.addEventListener("change", (e) => {
+    const target = e.target as HTMLInputElement;
+    fpsLimit = parseInt(target.value, 10);
+    localStorage.setItem("fpsLimit", fpsLimit.toString());
+    console.info(`FPS limit: ${fpsLimit}`);
+  });
+
+  fpsSlider.setAttribute("value", fpsLimit.toString());
+
+  let lastRender = 0;
+
+  function exec(context: ISystemExecutionContext) {
+    if (context.elapsedTime - lastRender >= 1000 / fpsLimit) {
+      if (DebugState.enabled) {
+        OutputState.frameCount++;
+      }
+      drawBackground();
+      drawPlayers();
+      DebugState.enabled && drawTweenHelpers();
+      lastRender = context.elapsedTime;
     }
-    drawBackground();
-    drawPlayers();
-    DebugState.enabled && drawTweenHelpers();
   }
+
   return { exec };
 };
 
