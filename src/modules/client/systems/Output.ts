@@ -1,6 +1,6 @@
 import { OutputState } from "~/client/state/Output.ts";
 import { PlayerState } from "~/common/state/Player.ts";
-import { SystemLoader } from "~/common/systems/mod.ts";
+import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
 import { Vec2ReadOnly } from "../../common/Vec2.ts";
@@ -50,14 +50,36 @@ export const OutputSystem: SystemLoader = async () => {
     throw new Error("Failed to get canvas rendering context");
   }
 
-  function exec() {
-    if (DebugState.enabled) {
-      OutputState.frameCount++;
+  const fpsSlider = document.querySelector("#fps-slider")!;
+  let fpsLimit = parseInt(localStorage.getItem("fpsLimit") || "40", 10);
+
+  fpsSlider.addEventListener("change", (e) => {
+    const target = e.target as HTMLInputElement;
+    fpsLimit = parseInt(target.value, 10);
+    frameDurationMin = 1000 / fpsLimit;
+    localStorage.setItem("fpsLimit", fpsLimit.toString());
+    console.info(`FPS limit: ${fpsLimit}`);
+  });
+
+  fpsSlider.setAttribute("value", fpsLimit.toString());
+
+  let frameDurationMin = 1000 / fpsLimit;
+  let lastRender = -frameDurationMin;
+
+  function exec(context: ISystemExecutionContext) {
+    if (context.elapsedTime - lastRender >= frameDurationMin) {
+      if (DebugState.enabled) {
+        OutputState.frameCount++;
+      }
+      if (isRenderDataDirty()) {
+        drawBackground();
+        drawPlayers();
+        DebugState.enabled && drawTweenHelpers();
+        lastRender = context.elapsedTime;
+      }
     }
-    drawBackground();
-    drawPlayers();
-    DebugState.enabled && drawTweenHelpers();
   }
+
   return { exec };
 };
 
@@ -157,6 +179,17 @@ function drawTweenHelpers() {
   }
 }
 
+function isRenderDataDirty() {
+  let isDirty = false;
+  for (const player of PlayerState.getPlayers()) {
+    if (player.position.isDirty) {
+      isDirty = true;
+      break;
+    }
+  }
+  return isDirty;
+}
+
 function drawPlayers() {
   const {
     canvas: { context2d },
@@ -169,5 +202,6 @@ function drawPlayers() {
       roundTo8thBit(player.position.x),
       roundTo8thBit(player.position.y),
     );
+    player.position.isDirty = false;
   }
 }
