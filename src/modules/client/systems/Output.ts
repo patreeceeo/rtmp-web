@@ -34,29 +34,30 @@ export const OutputSystem: SystemLoader = async () => {
   );
 
   const {
-    canvas: { resolution },
+    foreground: { resolution },
   } = OutputState;
 
-  // Get the DPR and size of the canvas
-  const dpr = 2 ** Math.ceil(Math.log2(window.devicePixelRatio));
-  console.log("DPR:", dpr);
+  OutputState.foreground.element = document.querySelector("#foreground")!;
+  OutputState.background.element = document.querySelector("#background")!;
 
-  const el: HTMLCanvasElement = document.querySelector("#screen")!;
-  el.width = resolution.x * dpr;
-  el.height = resolution.y * dpr;
+  setupCanvas(OutputState.foreground.element, resolution);
+  setupCanvas(OutputState.background.element, resolution);
 
-  OutputState.canvas.element = el;
-  OutputState.canvas.clientRect = el.getBoundingClientRect();
-  const ctx = el.getContext("2d")!;
-  if (ctx) {
-    ctx.imageSmoothingEnabled = false;
+  OutputState.foreground.clientRect = OutputState.foreground.element
+    .getBoundingClientRect();
 
-    // Scale the context to ensure correct drawing operations
-    ctx.scale(dpr, dpr);
-
-    OutputState.canvas.context2d = ctx;
+  const foregroundCtx = OutputState.foreground.element.getContext("2d")!;
+  if (foregroundCtx) {
+    OutputState.foreground.context2d = foregroundCtx;
   } else {
-    throw new Error("Failed to get canvas rendering context");
+    throw new Error("Failed to get foreground rendering context");
+  }
+
+  const backgroundCtx = OutputState.background.element.getContext("2d")!;
+  if (backgroundCtx) {
+    OutputState.background.context2d = backgroundCtx;
+  } else {
+    throw new Error("Failed to get background rendering context");
   }
 
   const fpsSlider = document.querySelector("#fps-slider")!;
@@ -75,13 +76,14 @@ export const OutputSystem: SystemLoader = async () => {
   let frameDurationMin = 1000 / fpsLimit;
   let lastRender = -frameDurationMin;
 
+  drawBackground();
+
   function exec(context: ISystemExecutionContext) {
     if (context.elapsedTime - lastRender >= frameDurationMin) {
       if (DebugState.enabled) {
         OutputState.frameCount++;
       }
       if (isRenderDataDirty()) {
-        drawBackground();
         drawPlayers();
         DebugState.enabled && drawTweenHelpers();
         lastRender = context.elapsedTime;
@@ -91,6 +93,21 @@ export const OutputSystem: SystemLoader = async () => {
 
   return { exec };
 };
+
+function setupCanvas(el: HTMLCanvasElement, resolution: Vec2ReadOnly) {
+  // Get the DPR and size of the canvas
+  const dpr = 2 ** Math.ceil(Math.log2(window.devicePixelRatio));
+
+  el.width = resolution.x * dpr;
+  el.height = resolution.y * dpr;
+
+  const ctx = el.getContext("2d")!;
+  if (ctx) {
+    ctx.imageSmoothingEnabled = false;
+    // Scale the context to ensure correct drawing operations
+    ctx.scale(dpr, dpr);
+  }
+}
 
 const gradients = new Map<string, CanvasGradient>();
 function getOrCreateLinearGradient(key: string, ctx: CanvasRenderingContext2D) {
@@ -137,7 +154,7 @@ function drawCloud(
 
 function drawBackground() {
   const {
-    canvas: { resolution, context2d },
+    background: { resolution, context2d },
   } = OutputState;
   const ctx = context2d!;
   const skyGradient = getOrCreateLinearGradient("sky", ctx);
@@ -162,7 +179,7 @@ function drawBackground() {
 
 function drawTweenHelpers() {
   const {
-    canvas: { context2d },
+    foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
 
@@ -193,9 +210,10 @@ function isRenderDataDirty() {
 
 function drawPlayers() {
   const {
-    canvas: { context2d },
+    foreground: { context2d, resolution },
   } = OutputState;
   const ctx = context2d!;
+  ctx.clearRect(0, 0, resolution.x, resolution.y);
   for (const player of PlayerState.getPlayers()) {
     const sprite = SpriteState.find(player.spriteMapId, player.pose)!;
     ctx.drawImage(

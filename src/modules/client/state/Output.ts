@@ -12,10 +12,15 @@ interface ICanvasGradientParams {
 // TODO key/button/axis enum
 class OutputStateApi {
   ready = deferred<void>();
-  canvas = {
+  foreground = {
     clientRect: new DOMRect(),
     context2d: null as (CanvasRenderingContext2D | null),
-    element: null as HTMLElement | null,
+    element: null as HTMLCanvasElement | null,
+    resolution: new Vec2(),
+  };
+  background = {
+    context2d: null as (CanvasRenderingContext2D | null),
+    element: null as HTMLCanvasElement | null,
     resolution: new Vec2(),
   };
   readonly gradients = new Map<string, ICanvasGradientParams>();
