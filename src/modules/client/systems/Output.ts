@@ -71,10 +71,12 @@ export const OutputSystem: SystemLoader = async () => {
       if (DebugState.enabled) {
         OutputState.frameCount++;
       }
-      drawBackground();
-      drawPlayers();
-      DebugState.enabled && drawTweenHelpers();
-      lastRender = context.elapsedTime;
+      if (isRenderDataDirty()) {
+        drawBackground();
+        drawPlayers();
+        DebugState.enabled && drawTweenHelpers();
+        lastRender = context.elapsedTime;
+      }
     }
   }
 
@@ -177,6 +179,17 @@ function drawTweenHelpers() {
   }
 }
 
+function isRenderDataDirty() {
+  let isDirty = false;
+  for (const player of PlayerState.getPlayers()) {
+    if (player.position.isDirty) {
+      isDirty = true;
+      break;
+    }
+  }
+  return isDirty;
+}
+
 function drawPlayers() {
   const {
     canvas: { context2d },
@@ -189,5 +202,6 @@ function drawPlayers() {
       roundTo8thBit(player.position.x),
       roundTo8thBit(player.position.y),
     );
+    player.position.isDirty = false;
   }
 }
