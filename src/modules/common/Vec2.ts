@@ -55,7 +55,6 @@ function getAbsMin(a: number, b: number) {
 export class Vec2 extends Vec2ReadOnly implements IVec2 {
   static ZERO = new Vec2ReadOnly(0, 0);
   static INFINITY = new Vec2ReadOnly(Infinity, Infinity);
-  isDirty = true;
   constructor(public x = 0, public y = 0) {
     super(x, y);
   }
@@ -153,7 +152,6 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
     StoreSchema extends {
       x: ECS.Type;
       y: ECS.Type;
-      flags: ECS.Type;
     },
   >(
     eid: EntityId,
@@ -169,7 +167,6 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
         set(v) {
           const current = (store.x as Array<number>)[eid];
           if (current == v) return;
-          (store.flags as Array<number>)[eid] |= Vec2Flags.Dirty;
           (store.x as Array<number>)[eid] = getAbsMin(v, absMax);
         },
       },
@@ -180,39 +177,19 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
         set(v) {
           const current = (store.y as Array<number>)[eid];
           if (current == v) return;
-          (store.flags as Array<number>)[eid] |= Vec2Flags.Dirty;
           (store.y as Array<number>)[eid] = getAbsMin(v, absMax);
-        },
-      },
-      isDirty: {
-        get() {
-          return (store.flags as Array<number>)[eid] & Vec2Flags.Dirty;
-        },
-        set(v) {
-          if (v) {
-            (store.flags as Array<number>)[eid] |= Vec2Flags.Dirty;
-          } else {
-            (store.flags as Array<number>)[eid] &= ~Vec2Flags.Dirty;
-          }
         },
       },
     });
   }
 }
 
-export enum Vec2Flags {
-  None = 0,
-  Dirty = 1,
-}
-
 export const Vec2LargeType = {
   x: ECS.Types.i32,
   y: ECS.Types.i32,
-  flags: ECS.Types.ui8,
 };
 
 export const Vec2SmallType = {
   x: ECS.Types.i8,
   y: ECS.Types.i8,
-  flags: ECS.Types.ui8,
 };

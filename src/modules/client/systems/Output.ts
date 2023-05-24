@@ -1,5 +1,5 @@
-import { OutputState } from "~/client/state/Output.ts";
-import { PlayerState } from "~/common/state/Player.ts";
+import { OutputState, PreviousPositionStore } from "~/client/state/Output.ts";
+import { Player, PlayerState } from "~/common/state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
@@ -200,7 +200,10 @@ function drawTweenHelpers() {
 function isRenderDataDirty() {
   let isDirty = false;
   for (const player of PlayerState.getPlayers()) {
-    if (player.position.isDirty) {
+    if (
+      PreviousPositionStore.x[player.eid] !== player.position.x ||
+      PreviousPositionStore.y[player.eid] !== player.position.y
+    ) {
       isDirty = true;
       break;
     }
@@ -210,10 +213,23 @@ function isRenderDataDirty() {
 
 function drawPlayers() {
   const {
-    foreground: { context2d, resolution },
+    foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
-  ctx.clearRect(0, 0, resolution.x, resolution.y);
+  for (const player of PlayerState.getPlayers()) {
+    const { width, height } = SpriteState.find(
+      player.spriteMapId,
+      player.pose,
+    )!;
+    ctx.clearRect(
+      roundTo8thBit(PreviousPositionStore.x[player.eid]),
+      roundTo8thBit(PreviousPositionStore.y[player.eid]),
+      width,
+      height,
+    );
+    PreviousPositionStore.x[player.eid] = player.position.x;
+    PreviousPositionStore.y[player.eid] = player.position.y;
+  }
   for (const player of PlayerState.getPlayers()) {
     const sprite = SpriteState.find(player.spriteMapId, player.pose)!;
     ctx.drawImage(
@@ -221,6 +237,5 @@ function drawPlayers() {
       roundTo8thBit(player.position.x),
       roundTo8thBit(player.position.y),
     );
-    player.position.isDirty = false;
   }
 }
