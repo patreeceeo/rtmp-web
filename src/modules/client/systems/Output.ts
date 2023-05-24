@@ -56,16 +56,18 @@ export const OutputSystem: SystemLoader = async () => {
   fpsSlider.addEventListener("change", (e) => {
     const target = e.target as HTMLInputElement;
     fpsLimit = parseInt(target.value, 10);
+    frameDurationMin = 1000 / fpsLimit;
     localStorage.setItem("fpsLimit", fpsLimit.toString());
     console.info(`FPS limit: ${fpsLimit}`);
   });
 
   fpsSlider.setAttribute("value", fpsLimit.toString());
 
-  let lastRender = 0;
+  let frameDurationMin = 1000 / fpsLimit;
+  let lastRender = -frameDurationMin;
 
   function exec(context: ISystemExecutionContext) {
-    if (context.elapsedTime - lastRender >= 1000 / fpsLimit) {
+    if (context.elapsedTime - lastRender >= frameDurationMin) {
       if (DebugState.enabled) {
         OutputState.frameCount++;
       }
