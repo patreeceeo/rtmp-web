@@ -37,14 +37,23 @@ export const OutputSystem: SystemLoader = async () => {
     canvas: { resolution },
   } = OutputState;
 
+  // Get the DPR and size of the canvas
+  const dpr = 2 ** Math.ceil(Math.log2(window.devicePixelRatio));
+  console.log("DPR:", dpr);
+
   const el: HTMLCanvasElement = document.querySelector("#screen")!;
-  el.width = resolution.x;
-  el.height = resolution.y;
+  el.width = resolution.x * dpr;
+  el.height = resolution.y * dpr;
+
   OutputState.canvas.element = el;
   OutputState.canvas.clientRect = el.getBoundingClientRect();
   const ctx = el.getContext("2d")!;
   if (ctx) {
     ctx.imageSmoothingEnabled = false;
+
+    // Scale the context to ensure correct drawing operations
+    ctx.scale(dpr, dpr);
+
     OutputState.canvas.context2d = ctx;
   } else {
     throw new Error("Failed to get canvas rendering context");
@@ -110,15 +119,7 @@ function drawCloud(
   const yRadius = size.y >> 1;
   ctx.fillStyle = "white";
   ctx.beginPath();
-  ctx.ellipse(
-    position.x,
-    yFlipped + yRadius,
-    xRadius,
-    yRadius,
-    0,
-    0,
-    PI2,
-  );
+  ctx.ellipse(position.x, yFlipped + yRadius, xRadius, yRadius, 0, 0, PI2);
   ctx.fill();
   ctx.beginPath();
   ctx.ellipse(
