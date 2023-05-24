@@ -84,8 +84,9 @@ export const OutputSystem: SystemLoader = async () => {
         OutputState.frameCount++;
       }
       if (isRenderDataDirty()) {
-        drawPlayers();
+        erasePlayers();
         DebugState.enabled && drawTweenHelpers();
+        drawPlayers();
         lastRender = context.elapsedTime;
       }
     }
@@ -212,7 +213,7 @@ function isRenderDataDirty() {
   return isDirty;
 }
 
-function drawPlayers() {
+function erasePlayers() {
   const {
     foreground: { context2d },
   } = OutputState;
@@ -223,14 +224,21 @@ function drawPlayers() {
       player.pose,
     )!;
     ctx.clearRect(
-      PreviousPositionStore.x[player.eid],
-      PreviousPositionStore.y[player.eid],
-      width,
-      height,
+      PreviousPositionStore.x[player.eid] - 2,
+      PreviousPositionStore.y[player.eid] - 2,
+      width + 4,
+      height + 4,
     );
     PreviousPositionStore.x[player.eid] = roundTo8thBit(player.position.x);
     PreviousPositionStore.y[player.eid] = roundTo8thBit(player.position.y);
   }
+}
+
+function drawPlayers() {
+  const {
+    foreground: { context2d },
+  } = OutputState;
+  const ctx = context2d!;
   for (const player of PlayerState.getPlayers()) {
     const sprite = SpriteState.find(player.spriteMapId, player.pose)!;
     ctx.drawImage(
