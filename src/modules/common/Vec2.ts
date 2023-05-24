@@ -55,6 +55,7 @@ function getAbsMin(a: number, b: number) {
 export class Vec2 extends Vec2ReadOnly implements IVec2 {
   static ZERO = new Vec2ReadOnly(0, 0);
   static INFINITY = new Vec2ReadOnly(Infinity, Infinity);
+  isDirty = true;
   constructor(public x = 0, public y = 0) {
     super(x, y);
   }
@@ -146,14 +147,6 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
   applySnapshot(snap: typeof this.snapshot) {
     this.x = snap.x;
     this.y = snap.y;
-  }
-
-  get isDirty() {
-    return false;
-  }
-
-  set isDirty(v: boolean) {
-    // noop
   }
 
   static fromEntityComponent<
