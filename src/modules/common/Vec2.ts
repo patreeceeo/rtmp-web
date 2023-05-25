@@ -169,7 +169,6 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
         set(v) {
           const current = (store.x as Array<number>)[eid];
           if (current == v) return;
-          (store.flags as Array<number>)[eid] |= Vec2Flags.Dirty;
           (store.x as Array<number>)[eid] = getAbsMin(v, absMax);
         },
       },
@@ -180,20 +179,7 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
         set(v) {
           const current = (store.y as Array<number>)[eid];
           if (current == v) return;
-          (store.flags as Array<number>)[eid] |= Vec2Flags.Dirty;
           (store.y as Array<number>)[eid] = getAbsMin(v, absMax);
-        },
-      },
-      isDirty: {
-        get() {
-          return (store.flags as Array<number>)[eid] & Vec2Flags.Dirty;
-        },
-        set(v) {
-          if (v) {
-            (store.flags as Array<number>)[eid] |= Vec2Flags.Dirty;
-          } else {
-            (store.flags as Array<number>)[eid] &= ~Vec2Flags.Dirty;
-          }
         },
       },
     });

@@ -42,7 +42,8 @@ if (import.meta.hot) {
   });
 }
 
-OutputState.canvas.resolution.set(SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
+OutputState.foreground.resolution.set(SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
+OutputState.background.resolution.set(SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
 
 const landscapePoints = [
   [0, 100],
@@ -80,7 +81,7 @@ OutputState.gradients.set("sky", {
   x0: 0,
   y0: 0,
   x1: 0,
-  y1: OutputState.canvas.resolution.y,
+  y1: OutputState.background.resolution.y,
   stops: [
     [0, "#e6f9ff"],
     [1, "#a6e9ff"],
@@ -91,7 +92,7 @@ OutputState.gradients.set("landscape", {
   x0: 0,
   y0: 0,
   x1: 0,
-  y1: OutputState.canvas.resolution.y,
+  y1: OutputState.background.resolution.y,
   stops: [
     [0, "#e6f9ff"],
     [0.75, "darkviolet"],
@@ -100,7 +101,7 @@ OutputState.gradients.set("landscape", {
 });
 
 function createLandscapePath() {
-  const resolution = OutputState.canvas.resolution;
+  const resolution = OutputState.background.resolution;
   const landscape = new Path2D();
   landscape.moveTo(0, resolution.y);
   for (const point of LevelState.landscape) {

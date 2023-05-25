@@ -27,7 +27,7 @@ function exec(context: IEventSystemExecutionContext) {
       const me = e as MouseEvent;
       const { mousePosition, mousePositionOnCanvas } = InputState;
       const {
-        canvas: { resolution, clientRect },
+        foreground: { resolution, clientRect },
       } = OutputState;
       mousePosition.set(me.clientX, me.clientY);
       const xScale = resolution.x / clientRect.width;

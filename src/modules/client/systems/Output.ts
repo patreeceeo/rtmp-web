@@ -1,4 +1,4 @@
-import { OutputState } from "~/client/state/Output.ts";
+import { OutputState, PreviousPositionStore } from "~/client/state/Output.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { roundTo8thBit } from "../../common/math.ts";
@@ -34,20 +34,30 @@ export const OutputSystem: SystemLoader = async () => {
   );
 
   const {
-    canvas: { resolution },
+    foreground: { resolution },
   } = OutputState;
 
-  const el: HTMLCanvasElement = document.querySelector("#screen")!;
-  el.width = resolution.x;
-  el.height = resolution.y;
-  OutputState.canvas.element = el;
-  OutputState.canvas.clientRect = el.getBoundingClientRect();
-  const ctx = el.getContext("2d")!;
-  if (ctx) {
-    ctx.imageSmoothingEnabled = false;
-    OutputState.canvas.context2d = ctx;
+  OutputState.foreground.element = document.querySelector("#foreground")!;
+  OutputState.background.element = document.querySelector("#background")!;
+
+  setupCanvas(OutputState.foreground.element, resolution);
+  setupCanvas(OutputState.background.element, resolution);
+
+  OutputState.foreground.clientRect = OutputState.foreground.element
+    .getBoundingClientRect();
+
+  const foregroundCtx = OutputState.foreground.element.getContext("2d")!;
+  if (foregroundCtx) {
+    OutputState.foreground.context2d = foregroundCtx;
   } else {
-    throw new Error("Failed to get canvas rendering context");
+    throw new Error("Failed to get foreground rendering context");
+  }
+
+  const backgroundCtx = OutputState.background.element.getContext("2d")!;
+  if (backgroundCtx) {
+    OutputState.background.context2d = backgroundCtx;
+  } else {
+    throw new Error("Failed to get background rendering context");
   }
 
   const fpsSlider = document.querySelector("#fps-slider")!;
@@ -66,15 +76,17 @@ export const OutputSystem: SystemLoader = async () => {
   let frameDurationMin = 1000 / fpsLimit;
   let lastRender = -frameDurationMin;
 
+  drawBackground();
+
   function exec(context: ISystemExecutionContext) {
     if (context.elapsedTime - lastRender >= frameDurationMin) {
       if (DebugState.enabled) {
         OutputState.frameCount++;
       }
       if (isRenderDataDirty()) {
-        drawBackground();
-        drawPlayers();
+        erasePlayers();
         DebugState.enabled && drawTweenHelpers();
+        drawPlayers();
         lastRender = context.elapsedTime;
       }
     }
@@ -82,6 +94,21 @@ export const OutputSystem: SystemLoader = async () => {
 
   return { exec };
 };
+
+function setupCanvas(el: HTMLCanvasElement, resolution: Vec2ReadOnly) {
+  // Get the DPR and size of the canvas
+  const dpr = 2 ** Math.ceil(Math.log2(window.devicePixelRatio));
+
+  el.width = resolution.x * dpr;
+  el.height = resolution.y * dpr;
+
+  const ctx = el.getContext("2d")!;
+  if (ctx) {
+    ctx.imageSmoothingEnabled = false;
+    // Scale the context to ensure correct drawing operations
+    ctx.scale(dpr, dpr);
+  }
+}
 
 const gradients = new Map<string, CanvasGradient>();
 function getOrCreateLinearGradient(key: string, ctx: CanvasRenderingContext2D) {
@@ -110,15 +137,7 @@ function drawCloud(
   const yRadius = size.y >> 1;
   ctx.fillStyle = "white";
   ctx.beginPath();
-  ctx.ellipse(
-    position.x,
-    yFlipped + yRadius,
-    xRadius,
-    yRadius,
-    0,
-    0,
-    PI2,
-  );
+  ctx.ellipse(position.x, yFlipped + yRadius, xRadius, yRadius, 0, 0, PI2);
   ctx.fill();
   ctx.beginPath();
   ctx.ellipse(
@@ -136,7 +155,7 @@ function drawCloud(
 
 function drawBackground() {
   const {
-    canvas: { resolution, context2d },
+    background: { resolution, context2d },
   } = OutputState;
   const ctx = context2d!;
   const skyGradient = getOrCreateLinearGradient("sky", ctx);
@@ -161,7 +180,7 @@ function drawBackground() {
 
 function drawTweenHelpers() {
   const {
-    canvas: { context2d },
+    foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
 
@@ -182,7 +201,11 @@ function drawTweenHelpers() {
 function isRenderDataDirty() {
   let isDirty = false;
   for (const player of PlayerState.getPlayers()) {
-    if (player.position.isDirty) {
+    if (
+      PreviousPositionStore.x[player.eid] !==
+        roundTo8thBit(player.position.x) ||
+      PreviousPositionStore.y[player.eid] !== roundTo8thBit(player.position.y)
+    ) {
       isDirty = true;
       break;
     }
@@ -190,9 +213,30 @@ function isRenderDataDirty() {
   return isDirty;
 }
 
+function erasePlayers() {
+  const {
+    foreground: { context2d },
+  } = OutputState;
+  const ctx = context2d!;
+  for (const player of PlayerState.getPlayers()) {
+    const { width, height } = SpriteState.find(
+      player.spriteMapId,
+      player.pose,
+    )!;
+    ctx.clearRect(
+      PreviousPositionStore.x[player.eid] - 2,
+      PreviousPositionStore.y[player.eid] - 2,
+      width + 4,
+      height + 4,
+    );
+    PreviousPositionStore.x[player.eid] = roundTo8thBit(player.position.x);
+    PreviousPositionStore.y[player.eid] = roundTo8thBit(player.position.y);
+  }
+}
+
 function drawPlayers() {
   const {
-    canvas: { context2d },
+    foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
   for (const player of PlayerState.getPlayers()) {
