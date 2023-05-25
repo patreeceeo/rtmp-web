@@ -54,7 +54,7 @@ export function startServer(app: ServerApp) {
       socket.onopen = (socketEvent) => {
         const clientNid = ServerNetworkState.createId();
         const client = new Client(clientNid, socket);
-        // console.log("socket open, client nid", clientNid)
+        console.debug("Client connected", clientNid);
 
         ServerNetworkState.setClient(client);
         client.lastActiveTime = performance.now();
@@ -83,9 +83,9 @@ export function startServer(app: ServerApp) {
       const contentType = getContentType(extRewrite);
       const assetPath = `${rootDir}${dir}/${base}${extRewrite}`;
       if (contentType && allowedFileExtensions.includes(extRewrite)) {
-        console.info(
-          `Requested ${url.pathname} => ${assetPath}, content type: ${contentType}`,
-        );
+        // console.info(
+        //   `Requested ${url.pathname} => ${assetPath}, content type: ${contentType}`,
+        // );
         if (await isFilePath(assetPath)) {
           const content = await Deno.readFile(assetPath);
           return new Response(content, {
@@ -116,7 +116,6 @@ export function startServer(app: ServerApp) {
           startTime: stringifyMaybeDate(ServerNetworkState.startTime),
         },
       };
-      console.debug(info);
       return new Response(JSON.stringify(info), {
         headers: {
           "content-type": "application/json",

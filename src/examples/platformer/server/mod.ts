@@ -93,6 +93,7 @@ class DotsServerApp implements ServerApp {
 
   handleClose(ws: WebSocket, _: Event) {
     const client = ServerNetworkState.getClientForSocket(ws)!;
+    console.log("Client disconnected", client.nid);
     ServerNetworkState.removeClient(client.nid);
     for (const nid of client.getNetworkIds()) {
       const eid = ServerNetworkState.getEntityId(nid);
