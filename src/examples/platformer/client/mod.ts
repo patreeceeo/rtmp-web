@@ -196,10 +196,10 @@ fastPipeline.start();
 const framePipeline = new Pipeline([OutputSystem()], new AnimationDriver());
 framePipeline.start();
 
+startClient(app);
+
 const slowPipeline = new Pipeline(
   [PingSystem({ timeout: 10 * 1000 }), DebugSystem({ windowDuration: 5000 })],
   new FixedIntervalDriver(250),
 );
 slowPipeline.start();
-
-startClient(app);
