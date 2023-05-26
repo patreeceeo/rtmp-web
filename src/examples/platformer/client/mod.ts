@@ -117,7 +117,6 @@ OutputState.paths.set("landscape", createLandscapePath());
 export class DotsClientApp extends ClientApp {
   handleOpen(_server: WebSocket, _event: Event): void {
     console.info("socket is open");
-    initPing(MsgType.ping);
   }
   handleClose(_server: WebSocket, _event: Event): void {
     console.info("socket is closed");
@@ -174,6 +173,8 @@ function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
 }
 
 const app = new DotsClientApp();
+
+initPing(MsgType.ping);
 
 const inputPipeline = new Pipeline(
   [InputSystem()],
