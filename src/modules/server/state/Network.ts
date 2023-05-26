@@ -29,6 +29,11 @@ interface IServerNetworkState extends INetworkState {
   startTime?: Date;
 }
 
+interface IBCMessage {
+  type: "createId";
+  nid: NetworkId;
+}
+
 class ServerNetworkStateApi extends NetworkStateApi {
   #state: IServerNetworkState = {
     ...NetworkStateApi.init(),
@@ -37,9 +42,33 @@ class ServerNetworkStateApi extends NetworkStateApi {
     connectedClientsByWs: new Map(),
   };
 
+  bc = new BroadcastChannel("network");
+  constructor() {
+    super();
+    this.bc.addEventListener("message", (e) => {
+      this.handleBCMessage(e.data);
+    });
+  }
+
+  handleBCMessage(msg: IBCMessage) {
+    switch (msg.type) {
+      case "createId":
+        this.#state.nextNetworkId = Math.max(
+          this.#state.nextNetworkId,
+          msg.nid + 1,
+        ) as NetworkId;
+        console.log(
+          "received createId message, nextNetworkId is now",
+          this.#state.nextNetworkId,
+        );
+        break;
+    }
+  }
+
   createId(): NetworkId {
     const nid = this.#state.nextNetworkId;
     this.#state.nextNetworkId++;
+    this.bc.postMessage({ type: "createId", nid });
     return nid;
   }
 
