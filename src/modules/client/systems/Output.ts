@@ -218,7 +218,7 @@ function erasePlayers() {
     foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
-  for (const player of PlayerState.getPlayers()) {
+  for (const player of PlayerState.getPlayers({ includeDeleted: true })) {
     const { width, height } = SpriteState.find(
       player.spriteMapId,
       player.pose,

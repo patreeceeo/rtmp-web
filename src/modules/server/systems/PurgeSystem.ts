@@ -5,6 +5,7 @@ import { MessageState } from "~/common/state/Message.ts";
 import { broadcastMessage } from "../mod.ts";
 import { ServerNetworkState } from "../state/Network.ts";
 import { NetworkId } from "../../common/NetworkApi.ts";
+import * as ECS from "bitecs";
 
 type MessageTranscoder<P extends IPayloadAny> = [
   IMessageDef<P>,
@@ -56,6 +57,12 @@ export const PurgeSystem: SystemLoader<ISystemExecutionContext, [Options]> = (
       if (inactiveTime > idleTimeout * 2 * 1000) {
         client.ws.close();
         ServerNetworkState.removeClient(client.nid);
+      }
+    }
+
+    for (const eid of PlayerState.getEntityIds({ includeDeleted: true })) {
+      if (PlayerState.isDeleted(eid)) {
+        ECS.removeEntity(PlayerState.world, eid);
       }
     }
   }
