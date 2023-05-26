@@ -23,9 +23,10 @@ import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { TraitState } from "../../../modules/common/state/Trait.ts";
 import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
-import { PurgeSystem } from "../../../modules/server/systems/PurgeSystem.ts";
+import { ServerPurgeSystem } from "../../../modules/server/systems/ServerPurgeSystem.ts";
 import { readMessage } from "../../../modules/common/Message.ts";
 import { initPing, sendPing } from "../../../modules/common/state/Ping.ts";
+import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
 
 const idleTimeout = 300;
 
@@ -138,7 +139,10 @@ const fastPipeline = new Pipeline(
 fastPipeline.start();
 
 const slowPipeline = new Pipeline(
-  [PurgeSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] })],
+  [
+    PurgeSystem(),
+    ServerPurgeSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] }),
+  ],
   new FixedIntervalDriver(500),
 );
 slowPipeline.start();

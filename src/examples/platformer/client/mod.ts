@@ -30,6 +30,7 @@ import { Vec2 } from "../../../modules/common/Vec2.ts";
 import { initPing, updatePing } from "../../../modules/common/state/Ping.ts";
 import { PingSystem } from "../../../modules/client/systems/Ping.ts";
 import { SCREEN_HEIGHT_PX, SCREEN_WIDTH_PX } from "../mod.ts";
+import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -200,7 +201,11 @@ framePipeline.start();
 startClient(app);
 
 const slowPipeline = new Pipeline(
-  [PingSystem({ timeout: 10 * 1000 }), DebugSystem({ windowDuration: 5000 })],
+  [
+    PurgeSystem(),
+    PingSystem({ timeout: 10 * 1000 }),
+    DebugSystem({ windowDuration: 5000 }),
+  ],
   new FixedIntervalDriver(250),
 );
 slowPipeline.start();
