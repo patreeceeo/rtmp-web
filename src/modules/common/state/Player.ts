@@ -3,7 +3,9 @@ import { defaultWorld, EntityId } from "./mod.ts";
 import * as ECS from "bitecs";
 import { BoxReadOnly } from "../Box.ts";
 import { SUBPIXEL_SCALE } from "../constants.ts";
+import { map } from "../Iterable.ts";
 
+// TODO hitBox should be measured in pixels
 const hitBox = new BoxReadOnly(0, 0, 16 * SUBPIXEL_SCALE, 32 * SUBPIXEL_SCALE);
 
 export class Player {
@@ -22,7 +24,7 @@ export class Player {
     // Don't overwrite value from ECS
     this.lastActiveTime = this.lastActiveTime || performance.now();
     this.targetEntity = this.targetEntity ||
-      ECS.addEntity(defaultWorld) as EntityId;
+      (ECS.addEntity(defaultWorld) as EntityId);
     this.position = Vec2.fromEntityComponent(eid, PositionStore, "i32");
     this.velocity = Vec2.fromEntityComponent(eid, VelocityStore, "i8");
     this.targetPosition = Vec2.fromEntityComponent(
@@ -79,10 +81,20 @@ const EntityStore = ECS.defineComponent({ eid: ECS.Types.ui32 });
 const LastActiveStore = ECS.defineComponent({ time: ECS.Types.ui32 });
 const SpriteMapIdStore = ECS.defineComponent({ value: ECS.Types.ui8 });
 const PoseStore = ECS.defineComponent({ value: ECS.Types.ui8 });
+const MetaFlagsStore = ECS.defineComponent({ value: ECS.Types.ui8 });
 
 export enum PoseType {
   facingRight,
   facingLeft,
+}
+
+export enum MetaFlags {
+  None = 0,
+  Deleted = 1 << 0,
+}
+
+export interface IGetPlayerOptions {
+  includeDeleted?: boolean;
 }
 
 class PlayerStateApi {
@@ -101,6 +113,7 @@ class PlayerStateApi {
     ECS.addComponent(this.world, LastActiveStore, eid);
     ECS.addComponent(this.world, SpriteMapIdStore, eid);
     ECS.addComponent(this.world, PoseStore, eid);
+    ECS.addComponent(this.world, MetaFlagsStore, eid);
     return player;
   }
 
@@ -110,23 +123,41 @@ class PlayerStateApi {
 
   deletePlayer(eid: EntityId): void {
     console.log(`Deleted player ${eid}`);
-    ECS.removeEntity(this.world, eid);
+    MetaFlagsStore.value[eid] |= MetaFlags.Deleted;
   }
 
-  getPlayer(eid: EntityId): Player {
-    if (ECS.entityExists(this.world, eid)) {
+  isDeleted(eid: EntityId): boolean {
+    return (MetaFlagsStore.value[eid] & MetaFlags.Deleted) !== 0;
+  }
+
+  getPlayer(eid: EntityId, options: IGetPlayerOptions = {}): Player {
+    if (
+      ECS.entityExists(this.world, eid) &&
+      (options.includeDeleted ||
+        (MetaFlagsStore.value[eid] & MetaFlags.Deleted) === 0)
+    ) {
       return new Player(eid);
     } else {
       throw new Error(`Entity ${eid} does not exist`);
     }
   }
 
-  getEntityIds(): Array<EntityId> {
-    return this.#players(this.world) as Array<EntityId>;
+  *getEntityIds(options: IGetPlayerOptions = {}): Generator<EntityId> {
+    for (const eid of this.#players(this.world)) {
+      if (
+        options.includeDeleted ||
+        (MetaFlagsStore.value[eid] & MetaFlags.Deleted) === 0
+      ) {
+        yield eid as EntityId;
+      }
+    }
   }
 
-  getPlayers(): Array<Player> {
-    return this.getEntityIds().map((eid) => this.getPlayer(eid));
+  getPlayers(options: IGetPlayerOptions = {}): Generator<Player> {
+    return map(
+      this.getEntityIds(options),
+      (eid) => this.getPlayer(eid, options),
+    );
   }
 }
 
