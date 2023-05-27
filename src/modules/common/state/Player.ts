@@ -1,4 +1,4 @@
-import { Vec2, Vec2LargeType, Vec2SmallType } from "../Vec2.ts";
+import { Vec2FromStore, Vec2LargeType, Vec2SmallType } from "../Vec2.ts";
 import { defaultWorld, EntityId } from "./mod.ts";
 import * as ECS from "bitecs";
 import { BoxReadOnly } from "../Box.ts";
@@ -10,11 +10,12 @@ const hitBox = new BoxReadOnly(0, 0, 16 * SUBPIXEL_SCALE, 32 * SUBPIXEL_SCALE);
 
 export class Player {
   readonly hitBox = hitBox;
-  readonly position: Vec2;
-  readonly targetPosition: Vec2;
-  readonly velocity: Vec2;
-  readonly targetVelocity: Vec2;
-  readonly acceleration: Vec2;
+  readonly position: Vec2FromStore<{ x: "i32"; y: "i32" }>;
+  readonly targetPosition: Vec2FromStore<{ x: "i32"; y: "i32" }>;
+  readonly velocity: Vec2FromStore<{ x: "i8"; y: "i8" }>;
+  /** @deprecated */
+  readonly targetVelocity: Vec2FromStore<{ x: "i8"; y: "i8" }>;
+  readonly acceleration: Vec2FromStore<{ x: "i8"; y: "i8" }>;
   /** in 256ths of a pixel per millisecond */
   readonly maxVelocity = 33;
   readonly maxVelocitySq = this.maxVelocity ** 2;
@@ -25,19 +26,11 @@ export class Player {
     this.lastActiveTime = this.lastActiveTime || performance.now();
     this.targetEntity = this.targetEntity ||
       (ECS.addEntity(defaultWorld) as EntityId);
-    this.position = Vec2.fromEntityComponent(eid, PositionStore, "i32");
-    this.velocity = Vec2.fromEntityComponent(eid, VelocityStore, "i8");
-    this.targetPosition = Vec2.fromEntityComponent(
-      this.targetEntity,
-      PositionStore,
-      "i32",
-    );
-    this.targetVelocity = Vec2.fromEntityComponent(
-      this.targetEntity,
-      VelocityStore,
-      "i8",
-    );
-    this.acceleration = Vec2.fromEntityComponent(eid, AccelerationStore, "i8");
+    this.position = new Vec2FromStore(PositionStore, eid);
+    this.velocity = new Vec2FromStore(VelocityStore, eid);
+    this.targetPosition = new Vec2FromStore(PositionStore, this.targetEntity);
+    this.targetVelocity = new Vec2FromStore(VelocityStore, this.targetEntity);
+    this.acceleration = new Vec2FromStore(AccelerationStore, eid);
   }
   set lastActiveTime(time: number) {
     LastActiveStore.time[this.eid] = Math.round(time);

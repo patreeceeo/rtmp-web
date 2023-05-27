@@ -1,6 +1,4 @@
 import * as ECS from "bitecs";
-import { IBox } from "./Box.ts";
-import { I32_MAX, I8_MAX } from "./constants.ts";
 import { isAlmostZero } from "./math.ts";
 import { EntityId } from "./state/mod.ts";
 
@@ -18,33 +16,122 @@ function getRatioOfComponent(a: number, b: number) {
   return a / (Math.abs(a) + Math.abs(b));
 }
 
+const Vec2Functions = Object.freeze({
+  isZero({ x, y }: IVec2Readonly) {
+    return x === 0 && y === 0;
+  },
+  lengthSquared({ x, y }: IVec2Readonly) {
+    return x * x + y * y;
+  },
+  length(o: IVec2Readonly) {
+    return Math.sqrt(this.lengthSquared(o));
+  },
+  equals(a: IVec2Readonly, b: IVec2Readonly) {
+    return a.x === b.x && a.y === b.y;
+  },
+  almostEquals(a: IVec2Readonly, b: IVec2Readonly, tolerance = Number.EPSILON) {
+    return (
+      isAlmostZero(a.x - b.x, tolerance) &&
+      isAlmostZero(a.y - b.y, tolerance)
+    );
+  },
+  set<T extends IVec2>(o: T, x: number, y: number) {
+    o.x = x;
+    o.y = y;
+    return o;
+  },
+  copy<T extends IVec2>(dest: T, src: IVec2) {
+    dest.x = src.x;
+    dest.y = src.y;
+    return dest;
+  },
+  add<T extends IVec2>(dest: T, d: IVec2, scale = 1) {
+    const dx = d.x * scale;
+    const dy = d.y * scale;
+    dest.x += dx;
+    dest.y += dy;
+    return dest;
+  },
+  scale<T extends IVec2>(dest: T, s: number) {
+    dest.x *= s;
+    dest.y *= s;
+    return dest;
+  },
+  extend<T extends IVec2>(dest: T, s: number, other: IVec2Readonly) {
+    if (other.x !== 0 || other.y !== 0) {
+      const { x, y } = dest;
+      const xDelta = getRatioOfComponent(other.x, other.y) * s;
+      const yDelta = getRatioOfComponent(other.y, other.x) * s;
+      dest.x = x == 0
+        ? x + xDelta
+        : x > 0
+        ? Math.max(0, x + xDelta)
+        : Math.min(0, x + xDelta);
+      dest.y = y == 0
+        ? y + yDelta
+        : y > 0
+        ? Math.max(0, y + yDelta)
+        : Math.min(0, y + yDelta);
+      return dest;
+    }
+  },
+  sub<T extends IVec2>(dest: T, d: IVec2Readonly) {
+    dest.x -= d.x;
+    dest.y -= d.y;
+    return dest;
+  },
+  clamp<T extends IVec2>(o: T, maxLength: number): T {
+    const lengthSquared = this.lengthSquared(o);
+
+    // Special case: start and end points are too close
+    if (lengthSquared <= maxLength * maxLength) {
+      return o;
+    }
+
+    const { x: x, y: y } = o;
+
+    if (isAlmostZero(x)) {
+      // Math.abs(y) must be greater than maxLength becase we already checked for lengthSquared <= maxLength * maxLength
+      o.y = maxLength * Math.sign(y);
+      return o;
+    }
+
+    if (isAlmostZero(y)) {
+      // Math.abs(dx) must be greater than maxLength becase we already checked for lengthSquared <= maxLength * maxLength
+      o.x = maxLength * Math.sign(x);
+      return o;
+    }
+
+    const length = Math.sqrt(lengthSquared);
+
+    // Calculate the new point that is maxLength away from start in the direction of end
+    o.x = (x * maxLength) / length;
+    o.y = (y * maxLength) / length;
+    return o;
+  },
+});
+
 export class Vec2ReadOnly implements IVec2Readonly {
   constructor(readonly x = 0, readonly y = 0) {}
-  clone() {
+  clone(): Vec2ReadOnly {
     const clone = new Vec2();
     clone.copy(this);
     return clone;
   }
   get isZero() {
-    return this.x === 0 && this.y === 0;
+    return Vec2Functions.isZero(this);
   }
   get lengthSquared() {
-    return this.x * this.x + this.y * this.y;
+    return Vec2Functions.lengthSquared(this);
   }
   get length() {
-    return Math.sqrt(this.lengthSquared);
-  }
-  get snapshot(): IVec2 {
-    return { x: this.x, y: this.y };
+    return Vec2Functions.length(this);
   }
   equals(other: IVec2) {
-    return this.x === other.x && this.y === other.y;
+    return Vec2Functions.equals(this, other);
   }
   almostEquals(other: IVec2, tolerance = Number.EPSILON) {
-    return (
-      isAlmostZero(this.x - other.x, tolerance) &&
-      isAlmostZero(this.y - other.y, tolerance)
-    );
+    return Vec2Functions.almostEquals(this, other, tolerance);
   }
 }
 
@@ -56,150 +143,106 @@ function getAbsMin(a: number, b: number) {
 export class Vec2 extends Vec2ReadOnly implements IVec2 {
   static ZERO = new Vec2ReadOnly(0, 0);
   static INFINITY = new Vec2ReadOnly(Infinity, Infinity);
-  isDirty = true;
   constructor(public x = 0, public y = 0) {
     super(x, y);
   }
   set(x: number, y: number) {
-    this.x = x;
-    this.y = y;
-    return this;
+    return Vec2Functions.set(this, x, y);
   }
   copy(src: IVec2) {
-    this.x = src.x;
-    this.y = src.y;
-    return this;
+    return Vec2Functions.copy(this, src);
   }
   add(d: IVec2, scale = 1) {
-    const dx = d.x * scale;
-    const dy = d.y * scale;
-    this.x += dx;
-    this.y += dy;
-    return this;
+    return Vec2Functions.add(this, d, scale);
   }
   scale(s: number) {
-    this.x *= s;
-    this.y *= s;
-    return this;
+    return Vec2Functions.scale(this, s);
   }
   extend(s: number, other: IVec2Readonly) {
-    if (other.x !== 0 || other.y !== 0) {
-      const { x, y } = this;
-      const xDelta = getRatioOfComponent(other.x, other.y) * s;
-      const yDelta = getRatioOfComponent(other.y, other.x) * s;
-      this.x = x == 0
-        ? x + xDelta
-        : x > 0
-        ? Math.max(0, x + xDelta)
-        : Math.min(0, x + xDelta);
-      this.y = y == 0
-        ? y + yDelta
-        : y > 0
-        ? Math.max(0, y + yDelta)
-        : Math.min(0, y + yDelta);
-      return this;
-    }
+    return Vec2Functions.extend(this, s, other);
   }
   sub(d: Vec2) {
-    this.x -= d.x;
-    this.y -= d.y;
-    return this;
+    return Vec2Functions.sub(this, d);
   }
-  clamp(maxLength: number) {
-    const lengthSquared = this.lengthSquared;
-
-    // Special case: start and end points are too close
-    if (lengthSquared <= maxLength * maxLength) {
-      return this;
-    }
-
-    const { x: x, y: y } = this;
-
-    if (isAlmostZero(x)) {
-      // Math.abs(y) must be greater than maxLength becase we already checked for lengthSquared <= maxLength * maxLength
-      this.y = maxLength * Math.sign(y);
-      return this;
-    }
-
-    if (isAlmostZero(y)) {
-      // Math.abs(dx) must be greater than maxLength becase we already checked for lengthSquared <= maxLength * maxLength
-      this.x = maxLength * Math.sign(x);
-      return this;
-    }
-
-    const length = Math.sqrt(lengthSquared);
-
-    // Calculate the new point that is maxLength away from start in the direction of end
-    this.x = (x * maxLength) / length;
-    this.y = (y * maxLength) / length;
-    return this;
-  }
-
-  limitToBoundingBox(xMin: number, yMin: number, xMax: number, yMax: number) {
-    this.x = Math.max(xMin, Math.min(xMax, this.x));
-    this.y = Math.max(yMin, Math.min(yMax, this.y));
-  }
-
-  fromBox(box: IBox) {
-    this.x = box.xMin + box.w;
-    this.y = box.yMin + box.h;
-  }
-
-  applySnapshot(snap: typeof this.snapshot) {
-    this.x = snap.x;
-    this.y = snap.y;
-  }
-
-  static fromEntityComponent<
-    StoreSchema extends {
-      x: ECS.Type;
-      y: ECS.Type;
-      flags: ECS.Type;
-    },
-  >(
-    eid: EntityId,
-    store: ECS.ComponentType<StoreSchema>,
-    precision: StoreSchema["x"] & StoreSchema["y"],
-  ): Vec2 {
-    const absMax = precision === "i8" ? I8_MAX : I32_MAX;
-    return Object.defineProperties(new Vec2(), {
-      x: {
-        get() {
-          return (store.x as Array<number>)[eid];
-        },
-        set(v) {
-          const current = (store.x as Array<number>)[eid];
-          if (current == v) return;
-          (store.x as Array<number>)[eid] = getAbsMin(v, absMax);
-        },
-      },
-      y: {
-        get() {
-          return (store.y as Array<number>)[eid];
-        },
-        set(v) {
-          const current = (store.y as Array<number>)[eid];
-          if (current == v) return;
-          (store.y as Array<number>)[eid] = getAbsMin(v, absMax);
-        },
-      },
-    });
+  clamp(maxLength: number): Vec2 {
+    return Vec2Functions.clamp(this, maxLength);
   }
 }
 
-export enum Vec2Flags {
-  None = 0,
-  Dirty = 1,
+export class Vec2FromStore<ComponentType extends { x: ECS.Type; y: ECS.Type }>
+  implements IVec2 {
+  public maxLength: number;
+  constructor(
+    readonly store: ECS.ComponentType<ComponentType>,
+    public eid: EntityId,
+  ) {
+    const byteLength = Math.min(
+      (store.x as ECS.TypedArray).BYTES_PER_ELEMENT,
+      (store.y as ECS.TypedArray).BYTES_PER_ELEMENT,
+    );
+    this.maxLength = (1 << (byteLength * 8 - 1)) - 1;
+  }
+  get x() {
+    return (this.store.x as Array<number>)[this.eid];
+  }
+
+  set x(v) {
+    (this.store.x as Array<number>)[this.eid] = getAbsMin(v, this.maxLength);
+  }
+
+  get y() {
+    return (this.store.y as Array<number>)[this.eid];
+  }
+
+  set y(v) {
+    (this.store.y as Array<number>)[this.eid] = getAbsMin(v, this.maxLength);
+  }
+
+  get isZero() {
+    return Vec2Functions.isZero(this);
+  }
+  get lengthSquared() {
+    return Vec2Functions.lengthSquared(this);
+  }
+  get length() {
+    return Vec2Functions.length(this);
+  }
+  equals(other: IVec2) {
+    return Vec2Functions.equals(this, other);
+  }
+  almostEquals(other: IVec2, tolerance = Number.EPSILON) {
+    return Vec2Functions.almostEquals(this, other, tolerance);
+  }
+
+  set(x: number, y: number) {
+    return Vec2Functions.set(this, x, y);
+  }
+  copy(src: IVec2) {
+    return Vec2Functions.copy(this, src);
+  }
+  add(d: IVec2, scale = 1) {
+    return Vec2Functions.add(this, d, scale);
+  }
+  scale(s: number) {
+    return Vec2Functions.scale(this, s);
+  }
+  extend(s: number, other: IVec2Readonly) {
+    return Vec2Functions.extend(this, s, other);
+  }
+  sub(d: Vec2) {
+    return Vec2Functions.sub(this, d);
+  }
+  clamp(maxLength: number) {
+    return Vec2Functions.clamp(this, maxLength);
+  }
 }
 
 export const Vec2LargeType = {
   x: ECS.Types.i32,
   y: ECS.Types.i32,
-  flags: ECS.Types.ui8,
 };
 
 export const Vec2SmallType = {
   x: ECS.Types.i8,
   y: ECS.Types.i8,
-  flags: ECS.Types.ui8,
 };
