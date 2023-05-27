@@ -112,7 +112,6 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
     const player = this.#player;
     player.lastActiveTime = context.elapsedTime;
     player.targetPosition.copy(position);
-    player.targetVelocity.copy(velocity);
 
     if (!NetworkState.isLocal(nid)) {
       player.velocity.copy(velocity);
@@ -187,12 +186,9 @@ export class NegotiatePhysicsTrait
     return true;
   }
   applySnapshot(
-    { position, velocity, nid }: INegotiatePhysics,
+    { position }: INegotiatePhysics,
   ) {
     const player = this.#player;
     player.targetPosition.copy(position);
-    if (!NetworkState.isLocal(nid)) {
-      player.targetVelocity.copy(velocity);
-    }
   }
 }

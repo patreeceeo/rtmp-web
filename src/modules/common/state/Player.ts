@@ -13,8 +13,6 @@ export class Player {
   readonly position: Vec2FromStore<{ x: "i32"; y: "i32" }>;
   readonly targetPosition: Vec2FromStore<{ x: "i32"; y: "i32" }>;
   readonly velocity: Vec2FromStore<{ x: "i8"; y: "i8" }>;
-  /** @deprecated */
-  readonly targetVelocity: Vec2FromStore<{ x: "i8"; y: "i8" }>;
   readonly acceleration: Vec2FromStore<{ x: "i8"; y: "i8" }>;
   /** in 256ths of a pixel per millisecond */
   readonly maxVelocity = 33;
@@ -29,7 +27,6 @@ export class Player {
     this.position = new Vec2FromStore(PositionStore, eid);
     this.velocity = new Vec2FromStore(VelocityStore, eid);
     this.targetPosition = new Vec2FromStore(PositionStore, this.targetEntity);
-    this.targetVelocity = new Vec2FromStore(VelocityStore, this.targetEntity);
     this.acceleration = new Vec2FromStore(AccelerationStore, eid);
   }
   set lastActiveTime(time: number) {
