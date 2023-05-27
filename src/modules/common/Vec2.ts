@@ -1,5 +1,6 @@
 import * as ECS from "bitecs";
 import { IBox } from "./Box.ts";
+import { I32_MAX, I8_MAX } from "./constants.ts";
 import { isAlmostZero } from "./math.ts";
 import { EntityId } from "./state/mod.ts";
 
@@ -160,7 +161,7 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
     store: ECS.ComponentType<StoreSchema>,
     precision: StoreSchema["x"] & StoreSchema["y"],
   ): Vec2 {
-    const absMax = precision === "i8" ? 2 ** 7 - 1 : 2 ** 31 - 1;
+    const absMax = precision === "i8" ? I8_MAX : I32_MAX;
     return Object.defineProperties(new Vec2(), {
       x: {
         get() {
