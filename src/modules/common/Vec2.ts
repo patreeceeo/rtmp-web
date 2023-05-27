@@ -12,11 +12,37 @@ export interface IVec2Readonly {
   readonly y: number;
 }
 
-function getRatioOfComponent(a: number, b: number) {
-  return a / (Math.abs(a) + Math.abs(b));
+export interface IVec2Class extends IVec2 {
+  isZero: boolean;
+  lengthSquared: number;
+  length: number;
+  equals(o: IVec2Readonly): boolean;
+  almostEquals(o: IVec2Readonly, tolerance?: number): boolean;
+  set(x: number, y: number): this;
+  copy(o: IVec2Readonly): this;
+  add(o: IVec2Readonly, scale: number): this;
+  sub(o: IVec2Readonly): this;
+  scale(s: number): this;
+  extend(s: number, o: IVec2Readonly): this;
+  clamp(max: number): this;
 }
 
-const Vec2Functions = Object.freeze({
+interface IVec2Functions {
+  isZero(o: IVec2Readonly): boolean;
+  lengthSquared(o: IVec2Readonly): number;
+  length(o: IVec2Readonly): number;
+  equals(a: IVec2Readonly, b: IVec2Readonly): boolean;
+  almostEquals(a: IVec2Readonly, b: IVec2Readonly, tolerance?: number): boolean;
+  set<T extends IVec2>(o: T, x: number, y: number): T;
+  copy<T extends IVec2>(dest: T, src: IVec2Readonly): T;
+  add<T extends IVec2>(dest: T, a: IVec2Readonly, scale: number): T;
+  sub<T extends IVec2>(dest: T, a: IVec2Readonly): T;
+  scale<T extends IVec2>(dest: T, s: number): T;
+  extend<T extends IVec2>(dest: T, s: number, o: IVec2Readonly): T;
+  clamp<T extends IVec2>(dest: T, max: number): T;
+}
+
+const Vec2Functions: IVec2Functions = Object.freeze({
   isZero({ x, y }: IVec2Readonly) {
     return x === 0 && y === 0;
   },
@@ -72,8 +98,8 @@ const Vec2Functions = Object.freeze({
         : y > 0
         ? Math.max(0, y + yDelta)
         : Math.min(0, y + yDelta);
-      return dest;
     }
+    return dest;
   },
   sub<T extends IVec2>(dest: T, d: IVec2Readonly) {
     dest.x -= d.x;
@@ -140,7 +166,11 @@ function getAbsMin(a: number, b: number) {
     (a !== 0 ? Math.sign(a) : 1);
 }
 
-export class Vec2 extends Vec2ReadOnly implements IVec2 {
+function getRatioOfComponent(a: number, b: number) {
+  return a / (Math.abs(a) + Math.abs(b));
+}
+
+export class Vec2 extends Vec2ReadOnly implements IVec2Class {
   static ZERO = new Vec2ReadOnly(0, 0);
   static INFINITY = new Vec2ReadOnly(Infinity, Infinity);
   constructor(public x = 0, public y = 0) {
@@ -149,10 +179,10 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
   set(x: number, y: number) {
     return Vec2Functions.set(this, x, y);
   }
-  copy(src: IVec2) {
+  copy(src: IVec2Readonly) {
     return Vec2Functions.copy(this, src);
   }
-  add(d: IVec2, scale = 1) {
+  add(d: IVec2Readonly, scale = 1) {
     return Vec2Functions.add(this, d, scale);
   }
   scale(s: number) {
@@ -161,16 +191,16 @@ export class Vec2 extends Vec2ReadOnly implements IVec2 {
   extend(s: number, other: IVec2Readonly) {
     return Vec2Functions.extend(this, s, other);
   }
-  sub(d: Vec2) {
+  sub(d: IVec2Readonly) {
     return Vec2Functions.sub(this, d);
   }
-  clamp(maxLength: number): Vec2 {
+  clamp(maxLength: number) {
     return Vec2Functions.clamp(this, maxLength);
   }
 }
 
 export class Vec2FromStore<ComponentType extends { x: ECS.Type; y: ECS.Type }>
-  implements IVec2 {
+  implements IVec2Class {
   public maxLength: number;
   constructor(
     readonly store: ECS.ComponentType<ComponentType>,
