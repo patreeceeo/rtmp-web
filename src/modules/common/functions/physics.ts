@@ -1,5 +1,5 @@
 import { Box, IBox } from "../Box.ts";
-import { IVec2Class, IVec2Readonly, Vec2, Vec2ReadOnly } from "../Vec2.ts";
+import { IVec2Class, IVec2Readonly } from "../Vec2.ts";
 
 /**
  * @fileoverview

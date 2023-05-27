@@ -246,6 +246,5 @@ function drawPlayers() {
       roundTo8thBit(player.position.x),
       roundTo8thBit(player.position.y),
     );
-    player.position.isDirty = false;
   }
 }
