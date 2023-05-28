@@ -27,6 +27,7 @@ export function forEach<T>(iter: Iterable<T>, fn: (t: T) => void) {
   }
 }
 
+/** @deprecated except for debugging/testing */
 export function toArray<T>(iter: Iterable<T>, arr = [] as Array<T>) {
   for (const el of iter) {
     arr.push(el);

@@ -1,4 +1,4 @@
-import { assertEquals } from "asserts";
+import { assert, assertEquals } from "asserts";
 import { filter, map, toArray } from "./Iterable.ts";
 
 Deno.test("Iterable#toArray", () => {
@@ -41,6 +41,7 @@ Deno.test("performance: map", () => {
     }
   });
   console.log(`map() relative performance: ${natTime - libTime}ms`);
+  assert(libTime < natTime);
 });
 
 Deno.test("performance: filter", () => {
@@ -56,20 +57,5 @@ Deno.test("performance: filter", () => {
     }
   });
   console.log(`filter() relative performance: ${natTime - libTime}ms`);
-});
-
-Deno.test("performance: toArray", () => {
-  const iterable = [1, 2, 3];
-  const target: number[] = [];
-  const libTime = time(() => {
-    for (let i = 0; i < 1000000; i++) {
-      toArray(filter(iterable, (x) => x > 1), target);
-    }
-  });
-  const natTime = time(() => {
-    for (let i = 0; i < 1000000; i++) {
-      iterable.filter((x) => x > 1);
-    }
-  });
-  console.log(`toArray() relative performance: ${natTime - libTime}ms`);
+  assert(libTime < natTime);
 });
