@@ -246,6 +246,7 @@ export function createBufferProxyObjectConstructor<
             return spec;
           },
         },
+        /** @deprecated except for debugging/testing */
         meta__plain: {
           get: () => {
             // deno-lint-ignore no-explicit-any
@@ -296,9 +297,10 @@ export function createBufferProxyObjectConstructor<
           spec,
         )
       ) {
-        if (fieldName.startsWith("meta__")) {
-          throw new Error(ERROR_MESSAGE_RESERVED_FIELD_NAME);
-        }
+        invariant(
+          !fieldName.startsWith("meta__"),
+          ERROR_MESSAGE_RESERVED_FIELD_NAME,
+        );
         const fieldByteOffset = byteOffset + relativeByteOffset;
         const fieldDescriptor: PropertyDescriptor = {};
         if ("isObject" in Value) {
