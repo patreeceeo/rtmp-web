@@ -1,5 +1,5 @@
 import { Box, IBox } from "../Box.ts";
-import { Vec2, Vec2ReadOnly } from "../Vec2.ts";
+import { IVec2Class, IVec2Readonly } from "../Vec2.ts";
 
 /**
  * @fileoverview
@@ -24,16 +24,16 @@ const defaultOptions = new SimulateOptions();
 
 // Make this a method of Vec2?
 function accumulate(
-  targetVector: Vec2,
+  targetVector: IVec2Class,
   deltaTime: number,
-  deltaVector: Vec2ReadOnly,
+  deltaVector: IVec2Readonly,
 ) {
   targetVector.add(deltaVector, deltaTime);
 }
 
 export function simulatePositionWithVelocity(
-  position: Vec2,
-  velocity: Vec2,
+  position: IVec2Class,
+  velocity: IVec2Class,
   deltaTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {
@@ -73,8 +73,8 @@ export function simulatePositionWithVelocity(
 }
 
 export function simulateVelocityWithAcceleration(
-  velocity: Vec2,
-  acceleration: Vec2ReadOnly,
+  velocity: IVec2Class,
+  acceleration: IVec2Readonly,
   deltaTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {

@@ -15,7 +15,9 @@ export const PhysicsSystem: SystemLoader<
   [{ fixedDeltaTime: number }]
 > = ({ fixedDeltaTime }) => {
   function exec() {
-    for (const player of PlayerState.getPlayers()) {
+    for (const eid of PlayerState.getEntityIds()) {
+      const player = PlayerState.recyclableProxy;
+      player.eid = eid;
       const options = getPhysicsOptions(player);
       if (!isClient) {
         player.targetPosition.copy(player.position);

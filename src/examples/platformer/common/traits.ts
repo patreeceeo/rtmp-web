@@ -3,7 +3,10 @@ import { Just, Nothing } from "../../../modules/common/Maybe.ts";
 import { NetworkId } from "../../../modules/common/NetworkApi.ts";
 import { InputState } from "../../../modules/common/state/Input.ts";
 import { NetworkState } from "../../../modules/common/state/Network.ts";
-import { Player, PlayerState } from "../../../modules/common/state/Player.ts";
+import {
+  PlayerProxy,
+  PlayerState,
+} from "../../../modules/common/state/Player.ts";
 import { EntityId } from "../../../modules/common/state/mod.ts";
 import { Vec2 } from "~/common/Vec2.ts";
 import { MaybeAddMessageParameters, Trait } from "~/common/state/Trait.ts";
@@ -27,7 +30,7 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
   static readonly commandType = PlayerMove.type;
   static readonly snapshotType = PlayerSnapshot.type;
   readonly #nid: NetworkId;
-  readonly #player: Player;
+  readonly #player: PlayerProxy;
   #lastDdx = 0;
   #lastDdy = 0;
 
@@ -112,7 +115,6 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
     const player = this.#player;
     player.lastActiveTime = context.elapsedTime;
     player.targetPosition.copy(position);
-    player.targetVelocity.copy(velocity);
 
     if (!NetworkState.isLocal(nid)) {
       player.velocity.copy(velocity);
@@ -130,7 +132,7 @@ export class NegotiatePhysicsTrait
   static readonly commandType = MsgType.negotiatePhysics;
   static readonly snapshotType = MsgType.negotiatePhysics;
   readonly #nid: NetworkId;
-  readonly #player: Player;
+  readonly #player: PlayerProxy;
   #lastSendTime = 0;
 
   constructor(readonly entityId: EntityId) {
@@ -187,12 +189,9 @@ export class NegotiatePhysicsTrait
     return true;
   }
   applySnapshot(
-    { position, velocity, nid }: INegotiatePhysics,
+    { position }: INegotiatePhysics,
   ) {
     const player = this.#player;
     player.targetPosition.copy(position);
-    if (!NetworkState.isLocal(nid)) {
-      player.targetVelocity.copy(velocity);
-    }
   }
 }

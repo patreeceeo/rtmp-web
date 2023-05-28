@@ -77,7 +77,9 @@ class DotsServerApp implements ServerApp {
     );
 
     // Catch up new client on current state of the world
-    for (const player of PlayerState.getPlayers()) {
+    for (const eid of PlayerState.getEntityIds()) {
+      const player = PlayerState.recyclableProxy;
+      player.eid = eid;
       if (player.eid !== addedPlayer.eid) {
         sendMessageToClient(ws, PlayerAdd, (p) => {
           p.position.copy(player.position);

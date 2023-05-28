@@ -184,8 +184,10 @@ function drawTweenHelpers() {
   } = OutputState;
   const ctx = context2d!;
 
-  const players = PlayerState.getPlayers();
-  for (const player of players) {
+  const eids = PlayerState.getEntityIds();
+  for (const eid of eids) {
+    const player = PlayerState.recyclableProxy;
+    player.eid = eid;
     const { x, y } = player.targetPosition;
     const { h, w } = player.hitBox;
     ctx.strokeStyle = "red";
@@ -200,7 +202,9 @@ function drawTweenHelpers() {
 
 function isRenderDataDirty() {
   let isDirty = false;
-  for (const player of PlayerState.getPlayers()) {
+  for (const eid of PlayerState.getEntityIds()) {
+    const player = PlayerState.recyclableProxy;
+    player.eid = eid;
     if (
       PreviousPositionStore.x[player.eid] !==
         roundTo8thBit(player.position.x) ||
@@ -218,7 +222,9 @@ function erasePlayers() {
     foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
-  for (const player of PlayerState.getPlayers({ includeDeleted: true })) {
+  for (const eid of PlayerState.getEntityIds({ includeDeleted: true })) {
+    const player = PlayerState.recyclableProxy;
+    player.eid = eid;
     const { width, height } = SpriteState.find(
       player.spriteMapId,
       player.pose,
@@ -239,13 +245,14 @@ function drawPlayers() {
     foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
-  for (const player of PlayerState.getPlayers()) {
+  for (const eid of PlayerState.getEntityIds()) {
+    const player = PlayerState.recyclableProxy;
+    player.eid = eid;
     const sprite = SpriteState.find(player.spriteMapId, player.pose)!;
     ctx.drawImage(
       sprite.source,
       roundTo8thBit(player.position.x),
       roundTo8thBit(player.position.y),
     );
-    player.position.isDirty = false;
   }
 }

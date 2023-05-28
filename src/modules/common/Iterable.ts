@@ -27,6 +27,7 @@ export function forEach<T>(iter: Iterable<T>, fn: (t: T) => void) {
   }
 }
 
+/** @deprecated except for debugging/testing */
 export function toArray<T>(iter: Iterable<T>, arr = [] as Array<T>) {
   for (const el of iter) {
     arr.push(el);
@@ -53,14 +54,6 @@ export function join<T>(...iterables: Array<Iterable<T>>): Iterable<T> {
       }
     },
   };
-}
-
-const reuseArray: Array<unknown> = [];
-export function last<T>(iter: Iterable<T>): T {
-  const arry = toArray(iter, reuseArray);
-  const result = arry[arry.length - 1] as T;
-  reuseArray.length = 0;
-  return result;
 }
 
 export function average(iter: Iterable<number>, maxItems = Infinity) {
