@@ -22,7 +22,7 @@ export const NetworkSystem: SystemLoader = () => {
         ) {
           sendIfOpen(
             client.ws,
-            snapshot.meta.dataView,
+            snapshot.meta__dataView,
           );
         }
       }

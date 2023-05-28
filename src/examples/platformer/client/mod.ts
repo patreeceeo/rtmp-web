@@ -21,7 +21,12 @@ import { ReconcileSystem } from "../../../modules/client/systems/Reconcile.ts";
 import { useClient } from "hot_mod/dist/client/mod.js";
 import { IPlayerAdd, IPlayerRemove, MsgType } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
-import { readMessage } from "../../../modules/common/Message.ts";
+import {
+  readMessage,
+  readMessagePayload,
+  readMessageType,
+  readPingId,
+} from "../../../modules/common/Message.ts";
 import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { DebugSystem } from "~/client/systems/DebugSystem.ts";
@@ -128,18 +133,24 @@ export class DotsClientApp extends ClientApp {
   // deno-lint-ignore no-explicit-any
   handleMessage(server: WebSocket, event: MessageEvent<any>): void {
     const view = new DataViewMovable(event.data);
-    const [type, payload] = readMessage(view, 0);
+    const type = readMessageType(view, 0);
 
     switch (type) {
-      case MsgType.playerAdded:
+      case MsgType.playerAdded: {
+        const payload = readMessagePayload(view, 0, type);
         handlePlayerAdded(server, payload as IPlayerAdd);
         break;
-      case MsgType.playerRemoved:
+      }
+      case MsgType.playerRemoved: {
+        const payload = readMessagePayload(view, 0, type);
         handlePlayerRemoved(server, payload as IPlayerRemove);
         break;
-      case MsgType.ping:
-        updatePing(payload.id, performance.now());
+      }
+      case MsgType.ping: {
+        const id = readPingId(view, 0);
+        updatePing(id, performance.now());
         break;
+      }
       default:
         // TODO payload gets read twice
         MessageState.copySnapshotFrom(view);

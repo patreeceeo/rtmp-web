@@ -51,7 +51,7 @@ class MessageDef<P extends IPayloadAny> implements IMessageDef<P> {
     view.setUint8(byteOffset, this.type);
     const payload = new this.Payload(view, byteOffset + 1);
     writePayload(payload);
-    const { bytesRemaining } = payload.meta;
+    const bytesRemaining = payload.meta__bytesRemaining;
     // TODO should be equal to 0, but there's a bug in BufferProxyObject
     invariant(
       bytesRemaining <= 0,
@@ -87,21 +87,39 @@ export function getMessageDef(type: number) {
   return messageDefsByType[type];
 }
 
+export function readMessageType(
+  view: DataViewMovable,
+  byteOffset: number,
+): number {
+  return view.getUint8(byteOffset);
+}
+
+export function readMessagePayload<P extends IPayloadAny = IPayloadAny>(
+  view: DataViewMovable,
+  byteOffset: number,
+  type = readMessageType(view, byteOffset),
+): P {
+  const def = getMessageDef(type) as MessageDef<P>;
+
+  return asPlainObject(
+    new def.Payload(view, byteOffset + 1, { readOnly: true }),
+  );
+}
+
+export function readPingId(view: DataViewMovable, byteOffset: number): number {
+  return view.getUint8(byteOffset + 1);
+}
+
 export function readMessage<P extends IPayloadAny = IPayloadAny>(
   view: DataViewMovable,
   byteOffset: number,
 ): [number, P] {
   const type = readMessageType(view, byteOffset);
-  const def = getMessageDef(type) as MessageDef<P>;
 
   return [
     type,
-    asPlainObject(new def.Payload(view, byteOffset + 1, { readOnly: true })),
+    readMessagePayload(view, byteOffset, type),
   ];
-}
-
-function readMessageType(view: DataViewMovable, byteOffset: number): number {
-  return view.getUint8(byteOffset);
 }
 
 export function copyMessage(

@@ -24,7 +24,12 @@ import { TraitState } from "../../../modules/common/state/Trait.ts";
 import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { ServerPurgeSystem } from "../../../modules/server/systems/ServerPurgeSystem.ts";
-import { readMessage } from "../../../modules/common/Message.ts";
+import {
+  readMessage,
+  readMessagePayload,
+  readMessageType,
+  readPingId,
+} from "../../../modules/common/Message.ts";
 import { initPing, sendPing } from "../../../modules/common/state/Ping.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
 
@@ -114,9 +119,10 @@ class DotsServerApp implements ServerApp {
 
   handleMessage(client: WebSocket, message: MessageEvent) {
     const view = new DataViewMovable(message.data);
-    const [type, payload] = readMessage(view, 0);
+    const type = readMessageType(view, 0);
     if (type === MsgType.ping) {
-      sendPing(payload.id, client);
+      const id = readPingId(view, 0);
+      sendPing(id, client);
     } else {
       MessageState.copyCommandFrom(view);
       handleMessagePipeline.exec();
