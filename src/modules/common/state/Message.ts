@@ -210,9 +210,10 @@ export class MessageStateApi {
       const byteOffset of this.#snapshotsByStepCreated.sliceValues(start, end)
     ) {
       const [type, payload] = readMessage(this.#snapshotBufferView, byteOffset);
-      if (payload.meta.byteOffset - 1 !== byteOffset) {
+      // TODO(perf) make a unit test for this instead
+      if (payload.meta__byteOffset - 1 !== byteOffset) {
         throw new Error(
-          `byteOffset mismatch ${payload.meta.byteOffset} !== ${byteOffset}`,
+          `byteOffset mismatch ${payload.meta__byteOffset} !== ${byteOffset}`,
         );
       }
       yield [type, payload] as [number, IPayloadAny];

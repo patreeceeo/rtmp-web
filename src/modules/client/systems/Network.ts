@@ -12,7 +12,7 @@ export const ClientNetworkSystem: SystemLoader = () => {
         MessageState.currentStep,
       )
     ) {
-      sendMessageToServer(command.meta.dataView);
+      sendMessageToServer(command.meta__dataView);
     }
     lastHandledStep = MessageState.currentStep;
   }

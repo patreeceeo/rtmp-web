@@ -185,40 +185,35 @@ export type IBufferProxyObject<
   Iface extends Record<string, any>,
   Klass extends Iface = Iface,
 > = Iface & {
-  meta: {
-    bytesRemaining: number;
-    spec: IBufferProxyObjectSpec<Iface, Klass>;
-    // deno-lint-ignore no-explicit-any
-    plain: Record<string, any>;
-  };
+  readonly meta__bytesRemaining: number;
+  readonly meta__spec: IBufferProxyObjectSpec<Iface, Klass>;
+  // deno-lint-ignore no-explicit-any
+  readonly meta__plain: Record<string, any>;
 };
 
 // deno-lint-ignore no-explicit-any
 export function getByteLength<
   Iface extends Record<string, any>,
   Klass extends Iface = Iface,
->(
-  spec: IBufferProxyObjectSpec<Iface, Klass>,
-) {
+>(spec: IBufferProxyObjectSpec<Iface, Klass>) {
   return Object.values(spec).reduce(
     (sum, [_, field]) => sum + field.byteLength,
     0,
   );
 }
 
-const ERROR_MESSAGE_RESERVED_FIELD_NAME = "`meta` is a reserved field name";
+const ERROR_MESSAGE_RESERVED_FIELD_NAME =
+  "Field names cannot start with `meta__`";
 
 // deno-lint-ignore no-explicit-any
 export type IBufferProxyObjectSpec<
   Iface extends Record<string, any>,
   Klass extends Iface = Iface,
-> = Iface extends { meta: any } // deno-lint-ignore no-explicit-any
-  ? typeof ERROR_MESSAGE_RESERVED_FIELD_NAME
-  : {
-    [K in keyof Iface]: K extends keyof Iface
-      ? readonly [number, IBufferValue<Iface[K], Klass[K]>]
-      : never | "missing key";
-  };
+> = {
+  [K in keyof Iface]: K extends keyof Iface
+    ? readonly [number, IBufferValue<Iface[K], Klass[K]>]
+    : never | "missing key";
+};
 
 export function createBufferProxyObjectConstructor<
   // deno-lint-ignore no-explicit-any
@@ -228,123 +223,115 @@ export function createBufferProxyObjectConstructor<
   spec: IBufferProxyObjectSpec<Iface>,
   Klass: (new () => Klass) | null = null,
 ): IBufferProxyObjectConstructor<Iface, Klass> {
-  if (!("meta" in spec)) {
-    // deno-lint-ignore no-explicit-any
-    const validFields = spec;
-    const byteLength = getByteLength(validFields);
-    class BufferProxyObject {
-      static isObject = true;
-      static byteLength = byteLength;
-      static spec = spec;
-      constructor(
-        buf: DataViewMovable,
-        byteOffset: number,
-        options: Partial<IBufferProxyObjectConstructorOptions> = {},
-      ) {
-        const instance = Klass === null ? this : new Klass();
-        // TODO this doesn't work if the same property is written to more than once
-        let bytesRemainingSelf = byteLength;
-        let dataView: DataView;
-        const meta = Object.create(null, {
-          byteOffset: {
-            get: () => byteOffset,
+  const byteLength = getByteLength(spec);
+  class BufferProxyObject {
+    static isObject = true;
+    static byteLength = byteLength;
+    static spec = spec;
+    constructor(
+      buf: DataViewMovable,
+      byteOffset: number,
+      options: Partial<IBufferProxyObjectConstructorOptions> = {},
+    ) {
+      const instance = Klass === null ? this : new Klass();
+      // TODO this doesn't work if the same property is written to more than once
+      let bytesRemainingSelf = byteLength;
+      let dataView: DataView;
+      const propertyDescriptors: PropertyDescriptorMap = {
+        meta__byteOffset: {
+          get: () => byteOffset,
+        },
+        meta__spec: {
+          get: () => {
+            return spec;
           },
-          spec: {
-            get: () => {
-              return spec;
-            },
-          },
-          plain: {
-            get: () => {
-              // deno-lint-ignore no-explicit-any
-              const o: any = {} as any;
-              for (const [fieldName, [_, Value]] of Object.entries(spec)) {
-                if ("isObject" in Value) {
-                  o[fieldName as keyof Iface] =
-                    // deno-lint-ignore no-explicit-any
-                    (instance as any)[fieldName].meta.plain;
-                } else {
+        },
+        meta__plain: {
+          get: () => {
+            // deno-lint-ignore no-explicit-any
+            const o: any = {} as any;
+            for (const [fieldName, [_, Value]] of Object.entries(spec)) {
+              if ("isObject" in Value) {
+                o[fieldName as keyof Iface] =
                   // deno-lint-ignore no-explicit-any
-                  o[fieldName as keyof Iface] = (instance as any)[fieldName];
-                }
-              }
-              return o;
-            },
-          },
-          bytesRemaining: {
-            get: () => {
-              let bytesRemaining = bytesRemainingSelf;
-              const proxyEntries = filter(
-                Object.entries(spec),
-                ([_key, [_, coder]]) => "isObject" in coder,
-              );
-              for (const [key, [_, Value]] of proxyEntries) {
+                  (instance as any)[fieldName].meta__plain;
+              } else {
                 // deno-lint-ignore no-explicit-any
-                const { meta } = (this as any)[key] as IBufferProxyObject<any>;
-                bytesRemaining -= Value.byteLength - meta.bytesRemaining;
+                o[fieldName as keyof Iface] = (instance as any)[fieldName];
               }
-              return bytesRemaining;
-            },
+            }
+            return o;
           },
-          dataView: {
-            get: () => {
-              if (!dataView) {
-                // TODO why is this off by one?
-                dataView = getDataView(
-                  buf.buffer,
-                  (byteOffset - 1) % buf.buffer.byteLength,
-                );
-              }
-              return dataView;
-            },
+        },
+        meta__bytesRemaining: {
+          get: () => {
+            let bytesRemaining = bytesRemainingSelf;
+            const proxyEntries = filter(
+              Object.entries(spec),
+              ([_key, [_, coder]]) => "isObject" in coder,
+            );
+            for (const [key, [_, Value]] of proxyEntries) {
+              // deno-lint-ignore no-explicit-any
+              const value = (this as any)[key] as IBufferProxyObject<any>;
+              bytesRemaining -= Value.byteLength - value.meta__bytesRemaining;
+            }
+            return bytesRemaining;
           },
-        });
-        const propertyDescriptors: PropertyDescriptorMap = {
-          meta: {
-            get: () => meta,
+        },
+        meta__dataView: {
+          get: () => {
+            if (!dataView) {
+              // TODO why is this off by one?
+              dataView = getDataView(
+                buf.buffer,
+                (byteOffset - 1) % buf.buffer.byteLength,
+              );
+            }
+            return dataView;
           },
-        };
-        for (
-          const [fieldName, [relativeByteOffset, Value]] of Object.entries(
-            validFields,
-          )
-        ) {
-          const fieldByteOffset = byteOffset + relativeByteOffset;
-          const fieldDescriptor: PropertyDescriptor = {};
+        },
+      };
+      for (
+        const [fieldName, [relativeByteOffset, Value]] of Object.entries(
+          spec,
+        )
+      ) {
+        if (fieldName.startsWith("meta__")) {
+          throw new Error(ERROR_MESSAGE_RESERVED_FIELD_NAME);
+        }
+        const fieldByteOffset = byteOffset + relativeByteOffset;
+        const fieldDescriptor: PropertyDescriptor = {};
+        if ("isObject" in Value) {
+          const proxy = new Value(buf, fieldByteOffset, options);
+          fieldDescriptor.get = () => proxy;
+        } else {
+          fieldDescriptor.get = () => {
+            return Value.read(buf, fieldByteOffset);
+          };
+        }
+        if (!options.readOnly) {
           if ("isObject" in Value) {
             const proxy = new Value(buf, fieldByteOffset, options);
-            fieldDescriptor.get = () => proxy;
+            fieldDescriptor.set = (v: Iface[keyof Iface]) => {
+              for (const key of Object.keys(proxy.meta__spec)) {
+                // deno-lint-ignore no-explicit-any
+                (instance as any)[fieldName][key] = v[key];
+              }
+            };
           } else {
-            fieldDescriptor.get = () => {
-              return Value.read(buf, fieldByteOffset);
+            fieldDescriptor.set = (v: Iface[keyof Iface]) => {
+              bytesRemainingSelf -= Value.byteLength;
+              Value.write(buf, fieldByteOffset, v);
             };
           }
-          if (!options.readOnly) {
-            if ("isObject" in Value) {
-              const proxy = new Value(buf, fieldByteOffset, options);
-              fieldDescriptor.set = (v: Iface[keyof Iface]) => {
-                for (const key of Object.keys(proxy.meta.spec)) {
-                  // deno-lint-ignore no-explicit-any
-                  (instance as any)[fieldName][key] = v[key];
-                }
-              };
-            } else {
-              fieldDescriptor.set = (v: Iface[keyof Iface]) => {
-                bytesRemainingSelf -= Value.byteLength;
-                Value.write(buf, fieldByteOffset, v);
-              };
-            }
-          }
-          propertyDescriptors[fieldName] = fieldDescriptor;
         }
-        Object.defineProperties(instance, propertyDescriptors);
-        return instance as IBufferProxyObject<Iface, Klass>;
+        propertyDescriptors[fieldName] = fieldDescriptor;
       }
+      Object.defineProperties(instance, propertyDescriptors);
+      return instance as IBufferProxyObject<Iface, Klass>;
     }
-    return BufferProxyObject as IBufferProxyObjectConstructor<Iface, Klass>;
-  } else {
-    throw new Error(ERROR_MESSAGE_RESERVED_FIELD_NAME);
   }
+  return BufferProxyObject as IBufferProxyObjectConstructor<Iface, Klass>;
 }
 
 export class ValueBoxStacker {

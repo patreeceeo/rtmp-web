@@ -57,13 +57,13 @@ Deno.test("createBufferProxyObjectConstructor: metadata", () => {
 
   asserts.assertEquals(MyObject.byteLength, 3);
 
-  asserts.assertEquals(obj.meta.bytesRemaining, 3);
+  asserts.assertEquals(obj.meta__bytesRemaining, 3);
 
   obj.score = 182;
-  asserts.assertEquals(obj.meta.bytesRemaining, 1);
+  asserts.assertEquals(obj.meta__bytesRemaining, 1);
 
   obj.type = 13;
-  asserts.assertEquals(obj.meta.bytesRemaining, 0);
+  asserts.assertEquals(obj.meta__bytesRemaining, 0);
 });
 
 Deno.test("createBufferProxyObjectConstructor: obj with obj properties", () => {
@@ -104,7 +104,7 @@ Deno.test("createBufferProxyObjectConstructor: classes", () => {
 
   asserts.assertEquals(obj.position, vec2);
   asserts.assertEquals(obj.isEvil, true);
-  asserts.assertEquals(obj.meta.bytesRemaining, 0);
+  asserts.assertEquals(obj.meta__bytesRemaining, 0);
 });
 
 Deno.test("createBufferProxyObjectConstructor: plain", () => {
@@ -125,7 +125,7 @@ Deno.test("createBufferProxyObjectConstructor: plain", () => {
   obj.position = vec2;
   obj.isEvil = true;
 
-  asserts.assertEquals(obj.meta.plain, {
+  asserts.assertEquals(obj.meta__plain, {
     position: { x: 22, y: 33 },
     isEvil: true,
   });
