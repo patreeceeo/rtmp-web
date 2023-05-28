@@ -87,21 +87,39 @@ export function getMessageDef(type: number) {
   return messageDefsByType[type];
 }
 
+export function readMessageType(
+  view: DataViewMovable,
+  byteOffset: number,
+): number {
+  return view.getUint8(byteOffset);
+}
+
+export function readMessagePayload<P extends IPayloadAny = IPayloadAny>(
+  view: DataViewMovable,
+  byteOffset: number,
+  type = readMessageType(view, byteOffset),
+): P {
+  const def = getMessageDef(type) as MessageDef<P>;
+
+  return asPlainObject(
+    new def.Payload(view, byteOffset + 1, { readOnly: true }),
+  );
+}
+
+export function readPingId(view: DataViewMovable, byteOffset: number): number {
+  return view.getUint8(byteOffset + 1);
+}
+
 export function readMessage<P extends IPayloadAny = IPayloadAny>(
   view: DataViewMovable,
   byteOffset: number,
 ): [number, P] {
   const type = readMessageType(view, byteOffset);
-  const def = getMessageDef(type) as MessageDef<P>;
 
   return [
     type,
-    asPlainObject(new def.Payload(view, byteOffset + 1, { readOnly: true })),
+    readMessagePayload(view, byteOffset, type),
   ];
-}
-
-function readMessageType(view: DataViewMovable, byteOffset: number): number {
-  return view.getUint8(byteOffset);
 }
 
 export function copyMessage(
