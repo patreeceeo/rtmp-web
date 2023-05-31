@@ -10,14 +10,16 @@ import { DebugState } from "../state/Debug.ts";
 import { OutputState } from "../state/Output.ts";
 
 interface IConfig {
-  windowDuration: number;
+  fpsStatTimeFrame: number;
+  pingStatTimeFrame: number;
 }
 
-let lastExecuteTime = 0;
+let lastPingExecuteTime = 0;
+let lastFpsExecuteTime = 0;
 let wasEnabled = false;
 
 export const DebugSystem: SystemLoader<ISystemExecutionContext, [IConfig]> = (
-  { windowDuration },
+  { pingStatTimeFrame, fpsStatTimeFrame },
 ) => {
   let buttonWasPressed = false;
   function exec(context: ISystemExecutionContext) {
@@ -41,20 +43,35 @@ export const DebugSystem: SystemLoader<ISystemExecutionContext, [IConfig]> = (
 
     if (DebugState.enabled) {
       const now = performance.now();
-      const averageFrameRate = OutputState.frameCount * 1000 /
-        (now - lastExecuteTime);
-      const pingTimes = map(
-        PingState.getReceived(now - windowDuration, now),
-        (ping) => ping.roundTripTime,
-      );
-      const averagePingTime = average(pingTimes, 25);
-      fpsEl.textContent = averageFrameRate.toFixed(2);
-      pingEl.textContent = averagePingTime.toFixed(2);
-      dropsEl.textContent = (PingState.dropCount / (context.elapsedTime / 1000))
-        .toFixed(2);
-      lastExecuteTime = now;
-      OutputState.frameCount = 0;
+      if (now - lastFpsExecuteTime >= fpsStatTimeFrame / 2) {
+        const averageFrameRate = OutputState.frameCount * 1000 /
+          (now - lastFpsExecuteTime);
+        setTextContent(fpsEl, averageFrameRate.toFixed(2));
+        lastFpsExecuteTime = now;
+        OutputState.frameCount = 0;
+      }
+      if (now - lastPingExecuteTime >= pingStatTimeFrame / 2) {
+        const pingTimes = map(
+          PingState.getReceived(now - pingStatTimeFrame, now),
+          (ping) => ping.roundTripTime,
+        );
+        const averagePingTime = average(pingTimes, 25);
+        setTextContent(pingEl, averagePingTime.toFixed(2));
+        setTextContent(
+          dropsEl,
+          (PingState.dropCount / (context.elapsedTime / 1000))
+            .toFixed(2),
+        );
+        lastPingExecuteTime = now;
+      }
     }
   }
   return { exec };
 };
+
+function setTextContent(el: Element, text: string) {
+  if (el.textContent !== text) {
+    const node = el.childNodes.length > 0 ? el.childNodes[0] : el;
+    node.textContent = text;
+  }
+}
