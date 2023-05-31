@@ -25,6 +25,7 @@ export interface IVec2Class extends IVec2 {
   scale(s: number): this;
   extend(s: number, o: IVec2Readonly): this;
   clamp(max: number): this;
+  toJSON(): IVec2;
 }
 
 interface IVec2Functions {
@@ -40,6 +41,7 @@ interface IVec2Functions {
   scale<T extends IVec2>(dest: T, s: number): T;
   extend<T extends IVec2>(dest: T, s: number, o: IVec2Readonly): T;
   clamp<T extends IVec2>(dest: T, max: number): T;
+  toJSON(o: IVec2Readonly): IVec2;
 }
 
 const Vec2Functions: IVec2Functions = Object.freeze({
@@ -135,6 +137,9 @@ const Vec2Functions: IVec2Functions = Object.freeze({
     o.y = (y * maxLength) / length;
     return o;
   },
+  toJSON({ x, y }: IVec2Readonly): IVec2 {
+    return { x, y };
+  },
 });
 
 export class Vec2ReadOnly implements IVec2Readonly {
@@ -158,6 +163,9 @@ export class Vec2ReadOnly implements IVec2Readonly {
   }
   almostEquals(other: IVec2, tolerance = Number.EPSILON) {
     return Vec2Functions.almostEquals(this, other, tolerance);
+  }
+  toJSON() {
+    return Vec2Functions.toJSON(this);
   }
 }
 
@@ -264,6 +272,9 @@ export class Vec2FromStore<ComponentType extends { x: ECS.Type; y: ECS.Type }>
   }
   clamp(maxLength: number) {
     return Vec2Functions.clamp(this, maxLength);
+  }
+  toJSON() {
+    return Vec2Functions.toJSON(this);
   }
 }
 

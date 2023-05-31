@@ -6,7 +6,7 @@ import {
   reset,
 } from "./Message.ts";
 import * as asserts from "asserts";
-import { PrimitiveValue, Vec2SmallProxy } from "./BufferValue.ts";
+import { PrimitiveValue, Vec2SmallSpec } from "./BufferValue.ts";
 import { DataViewMovable } from "./DataView.ts";
 import { Vec2 } from "./Vec2.ts";
 
@@ -15,10 +15,14 @@ Deno.test("Message type", () => {
     score: number;
   }
   const Msg0 = defMessageType<IMyMessage>(0, {
-    score: [0, PrimitiveValue.Uint16],
+    props: {
+      score: [0, PrimitiveValue.Uint16],
+    },
   });
   const Msg1 = defMessageType<IMyMessage>(1, {
-    score: [0, PrimitiveValue.Uint16],
+    props: {
+      score: [0, PrimitiveValue.Uint16],
+    },
   });
 
   asserts.assertEquals(Msg0.type, 0);
@@ -37,7 +41,9 @@ Deno.test("Message read/write", () => {
   const score = 13;
 
   const Msg = defMessageType<IMyMessage>(type, {
-    score: [0, PrimitiveValue.Uint16],
+    props: {
+      score: [0, PrimitiveValue.Uint16],
+    },
   });
 
   const bufferLength = Msg.byteLength * 2;
@@ -63,8 +69,10 @@ Deno.test("Message Vec2 bug", () => {
   const type = 2;
 
   const Msg = defMessageType<IMyMessage>(type, {
-    delta: [0, Vec2SmallProxy],
-    isEvil: [2, PrimitiveValue.Bool],
+    props: {
+      delta: [0, Vec2SmallSpec],
+      isEvil: [2, PrimitiveValue.Bool],
+    },
   });
 
   const bufferLength = Msg.byteLength * 2;
@@ -90,7 +98,9 @@ Deno.test("Message write ensures complete payload", () => {
   const type = 2;
 
   const Msg = defMessageType<IMyMessage>(type, {
-    score: [0, PrimitiveValue.Uint16],
+    props: {
+      score: [0, PrimitiveValue.Uint16],
+    },
   });
 
   const bufferLength = Msg.byteLength * 2;
@@ -109,7 +119,9 @@ Deno.test("copyMessage", () => {
   const score = 13;
 
   const Msg = defMessageType<IMyMessage>(typeExpect, {
-    score: [0, PrimitiveValue.Uint16],
+    props: {
+      score: [0, PrimitiveValue.Uint16],
+    },
   });
 
   const bufferLength = Msg.byteLength * 2;

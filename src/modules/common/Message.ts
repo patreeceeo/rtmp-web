@@ -1,8 +1,8 @@
 import { DataViewMovable } from "./DataView.ts";
 import {
   asPlainObject,
-  createBufferProxyObjectConstructor,
-  IBufferProxyObjectConstructor,
+  BufferProxyObject,
+  IBufferProxyObject,
   IBufferProxyObjectSpec,
   MAX_BYTE_LENGTH,
 } from "./BufferValue.ts";
@@ -29,13 +29,18 @@ export interface IWritePayload<P> {
   (payload: P): void;
 }
 
+const NullBuffer = new ArrayBuffer(0);
+const NullDataView = new DataViewMovable(NullBuffer);
+
 class MessageDef<P extends IPayloadAny> implements IMessageDef<P> {
   byteLength: number;
+  payload: BufferProxyObject<P>;
   constructor(
     readonly type: number,
-    readonly Payload: IBufferProxyObjectConstructor<P>,
+    readonly spec: IBufferProxyObjectSpec<P>,
   ) {
-    this.byteLength = Payload.byteLength + 1;
+    this.payload = new BufferProxyObject(NullDataView, 0, spec);
+    this.byteLength = this.payload.meta__byteLength + 1;
     invariant(
       this.byteLength <= MAX_MESSAGE_BYTE_LENGTH,
       `message type ${type} exceeds the maximum length by ${
@@ -49,15 +54,16 @@ class MessageDef<P extends IPayloadAny> implements IMessageDef<P> {
     writePayload: IWritePayload<P>,
   ): P {
     view.setUint8(byteOffset, this.type);
-    const payload = new this.Payload(view, byteOffset + 1);
-    writePayload(payload);
-    const bytesRemaining = payload.meta__bytesRemaining;
+    this.payload.meta__byteOffset = byteOffset + 1;
+    this.payload.meta__dataViewSource = view;
+    writePayload(this.payload as unknown as P);
+    const bytesRemaining = this.payload.meta__bytesRemaining;
     // TODO should be equal to 0, but there's a bug in BufferProxyObject
     invariant(
       bytesRemaining <= 0,
       `Payload should be completely written. There are ${bytesRemaining} bytes remaining`,
     );
-    return payload;
+    return this.payload as unknown as P;
   }
 }
 
@@ -68,8 +74,7 @@ export function defMessageType<P extends IPayloadAny>(
   type: number,
   spec: IBufferProxyObjectSpec<P>,
 ): IMessageDef<P> {
-  const Payload = createBufferProxyObjectConstructor(spec);
-  const def = new MessageDef(type, Payload);
+  const def = new MessageDef(type, spec);
   invariant(!(type in messageDefsByType), `redefining message type ${type}`);
   messageDefsByType[type] = def;
   return def;
@@ -101,8 +106,11 @@ export function readMessagePayload<P extends IPayloadAny = IPayloadAny>(
 ): P {
   const def = getMessageDef(type) as MessageDef<P>;
 
+  def.payload.meta__dataViewSource = view;
+  def.payload.meta__byteOffset = byteOffset + 1;
+
   return asPlainObject(
-    new def.Payload(view, byteOffset + 1, { readOnly: true }),
+    def.payload as unknown as IBufferProxyObject<P>,
   );
 }
 

@@ -14,8 +14,10 @@ interface ITestPayload {
   nid: number;
 }
 const TestMsg = defMessageType<ITestPayload>(0, {
-  sid: [0, PrimitiveValue.Uint8],
-  nid: [1, PrimitiveValue.Uint8],
+  props: {
+    sid: [0, PrimitiveValue.Uint8],
+    nid: [1, PrimitiveValue.Uint8],
+  },
 });
 
 function mapPayloadNid(iter: Iterable<[unknown, IPayloadAny]>) {
