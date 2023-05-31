@@ -65,6 +65,10 @@ export class PlayerProxy {
   set pose(pose: PoseType) {
     PoseStore.value[this.eid] = pose;
   }
+
+  get isDeleted() {
+    return MetaFlagsStore.value[this.eid] & MetaFlags.Deleted;
+  }
 }
 
 class PlayerProxyRecyclable extends PlayerProxy {
