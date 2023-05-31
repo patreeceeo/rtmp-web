@@ -7,7 +7,9 @@ export interface IPingMsg {
   id: number;
 }
 export const PingMsgSpec: IBufferProxyObjectSpec<IPingMsg> = {
-  id: [0, PrimitiveValue.Uint8],
+  props: {
+    id: [0, PrimitiveValue.Uint8],
+  },
 };
 
 enum PingStatus {
@@ -59,7 +61,7 @@ class PingStateApi {
   getAll() {
     return this.#idMap.values();
   }
-  
+
   getReceived(windowStart: number, windowEnd: number) {
     return filter(this.#idMap.values(), (ping) => {
       return ping.state === Ping.Status.RECEIVED &&

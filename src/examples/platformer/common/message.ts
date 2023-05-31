@@ -2,8 +2,8 @@ import {
   IBufferProxyObjectSpec,
   PrimitiveValue,
   ValueBoxStacker,
-  Vec2LargeProxy,
-  Vec2SmallProxy,
+  Vec2LargeSpec,
+  Vec2SmallSpec,
 } from "../../../modules/common/BufferValue.ts";
 import { defMessageType } from "../../../modules/common/Message.ts";
 import { NetworkId } from "../../../modules/common/NetworkApi.ts";
@@ -44,8 +44,10 @@ interface INilPayload {
 
 const stack = new ValueBoxStacker();
 const NilPayloadSpec: IBufferProxyObjectSpec<INilPayload> = {
-  nid: stack.box(PrimitiveValue.NetworkId),
-  sid: stack.box(PrimitiveValue.StepId),
+  props: {
+    sid: stack.box(PrimitiveValue.StepId),
+    nid: stack.box(PrimitiveValue.NetworkId),
+  },
 };
 
 defMessageType<INilPayload>(MsgType.nil, NilPayloadSpec);
@@ -59,15 +61,17 @@ interface IPlayerAdd extends INilPayload {
 defMessageType<IPingMsg>(MsgType.ping, PingMsgSpec);
 
 const playerAddStack = stack.fork();
-const PlayerAddSpec: IBufferProxyObjectSpec<IPlayerAdd> = Object.assign(
-  {},
-  NilPayloadSpec,
-  {
-    position: playerAddStack.box(Vec2LargeProxy),
-    spriteMapId: playerAddStack.box(PrimitiveValue.Uint8),
-    isLocal: playerAddStack.box(PrimitiveValue.Bool),
-  },
-);
+const PlayerAddSpec: IBufferProxyObjectSpec<IPlayerAdd> = {
+  props: Object.assign(
+    {},
+    NilPayloadSpec.props,
+    {
+      position: playerAddStack.box(Vec2LargeSpec),
+      spriteMapId: playerAddStack.box(PrimitiveValue.Uint8),
+      isLocal: playerAddStack.box(PrimitiveValue.Bool),
+    },
+  ),
+};
 
 const PlayerAdd = defMessageType<IPlayerAdd>(
   MsgType.playerAdded,
@@ -82,12 +86,13 @@ interface IPlayerSnapshot extends INilPayload {
 }
 
 const playerSnapshotStack = stack.fork();
-const PlayerSnapshotSpec: IBufferProxyObjectSpec<IPlayerSnapshot> = Object
-  .assign({}, NilPayloadSpec, {
-    position: playerSnapshotStack.box(Vec2LargeProxy),
-    velocity: playerSnapshotStack.box(Vec2SmallProxy),
+const PlayerSnapshotSpec: IBufferProxyObjectSpec<IPlayerSnapshot> = {
+  props: Object.assign({}, NilPayloadSpec.props, {
+    position: playerSnapshotStack.box(Vec2LargeSpec),
+    velocity: playerSnapshotStack.box(Vec2SmallSpec),
     pose: playerSnapshotStack.box(PrimitiveValue.Uint8),
-  });
+  }),
+};
 
 const PlayerSnapshot = defMessageType<IPlayerSnapshot>(
   MsgType.playerSnapshot,
@@ -108,13 +113,15 @@ interface IPlayerMove extends INilPayload {
 }
 
 const playerMoveStack = stack.fork();
-const PlayerMoveSpec: IBufferProxyObjectSpec<IPlayerMove> = Object.assign(
-  {},
-  NilPayloadSpec,
-  {
-    acceleration: playerMoveStack.box(Vec2SmallProxy),
-  },
-);
+const PlayerMoveSpec: IBufferProxyObjectSpec<IPlayerMove> = {
+  props: Object.assign(
+    {},
+    NilPayloadSpec.props,
+    {
+      acceleration: playerMoveStack.box(Vec2SmallSpec),
+    },
+  ),
+};
 
 const PlayerMove = defMessageType<IPlayerMove>(
   MsgType.playerMoved,
@@ -127,11 +134,13 @@ interface INegotiatePhysics extends INilPayload {
 }
 
 const negotiateStack = stack.fork();
-const NegotiatePhysicsSpec: IBufferProxyObjectSpec<INegotiatePhysics> = Object
-  .assign({}, NilPayloadSpec, {
-    position: negotiateStack.box(Vec2LargeProxy),
-    velocity: negotiateStack.box(Vec2SmallProxy),
-  });
+const NegotiatePhysicsSpec: IBufferProxyObjectSpec<INegotiatePhysics> = {
+  props: Object
+    .assign({}, NilPayloadSpec.props, {
+      position: negotiateStack.box(Vec2LargeSpec),
+      velocity: negotiateStack.box(Vec2SmallSpec),
+    }),
+};
 
 const NegotiatePhysics = defMessageType<INegotiatePhysics>(
   MsgType.negotiatePhysics,

@@ -3,14 +3,15 @@
  */
 // TODO maybe just use plain old DataView and manage the byte offset and circular behavior at a higher level
 // TODO rename this file
+// TODO this file is too large
 import { DataViewMovable } from "./DataView.ts";
 import { invariant } from "./Error.ts";
-import { filter } from "./Iterable.ts";
 import { OpaqueType } from "./state/mod.ts";
 import { NetworkId } from "./state/Network.ts";
 import { IVec2, Vec2 } from "./Vec2.ts";
 
 export interface IBufferPrimativeValue<Type, BoxType = Type> {
+  isPrimative: true;
   byteLength: number;
   read(buf: DataViewMovable, offset: number): BoxType;
   write(buf: DataViewMovable, offset: number, value: Type): void;
@@ -26,7 +27,9 @@ export interface IBufferPrimativeValue<Type, BoxType = Type> {
 //     buf.setUint8(offset, value ? 1 : 0);
 //   }
 // }
+// TODO why aren't these just plain objects of type IBufferPrimativeValue?
 class BoolValue {
+  static isPrimative = true;
   static byteLength = 1;
   static read(buf: DataViewMovable, offset: number): boolean {
     return buf.getBool(offset);
@@ -37,6 +40,7 @@ class BoolValue {
 }
 
 class Uint8Value {
+  static isPrimative = true;
   static byteLength = 1;
   static read(buf: DataViewMovable, offset: number): number {
     return buf.getUint8(offset);
@@ -47,6 +51,7 @@ class Uint8Value {
 }
 
 class Int8Value {
+  static isPrimative = true;
   static byteLength = 1;
   static read(buf: DataViewMovable, offset: number): number {
     return buf.getInt8(offset);
@@ -57,6 +62,7 @@ class Int8Value {
 }
 
 class Uint16Value {
+  static isPrimative = true;
   static byteLength = 2;
   static read(buf: DataViewMovable, offset: number): number {
     return buf.getUint16(offset);
@@ -67,6 +73,7 @@ class Uint16Value {
 }
 
 class Int16Value {
+  static isPrimative = true;
   static byteLength = 2;
   static read(buf: DataViewMovable, offset: number): number {
     return buf.getInt16(offset);
@@ -76,6 +83,7 @@ class Int16Value {
   }
 }
 class Int32Value {
+  static isPrimative = true;
   static byteLength = 4;
   static read(buf: DataViewMovable, offset: number): number {
     return buf.getInt32(offset);
@@ -85,6 +93,7 @@ class Int32Value {
   }
 }
 class BigUint64Value {
+  static isPrimative = true;
   static byteLength = 2;
   static read(buf: DataViewMovable, offset: number): bigint {
     return buf.getBigUint64(offset);
@@ -94,6 +103,7 @@ class BigUint64Value {
   }
 }
 class Float64Value {
+  static isPrimative = true;
   static byteLength = 8;
   static read(buf: DataViewMovable, offset: number): number {
     return buf.getFloat64(offset);
@@ -103,6 +113,7 @@ class Float64Value {
   }
 }
 class StepIdValue {
+  static isPrimative = true;
   static byteLength = 8;
   static read(buf: DataViewMovable, offset: number): number {
     return buf.getFloat64(offset);
@@ -112,6 +123,7 @@ class StepIdValue {
   }
 }
 class NetworkIdValue {
+  static isPrimative = true;
   static byteLength = 2;
   static read(buf: DataViewMovable, offset: number): NetworkId {
     return buf.getUint16(offset) as NetworkId;
@@ -122,6 +134,7 @@ class NetworkIdValue {
 }
 
 export class Int24Value {
+  static isPrimative = true;
   static byteLength = 3;
   static read(buf: DataViewMovable, offset: number): number {
     const val = buf.getUint8(offset) |
@@ -153,16 +166,17 @@ export const PrimitiveValue = {
   NetworkId: NetworkIdValue as IBufferPrimativeValue<NetworkId>,
 };
 
-export type IBufferValue<
+export type IBufferValueSpec<
   Iface,
   Klass extends Iface = Iface,
 > = Iface extends Record<string, any> // deno-lint-ignore no-explicit-any
   ? Iface extends OpaqueType<string> ? IBufferPrimativeValue<Iface>
-  : IBufferProxyObjectConstructor<Partial<Iface>, Klass>
+  : IBufferProxyObjectSpec<Iface, Klass>
   : IBufferPrimativeValue<Iface>;
 
 interface IBufferProxyObjectConstructorOptions {
   readOnly: boolean;
+  parent: BufferProxyObject<Record<string, unknown>>;
 }
 
 export interface IBufferProxyObjectConstructor<
@@ -186,154 +200,223 @@ export type IBufferProxyObject<
   Klass extends Iface = Iface,
 > = Iface & {
   readonly meta__bytesRemaining: number;
+  readonly meta__byteLength: number;
   readonly meta__spec: IBufferProxyObjectSpec<Iface, Klass>;
+  readonly meta__dataView: DataView;
   // deno-lint-ignore no-explicit-any
   readonly meta__plain: Record<string, any>;
+  meta__dataViewSource: DataViewMovable;
+  meta__byteOffset: number;
 };
-
-// deno-lint-ignore no-explicit-any
-export function getByteLength<
-  Iface extends Record<string, any>,
-  Klass extends Iface = Iface,
->(spec: IBufferProxyObjectSpec<Iface, Klass>) {
-  return Object.values(spec).reduce(
-    (sum, [_, field]) => sum + field.byteLength,
-    0,
-  );
-}
 
 const ERROR_MESSAGE_RESERVED_FIELD_NAME =
   "Field names cannot start with `meta__`";
 
-// deno-lint-ignore no-explicit-any
 export type IBufferProxyObjectSpec<
-  Iface extends Record<string, any>,
-  Klass extends Iface = Iface,
-> = {
-  [K in keyof Iface]: K extends keyof Iface
-    ? readonly [number, IBufferValue<Iface[K], Klass[K]>]
-    : never | "missing key";
-};
-
-export function createBufferProxyObjectConstructor<
   // deno-lint-ignore no-explicit-any
   Iface extends Record<string, any>,
   Klass extends Iface = Iface,
->(
-  spec: IBufferProxyObjectSpec<Iface>,
-  Klass: (new () => Klass) | null = null,
-): IBufferProxyObjectConstructor<Iface, Klass> {
-  const byteLength = getByteLength(spec);
-  class BufferProxyObject {
-    static isObject = true;
-    static byteLength = byteLength;
-    static spec = spec;
-    constructor(
-      buf: DataViewMovable,
-      byteOffset: number,
-      options: Partial<IBufferProxyObjectConstructorOptions> = {},
-    ) {
-      const instance = Klass === null ? this : new Klass();
-      // TODO this doesn't work if the same property is written to more than once
-      let bytesRemainingSelf = byteLength;
-      let dataView: DataView;
-      const propertyDescriptors: PropertyDescriptorMap = {
-        meta__byteOffset: {
-          get: () => byteOffset,
-        },
-        meta__spec: {
-          get: () => {
-            return spec;
-          },
-        },
-        /** @deprecated except for debugging/testing */
-        meta__plain: {
-          get: () => {
-            // deno-lint-ignore no-explicit-any
-            const o: any = {} as any;
-            for (const [fieldName, [_, Value]] of Object.entries(spec)) {
-              if ("isObject" in Value) {
-                o[fieldName as keyof Iface] =
-                  // deno-lint-ignore no-explicit-any
-                  (instance as any)[fieldName].meta__plain;
-              } else {
-                // deno-lint-ignore no-explicit-any
-                o[fieldName as keyof Iface] = (instance as any)[fieldName];
-              }
-            }
-            return o;
-          },
-        },
-        meta__bytesRemaining: {
-          get: () => {
-            let bytesRemaining = bytesRemainingSelf;
-            const proxyEntries = filter(
-              Object.entries(spec),
-              ([_key, [_, coder]]) => "isObject" in coder,
-            );
-            for (const [key, [_, Value]] of proxyEntries) {
-              // deno-lint-ignore no-explicit-any
-              const value = (this as any)[key] as IBufferProxyObject<any>;
-              bytesRemaining -= Value.byteLength - value.meta__bytesRemaining;
-            }
-            return bytesRemaining;
-          },
-        },
-        meta__dataView: {
-          get: () => {
-            if (!dataView) {
-              // TODO why is this off by one?
-              dataView = getDataView(
-                buf.buffer,
-                (byteOffset - 1) % buf.buffer.byteLength,
-              );
-            }
-            return dataView;
-          },
-        },
-      };
-      for (
-        const [fieldName, [relativeByteOffset, Value]] of Object.entries(
-          spec,
-        )
-      ) {
-        invariant(
-          !fieldName.startsWith("meta__"),
-          ERROR_MESSAGE_RESERVED_FIELD_NAME,
-        );
-        const fieldByteOffset = byteOffset + relativeByteOffset;
-        const fieldDescriptor: PropertyDescriptor = {};
-        if ("isObject" in Value) {
-          const proxy = new Value(buf, fieldByteOffset, options);
-          fieldDescriptor.get = () => proxy;
-        } else {
-          fieldDescriptor.get = () => {
-            return Value.read(buf, fieldByteOffset);
-          };
-        }
-        if (!options.readOnly) {
-          if ("isObject" in Value) {
-            const proxy = new Value(buf, fieldByteOffset, options);
-            fieldDescriptor.set = (v: Iface[keyof Iface]) => {
-              for (const key of Object.keys(proxy.meta__spec)) {
-                // deno-lint-ignore no-explicit-any
-                (instance as any)[fieldName][key] = v[key];
-              }
-            };
-          } else {
-            fieldDescriptor.set = (v: Iface[keyof Iface]) => {
-              bytesRemainingSelf -= Value.byteLength;
-              Value.write(buf, fieldByteOffset, v);
-            };
-          }
-        }
-        propertyDescriptors[fieldName] = fieldDescriptor;
+> = {
+  props: {
+    [K in keyof Iface]: K extends keyof Iface
+      // deno-lint-ignore no-explicit-any
+      ? ReturnType<Iface[K]["toJSON"]> extends Record<string, any> ? readonly [
+          number,
+          IBufferValueSpec<ReturnType<Iface[K]["toJSON"]>, Klass[K]>,
+        ]
+      : readonly [number, IBufferValueSpec<Iface[K], Klass[K]>]
+      : never | "missing key";
+  };
+  Klass?: new () => Klass;
+};
+
+export function getByteLength<
+  Iface,
+  Klass extends Iface = Iface,
+>(spec: IBufferValueSpec<Iface, Klass>): number {
+  let maxByteOffset = 0;
+  let lastKey: string;
+  if ("isPrimative" in spec) {
+    return spec.byteLength;
+  } else {
+    for (const key in spec.props) {
+      if (spec.props[key][0] >= maxByteOffset) {
+        maxByteOffset = spec.props[key][0] as number;
+        lastKey = key;
       }
-      Object.defineProperties(instance, propertyDescriptors);
-      return instance as IBufferProxyObject<Iface, Klass>;
+    }
+    const lastField = spec.props[lastKey!][1] as IBufferValueSpec<unknown>;
+    if ("isPrimative" in lastField) {
+      return maxByteOffset + lastField.byteLength;
+    } else {
+      return maxByteOffset + getByteLength(lastField);
     }
   }
-  return BufferProxyObject as IBufferProxyObjectConstructor<Iface, Klass>;
+}
+
+export class BufferProxyObject<
+  // deno-lint-ignore no-explicit-any
+  Iface extends Record<string, any>,
+  Klass extends Iface = Iface,
+> {
+  static readonly isObject = true;
+  readonly meta__bytesRemaining!: number;
+  readonly meta__byteLength!: number;
+  readonly meta__plain!: Iface;
+  readonly meta__dataView!: DataView;
+  meta__byteOffset!: number;
+  meta__dataViewSource!: DataViewMovable;
+  #bytesRemainingSelf: number;
+  constructor(
+    dataViewSource: DataViewMovable,
+    public meta__relByteOffset: number,
+    readonly meta__spec: IBufferProxyObjectSpec<Iface>,
+    readonly meta__options: Partial<IBufferProxyObjectConstructorOptions> = {},
+  ) {
+    const byteLength = getByteLength(
+      meta__spec as IBufferValueSpec<Iface, Klass>,
+    );
+    const instance = "Klass" in meta__spec ? new meta__spec.Klass!() : this;
+    // TODO this doesn't work if the same property is written to more than once
+    this.#bytesRemainingSelf = byteLength;
+
+    const getByteOffset = (o: BufferProxyObject<any, any>): number => {
+      return (
+        o.meta__relByteOffset +
+        (o.meta__options.parent ? getByteOffset(o.meta__options.parent) : 0)
+      );
+    };
+
+    const specPropKeys = Object.keys(meta__spec.props);
+
+    // TODO update bytes remaining when moved
+
+    const propertyDescriptors: PropertyDescriptorMap = {
+      meta__isObject: {
+        value: true,
+        writable: false,
+      },
+      meta__byteLength: {
+        value: byteLength,
+        writable: false,
+      },
+      meta__byteOffset: {
+        get: () => getByteOffset(this),
+        set: (value: number) => {
+          if (!meta__options.parent) {
+            this.meta__relByteOffset = value;
+          } else {
+            throw new Error("Cannot set byteOffset on a child object");
+          }
+        },
+      },
+      meta__spec: {
+        get: () => {
+          return meta__spec;
+        },
+      },
+      /** @deprecated except for debugging/testing */
+      meta__plain: {
+        get: () => {
+          // deno-lint-ignore no-explicit-any
+          const o: any = {} as any;
+          for (const fieldName of specPropKeys) {
+            // deno-lint-ignore no-explicit-any
+            const value = (this as any)[fieldName];
+            if (value?.meta__isObject) {
+              o[fieldName] = value.meta__plain;
+            } else {
+              o[fieldName] = propertyDescriptors[fieldName].get?.();
+            }
+          }
+          return o;
+        },
+      },
+      // TODO convert to a method?
+      meta__bytesRemaining: {
+        get: () => {
+          let bytesRemaining = this.#bytesRemainingSelf;
+          for (const fieldName of specPropKeys) {
+            // deno-lint-ignore no-explicit-any
+            const value = (this as any)[fieldName];
+            if (value?.meta__isObject) {
+              bytesRemaining -= value.meta__byteLength -
+                value.meta__bytesRemaining;
+            }
+          }
+          return bytesRemaining;
+        },
+      },
+      // TODO convert to a method?
+      meta__dataView: {
+        get: () => {
+          return getDataView(
+            dataViewSource.buffer,
+            // TODO why is this off by 1???
+            (getByteOffset(this) - 1) %
+              dataViewSource.byteLength,
+          );
+        },
+      },
+      meta__dataViewSource: {
+        get: () => {
+          return dataViewSource;
+        },
+        set: (value: DataViewMovable) => {
+          dataViewSource = value;
+          for (const key of specPropKeys) {
+            // deno-lint-ignore no-explicit-any
+            const subSpec = (meta__spec.props as any)[key][1];
+            if (!("isPrimative" in subSpec)) {
+              (this as any)[key].meta__dataViewSource = dataViewSource;
+            }
+          }
+        },
+      },
+    };
+    for (
+      const fieldName of specPropKeys
+    ) {
+      // deno-lint-ignore no-explicit-any
+      const [relativeByteOffset, subSpec] =
+        (meta__spec.props as any)[fieldName];
+      invariant(
+        !fieldName.startsWith("meta__"),
+        ERROR_MESSAGE_RESERVED_FIELD_NAME,
+      );
+      const fieldDescriptor: PropertyDescriptor = {};
+      if (!("isPrimative" in subSpec)) {
+        const proxy = new BufferProxyObject(
+          dataViewSource,
+          relativeByteOffset,
+          subSpec,
+          Object.assign({}, meta__options, { parent: this }),
+        );
+        fieldDescriptor.get = () => proxy;
+      } else {
+        fieldDescriptor.get = () => {
+          return subSpec.read(
+            dataViewSource,
+            getByteOffset(this) + relativeByteOffset,
+          );
+        };
+        if (!meta__options.readOnly) {
+          fieldDescriptor.set = (v: Iface[keyof Iface]) => {
+            this.#bytesRemainingSelf -= subSpec.byteLength;
+
+            subSpec.write(
+              dataViewSource,
+              getByteOffset(this) + relativeByteOffset,
+              v,
+            );
+          };
+        }
+      }
+      propertyDescriptors[fieldName] = fieldDescriptor;
+    }
+    Object.defineProperties(instance, propertyDescriptors);
+    return instance as unknown as BufferProxyObject<Iface, Klass>;
+  }
 }
 
 export class ValueBoxStacker {
@@ -341,9 +424,13 @@ export class ValueBoxStacker {
   constructor(byteOffset = 0) {
     this.#byteOffset = byteOffset;
   }
-  box<ValueKlass extends { byteLength: number }>(Value: ValueKlass) {
+  // deno-lint-ignore no-explicit-any
+  box<Iface, Klass extends Iface = Iface>(
+    Value: IBufferValueSpec<Iface, Klass>,
+  ) {
+    const byteLength = getByteLength(Value);
     const byteOffset = this.#byteOffset;
-    this.#byteOffset += Value.byteLength;
+    this.#byteOffset += byteLength;
     return [byteOffset, Value] as const;
   }
   fork() {
@@ -358,21 +445,21 @@ export function asPlainObject<T extends Record<string, any>>(
   return proxy as T;
 }
 
-export const Vec2SmallProxy = createBufferProxyObjectConstructor<IVec2, Vec2>(
-  {
+export const Vec2SmallSpec: IBufferProxyObjectSpec<IVec2, Vec2> = {
+  props: {
     x: [0, PrimitiveValue.Int8],
     y: [1, PrimitiveValue.Int8],
   },
-  Vec2,
-);
+  Klass: Vec2,
+};
 
-export const Vec2LargeProxy = createBufferProxyObjectConstructor<IVec2, Vec2>(
-  {
+export const Vec2LargeSpec: IBufferProxyObjectSpec<IVec2, Vec2> = {
+  props: {
     x: [0, PrimitiveValue.Int32],
     y: [4, PrimitiveValue.Int32],
   },
-  Vec2,
-);
+  Klass: Vec2,
+};
 
 export const MAX_BYTE_LENGTH = 64; // arbitrary, seems like plenty for now
 const tempBuffer = new ArrayBuffer(MAX_BYTE_LENGTH);
@@ -394,11 +481,17 @@ export function getDataView(buffer: ArrayBuffer, byteOffset: number): DataView {
       i < buffer.byteLength && newIndex < byteLength;
       i++, newIndex++
     ) {
-      newView.setUint8(newIndex, originalView.getUint8(i));
+      const value = originalView.getUint8(i);
+      newView.setUint8(newIndex, value);
     }
 
-    for (let i = 0; newIndex < byteLength; i++, newIndex++) {
-      newView.setUint8(newIndex, originalView.getUint8(i));
+    for (
+      let i = 0;
+      i < buffer.byteLength && newIndex < byteLength;
+      i++, newIndex++
+    ) {
+      const value = originalView.getUint8(i);
+      newView.setUint8(newIndex, value);
     }
 
     return newView;
