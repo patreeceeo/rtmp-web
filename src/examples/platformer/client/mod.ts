@@ -215,7 +215,7 @@ const slowPipeline = new Pipeline(
   [
     PurgeSystem(),
     PingSystem({ timeout: 10 * 1000 }),
-    DebugSystem({ windowDuration: 5000 }),
+    DebugSystem({ pingStatTimeFrame: 5000, fpsStatTimeFrame: 500 }),
   ],
   new FixedIntervalDriver(250),
 );
