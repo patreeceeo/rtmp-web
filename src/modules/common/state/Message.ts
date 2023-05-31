@@ -16,6 +16,8 @@ const MAX_LAG = 23;
 // so much care needs to be taken to ensure that the buffer is large enough to prevent that from happening. TODO add a mechanism to prevent that from happening.
 const BUFFER_SIZE_BYTES = (2 ** 20) * (isClient ? 1 : 8);
 
+// TODO: implement an abstraction which contains a buffer for each message type. This will allow for reusing BufferProxyObjects without needing to move them around. Then use separate instances of this abstraction for each client, so that there's a stronger guarantee that each client's state is isolated. Also maybe then it will be possible to ditch this SetRing thing.
+
 /**
  * What is this ugly monster? It's covering multiple seperate but intimately related
  * concerns:
