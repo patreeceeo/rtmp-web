@@ -202,13 +202,15 @@ function drawTweenHelpers() {
 
 function isRenderDataDirty() {
   let isDirty = false;
-  for (const eid of PlayerState.getEntityIds()) {
+  for (const eid of PlayerState.getEntityIds({ includeDeleted: true })) {
     const player = PlayerState.recyclableProxy;
     player.eid = eid;
     if (
       PreviousPositionStore.x[player.eid] !==
         roundTo8thBit(player.position.x) ||
-      PreviousPositionStore.y[player.eid] !== roundTo8thBit(player.position.y)
+      PreviousPositionStore.y[player.eid] !==
+        roundTo8thBit(player.position.y) ||
+      player.isDeleted
     ) {
       isDirty = true;
       break;
