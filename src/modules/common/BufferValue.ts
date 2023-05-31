@@ -289,6 +289,41 @@ export class BufferProxyObject<
 
     const specPropKeys = Object.keys(meta__spec.props);
 
+    function resetBytesRemaining(o: Record<string, number>) {
+      for (const fieldName of specPropKeys) {
+        const fieldSpec =
+          (meta__spec.props as IBufferValueSpec<Iface, Klass>["props"])[
+            fieldName
+          ];
+        if ("isPrimative" in fieldSpec[1]) {
+          o[fieldName] = fieldSpec[1].byteLength;
+        }
+      }
+    }
+
+    function getBytesRemaining(o: Record<string, number>) {
+      let bytesRemaining = byteLength;
+      for (const fieldName of specPropKeys) {
+        const value =
+          (meta__spec.props as IBufferValueSpec<Iface, Klass>["props"])[
+            fieldName
+          ][1];
+        if (
+          "isPrimative" in
+            (meta__spec.props as IBufferValueSpec<Iface, Klass>["props"])[
+              fieldName
+            ][1]
+        ) {
+          bytesRemaining -= (value as IBufferPrimativeValue<Iface>).byteLength -
+            o[fieldName];
+        }
+      }
+      return bytesRemaining;
+    }
+
+    const bytesRemainingByField: Record<string, number> = {};
+    resetBytesRemaining(bytesRemainingByField);
+
     // TODO update bytes remaining when moved
 
     const propertyDescriptors: PropertyDescriptorMap = {
@@ -335,7 +370,7 @@ export class BufferProxyObject<
       // TODO convert to a method?
       meta__bytesRemaining: {
         get: () => {
-          let bytesRemaining = this.#bytesRemainingSelf;
+          let bytesRemaining = getBytesRemaining(bytesRemainingByField);
           for (const fieldName of specPropKeys) {
             // deno-lint-ignore no-explicit-any
             const value = (this as any)[fieldName];
@@ -366,7 +401,10 @@ export class BufferProxyObject<
           dataViewSource = value;
           for (const key of specPropKeys) {
             // deno-lint-ignore no-explicit-any
-            const subSpec = (meta__spec.props as any)[key][1];
+            const subSpec =
+              (meta__spec.props as IBufferValueSpec<Iface, Klass>["props"])[
+                key
+              ][1];
             if (!("isPrimative" in subSpec)) {
               (this as any)[key].meta__dataViewSource = dataViewSource;
             }
@@ -402,13 +440,12 @@ export class BufferProxyObject<
         };
         if (!meta__options.readOnly) {
           fieldDescriptor.set = (v: Iface[keyof Iface]) => {
-            this.#bytesRemainingSelf -= subSpec.byteLength;
-
             subSpec.write(
               dataViewSource,
               getByteOffset(this) + relativeByteOffset,
               v,
             );
+            bytesRemainingByField[fieldName] = 0;
           };
         }
       }

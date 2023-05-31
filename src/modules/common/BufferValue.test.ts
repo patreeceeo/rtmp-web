@@ -77,6 +77,13 @@ Deno.test("BufferProxyObject: metadata", () => {
 
   obj.type = 13;
   asserts.assertEquals(obj.meta__bytesRemaining, 0);
+
+  obj.score = 286;
+  asserts.assertEquals(obj.meta__bytesRemaining, 0);
+
+  // TODO but with classes/objects
+  // obj.meta__byteOffset = 1;
+  // asserts.assertEquals(obj.meta__bytesRemaining, 3);
 });
 
 Deno.test("BufferProxyObject: obj with obj properties", () => {
