@@ -58,9 +58,8 @@ class MessageDef<P extends IPayloadAny> implements IMessageDef<P> {
     this.payload.meta__dataViewSource = view;
     writePayload(this.payload as unknown as P);
     const bytesRemaining = this.payload.meta__bytesRemaining;
-    // TODO should be equal to 0, but there's a bug in BufferProxyObject
     invariant(
-      bytesRemaining <= 0,
+      bytesRemaining == 0,
       `Payload should be completely written. There are ${bytesRemaining} bytes remaining`,
     );
     return this.payload as unknown as P;

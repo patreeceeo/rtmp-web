@@ -53,13 +53,14 @@ Deno.test("BufferProxyObject: 2 objs of same type differing data", () => {
 Deno.test("BufferProxyObject: metadata", () => {
   interface IMyObject {
     score: number;
-    type: number;
+    position: Vec2;
   }
   const buf = new DataViewMovable(new ArrayBuffer(128));
+  const buf2 = new DataViewMovable(new ArrayBuffer(128));
   const spec: IBufferProxyObjectSpec<IMyObject> = {
     props: {
       score: [0, PrimitiveValue.Uint16],
-      type: [2, PrimitiveValue.Uint8],
+      position: [2, Vec2SmallSpec],
     },
   };
   const obj = new BufferProxyObject<IMyObject>(
@@ -68,15 +69,33 @@ Deno.test("BufferProxyObject: metadata", () => {
     spec,
   ) as unknown as IBufferProxyObject<IMyObject>;
 
-  asserts.assertEquals(obj.meta__byteLength, 3);
+  asserts.assertEquals(obj.meta__byteLength, 4);
 
-  asserts.assertEquals(obj.meta__bytesRemaining, 3);
+  asserts.assertEquals(obj.meta__bytesRemaining, 4);
 
   obj.score = 182;
+  asserts.assertEquals(obj.meta__bytesRemaining, 2);
+
+  obj.position.x = 11;
   asserts.assertEquals(obj.meta__bytesRemaining, 1);
 
-  obj.type = 13;
+  obj.position.y = 22;
   asserts.assertEquals(obj.meta__bytesRemaining, 0);
+
+  obj.meta__byteOffset = 1;
+  asserts.assertEquals(obj.meta__bytesRemaining, 4);
+
+  obj.score = 182;
+  asserts.assertEquals(obj.meta__bytesRemaining, 2);
+
+  obj.position.x = 11;
+  asserts.assertEquals(obj.meta__bytesRemaining, 1);
+
+  obj.position.y = 22;
+  asserts.assertEquals(obj.meta__bytesRemaining, 0);
+
+  obj.meta__dataViewSource = buf2;
+  asserts.assertEquals(obj.meta__bytesRemaining, 4);
 });
 
 Deno.test("BufferProxyObject: obj with obj properties", () => {
