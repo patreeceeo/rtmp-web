@@ -261,6 +261,7 @@ export class BufferProxyObject<
 > {
   static readonly isObject = true;
   readonly meta__bytesRemaining!: number;
+  readonly meta__resetBytesRemainingRecursively!: () => void;
   readonly meta__byteLength!: number;
   readonly meta__plain!: Iface;
   readonly meta__dataView!: DataView;
@@ -340,6 +341,9 @@ export class BufferProxyObject<
         set: (value: number) => {
           if (!meta__options.parent) {
             this.meta__relByteOffset = value;
+            if (dataViewSource.byteLength > 0) {
+              this.meta__resetBytesRemainingRecursively();
+            }
           } else {
             throw new Error("Cannot set byteOffset on a child object");
           }
@@ -382,6 +386,18 @@ export class BufferProxyObject<
           return bytesRemaining;
         },
       },
+      meta__resetBytesRemainingRecursively: {
+        value: () => {
+          resetBytesRemaining(bytesRemainingByField);
+          for (const fieldName of specPropKeys) {
+            // deno-lint-ignore no-explicit-any
+            const value = (this as any)[fieldName];
+            if (value?.meta__isObject) {
+              value.meta__resetBytesRemainingRecursively();
+            }
+          }
+        },
+      },
       // TODO convert to a method?
       meta__dataView: {
         get: () => {
@@ -399,6 +415,9 @@ export class BufferProxyObject<
         },
         set: (value: DataViewMovable) => {
           dataViewSource = value;
+          if (dataViewSource.byteLength > 0) {
+            resetBytesRemaining(bytesRemainingByField);
+          }
           for (const key of specPropKeys) {
             // deno-lint-ignore no-explicit-any
             const subSpec =
