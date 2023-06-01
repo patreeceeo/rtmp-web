@@ -1,4 +1,5 @@
 import { serve } from "http";
+import { parse as parseFlags } from "https://deno.land/std/flags/mod.ts";
 import { contentType as getContentType } from "media_types";
 import {
   basename as getBaseName,
@@ -43,6 +44,13 @@ export abstract class ServerApp {
 
 export function startServer(app: ServerApp) {
   ServerNetworkState.start();
+
+  const { args } = Deno;
+  const DEFAULT_PORT = 8000;
+  const argPort = parseFlags(args).port;
+
+  serve(handleHttp, { port: argPort ? Number(argPort) : DEFAULT_PORT });
+
   async function handleHttp(request: Request) {
     const url = new URL(request.url);
     if (url.pathname === "/start_web_socket") {
@@ -125,8 +133,6 @@ export function startServer(app: ServerApp) {
 
     return new NotFoundResponse();
   }
-
-  serve(handleHttp);
 }
 
 function stringifyMaybeDate(date?: Date) {
