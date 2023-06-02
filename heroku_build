@@ -1,5 +1,3 @@
 #!/usr/bin/env bash
 
 ./scripts/build-client.sh
-
-./scripts/build-server.sh
