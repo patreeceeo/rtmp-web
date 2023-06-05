@@ -1,9 +1,9 @@
 import { SystemLoader } from "../../common/systems/mod.ts";
-import { MessageState } from "~/common/state/Message.ts";
+import { MessageState, SID_ORIGIN } from "~/common/state/Message.ts";
 import { ClientNetworkState } from "../state/Network.ts";
 import { sendIfOpen } from "../../common/socket.ts";
 
-let lastHandledStep = -1;
+let lastHandledStep = SID_ORIGIN;
 export const ClientNetworkSystem: SystemLoader = () => {
   function exec() {
     for (

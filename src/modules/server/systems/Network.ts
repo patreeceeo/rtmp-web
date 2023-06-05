@@ -1,10 +1,10 @@
-import { MessageState } from "~/common/state/Message.ts";
+import { MessageState, SID_ORIGIN } from "~/common/state/Message.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { ServerNetworkState } from "../state/Network.ts";
 import { sendIfOpen } from "../../common/socket.ts";
 import { TraitState } from "../../common/state/Trait.ts";
 
-let lastHandledStep = -1;
+let lastHandledStep = SID_ORIGIN;
 export const NetworkSystem: SystemLoader = () => {
   function exec() {
     for (

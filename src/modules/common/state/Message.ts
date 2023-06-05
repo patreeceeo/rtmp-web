@@ -18,6 +18,8 @@ const BUFFER_SIZE_BYTES = (2 ** 20) * (isClient ? 1 : 8);
 
 // TODO: implement an abstraction which contains a buffer for each message type. This will allow for reusing BufferProxyObjects without needing to move them around. Then use separate instances of this abstraction for each client, so that there's a stronger guarantee that each client's state is isolated. Also maybe then it will be possible to ditch this SetRing thing.
 
+export const SID_ORIGIN = Math.floor(performance.timeOrigin) - 1685987340587;
+
 /**
  * What is this ugly monster? It's covering multiple seperate but intimately related
  * concerns:
@@ -47,7 +49,7 @@ export class MessageStateApi {
   #lastHandledStepIdMap: Array<number> = [];
 
   get currentStep() {
-    return Math.floor(performance.now());
+    return Math.floor(performance.now() + SID_ORIGIN);
   }
 
   setLastSentStepId(nid: NetworkId, sid: number) {
@@ -65,7 +67,7 @@ export class MessageStateApi {
     return this.#lastReceivedStepIdMap[nid];
   }
   getLastHandledStepId(nid: NetworkId) {
-    return this.#lastHandledStepIdMap[nid] || 0;
+    return this.#lastHandledStepIdMap[nid] || SID_ORIGIN;
   }
   setLastHandledStepId(nid: NetworkId, sid: number) {
     return this.#lastHandledStepIdMap[nid] = sid;

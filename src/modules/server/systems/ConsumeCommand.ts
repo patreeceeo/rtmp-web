@@ -1,6 +1,6 @@
 import { filter } from "../../common/Iterable.ts";
 import { NetworkId } from "../../common/NetworkApi.ts";
-import { MessageState } from "../../common/state/Message.ts";
+import { MessageState, SID_ORIGIN } from "../../common/state/Message.ts";
 import { NetworkState } from "../../common/state/Network.ts";
 import { TraitState } from "../../common/state/Trait.ts";
 import {
@@ -8,7 +8,7 @@ import {
   SystemLoader,
 } from "../../common/systems/mod.ts";
 
-let lastHandledStep = 0;
+let lastHandledStep = SID_ORIGIN;
 
 const lastHandledClientStep = new Map<NetworkId, number>();
 function getLastHandledClientStep(nid: NetworkId) {
