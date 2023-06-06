@@ -8,5 +8,5 @@ function build_client_modules() {
 
 mkdir -p ./public \
   && cp ./src/index.html ./public \
-  && cp "./src/examples/$active_project/assets" ./public/assets -a \
+  && cp -a "./src/examples/$active_project/assets/*" ./public/assets \
   && build_client_modules

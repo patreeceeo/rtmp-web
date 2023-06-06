@@ -1,6 +1,7 @@
 import { OutputState, PreviousPositionStore } from "~/client/state/Output.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
+import { TilemapLayer } from "~/common/Tilemap.ts";
 import { roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
 import { Vec2ReadOnly } from "../../common/Vec2.ts";
@@ -175,6 +176,26 @@ function drawBackground() {
 
   for (const cloud of LevelState.nearClouds) {
     drawCloud(cloud, ctx, resolution);
+  }
+
+  if (LevelState.map) {
+    for (const layer of LevelState.map?.layers) {
+      drawTileLayer(layer, ctx);
+    }
+  }
+}
+
+function drawTileLayer(layer: TilemapLayer, ctx: CanvasRenderingContext2D) {
+  for (const tile of layer.tiles) {
+    if (tile) {
+      ctx.drawImage(
+        tile.image,
+        tile.screenX,
+        tile.screenY,
+        tile.width,
+        tile.height,
+      );
+    }
   }
 }
 

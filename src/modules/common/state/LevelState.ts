@@ -1,4 +1,5 @@
 import { Box } from "../Box.ts";
+import { Tilemap } from "~/common/Tilemap.ts";
 import { Vec2 } from "../Vec2.ts";
 
 /** A literal cloud, lol */
@@ -12,6 +13,7 @@ class LevelStateApi {
   readonly landscape: Array<Vec2> = [];
   readonly farClouds: Array<ICloud> = [];
   readonly nearClouds: Array<ICloud> = [];
+  map?: Tilemap;
 }
 
 export const LevelState = new LevelStateApi();
