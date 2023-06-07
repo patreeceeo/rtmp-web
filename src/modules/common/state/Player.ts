@@ -1,17 +1,14 @@
 import { Vec2FromStore, Vec2LargeType, Vec2SmallType } from "../Vec2.ts";
 import { defaultWorld, EntityId } from "./mod.ts";
 import * as ECS from "bitecs";
-import { BoxReadOnly } from "../Box.ts";
-import { SUBPIXEL_SCALE } from "../constants.ts";
 import { map } from "../Iterable.ts";
-
-// TODO hitBox should be measured in pixels
-const hitBox = new BoxReadOnly(0, 0, 16 * SUBPIXEL_SCALE, 32 * SUBPIXEL_SCALE);
 
 export class PlayerProxy {
   readonly __eid: EntityId;
-  readonly hitBox = hitBox;
+  /** _Center_ of player's body */
   readonly position: Vec2FromStore<{ x: "i32"; y: "i32" }>;
+  readonly width = 16;
+  readonly height = 32;
   readonly targetPosition: Vec2FromStore<{ x: "i32"; y: "i32" }>;
   readonly velocity: Vec2FromStore<{ x: "i8"; y: "i8" }>;
   readonly acceleration: Vec2FromStore<{ x: "i8"; y: "i8" }>;

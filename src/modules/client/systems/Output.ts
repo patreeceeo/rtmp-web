@@ -210,13 +210,15 @@ function drawTweenHelpers() {
     const player = PlayerState.recyclableProxy;
     player.eid = eid;
     const { x, y } = player.targetPosition;
-    const { h, w } = player.hitBox;
+    const { width: w, height: h } = player;
+    const w2 = w >> 1;
+    const h2 = h >> 1;
     ctx.strokeStyle = "red";
     ctx.strokeRect(
-      roundTo8thBit(x),
-      roundTo8thBit(y),
-      roundTo8thBit(w),
-      roundTo8thBit(h),
+      roundTo8thBit(x) - w2,
+      roundTo8thBit(y) - h2,
+      w,
+      h,
     );
   }
 }
@@ -248,15 +250,18 @@ function erasePlayers() {
   for (const eid of PlayerState.getEntityIds({ includeDeleted: true })) {
     const player = PlayerState.recyclableProxy;
     player.eid = eid;
-    const { width, height } = SpriteState.find(
+    const sprite = SpriteState.find(
       player.spriteMapId,
       player.pose,
     )!;
+    const { width: w, height: h } = player;
+    const w2 = w >> 1;
+    const h2 = h >> 1;
     ctx.clearRect(
-      PreviousPositionStore.x[player.eid] - 2,
-      PreviousPositionStore.y[player.eid] - 2,
-      width + 4,
-      height + 4,
+      PreviousPositionStore.x[player.eid] - 2 - w2,
+      PreviousPositionStore.y[player.eid] - 2 - h2,
+      sprite.width + 4 + w2,
+      sprite.height + 4 + h2,
     );
     PreviousPositionStore.x[player.eid] = roundTo8thBit(player.position.x);
     PreviousPositionStore.y[player.eid] = roundTo8thBit(player.position.y);
@@ -272,10 +277,13 @@ function drawPlayers() {
     const player = PlayerState.recyclableProxy;
     player.eid = eid;
     const sprite = SpriteState.find(player.spriteMapId, player.pose)!;
+    const { width: w, height: h } = player;
+    const w2 = w >> 1;
+    const h2 = h >> 1;
     ctx.drawImage(
       sprite.source,
-      roundTo8thBit(player.position.x),
-      roundTo8thBit(player.position.y),
+      roundTo8thBit(player.position.x) - w2,
+      roundTo8thBit(player.position.y) - h2,
     );
   }
 }

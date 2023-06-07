@@ -1,5 +1,5 @@
 import { Box, IBox } from "../Box.ts";
-import { IVec2Class, IVec2Readonly } from "../Vec2.ts";
+import { IVec2Class, IVec2Readonly, Vec2 } from "../Vec2.ts";
 
 /**
  * @fileoverview
@@ -10,14 +10,14 @@ export interface ISimulateOptions {
   friction: number;
   maxVelocity: number;
   worldDimensions: IBox;
-  hitBox: IBox;
+  hitBox: IVec2Readonly;
 }
 
 export class SimulateOptions implements ISimulateOptions {
   friction = 0;
   maxVelocity = Infinity;
   worldDimensions = Box.INFINITY;
-  hitBox = Box.ZERO;
+  hitBox = new Vec2();
 }
 
 const defaultOptions = new SimulateOptions();
@@ -46,10 +46,10 @@ export function simulatePositionWithVelocity(
   if (options.worldDimensions) {
     const dimensions = options.worldDimensions;
     const hitBox = options.hitBox;
-    const xMin = dimensions.xMin;
-    const xMax = dimensions.xMax - hitBox.w;
-    const yMin = dimensions.yMin;
-    const yMax = dimensions.yMax - hitBox.h;
+    const xMin = dimensions.xMin + hitBox.x / 2;
+    const xMax = dimensions.xMax - hitBox.x / 2;
+    const yMin = dimensions.yMin + hitBox.y / 2;
+    const yMax = dimensions.yMax - hitBox.y / 2;
     if (position.x < xMin) {
       velocity.x = 0;
       position.x = xMin;
