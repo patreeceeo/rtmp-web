@@ -36,7 +36,6 @@ import { initPing, updatePing } from "../../../modules/common/state/Ping.ts";
 import { PingSystem } from "../../../modules/client/systems/Ping.ts";
 import { SCREEN_HEIGHT_PX, SCREEN_WIDTH_PX } from "../mod.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
-import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -48,10 +47,6 @@ if (import.meta.hot) {
     location.reload();
   });
 }
-
-loadTilemap("/public/assets/level.json").then((map) => {
-  LevelState.map = map;
-});
 
 OutputState.foreground.resolution.set(SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
 OutputState.background.resolution.set(SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
@@ -88,7 +83,7 @@ LevelState.nearClouds[0] = {
   size: new Vec2(64, 32),
 };
 
-OutputState.gradients.set("sky", {
+OutputState.scene.gradients.set("sky", {
   x0: 0,
   y0: 0,
   x1: 0,
@@ -99,7 +94,7 @@ OutputState.gradients.set("sky", {
   ],
 });
 
-OutputState.gradients.set("landscape", {
+OutputState.scene.gradients.set("landscape", {
   x0: 0,
   y0: 0,
   x1: 0,
@@ -123,7 +118,7 @@ function createLandscapePath() {
   return landscape;
 }
 
-OutputState.paths.set("landscape", createLandscapePath());
+OutputState.scene.paths.set("landscape", createLandscapePath());
 
 export class DotsClientApp extends ClientApp {
   handleOpen(_server: WebSocket, _event: Event): void {

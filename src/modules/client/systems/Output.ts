@@ -1,12 +1,13 @@
 import { OutputState, PreviousPositionStore } from "~/client/state/Output.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
-import { TilemapLayer } from "~/common/Tilemap.ts";
+import { loadTilemap } from "../../common/loaders/TiledTMJTilemapLoader.ts";
 import { roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
 import { Vec2ReadOnly } from "../../common/Vec2.ts";
 import { DebugState } from "../state/Debug.ts";
 import { loadSprite, SpriteId, SpriteState } from "../state/Sprite.ts";
+import { Layer as TilemapLayer } from "../../common/Tilemap.ts";
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
@@ -33,6 +34,8 @@ export const OutputSystem: SystemLoader = async () => {
     32,
     true,
   );
+
+  await loadTilemap("/public/assets/level.json", OutputState.scene.tiles);
 
   const {
     foreground: { resolution },
@@ -115,7 +118,7 @@ const gradients = new Map<string, CanvasGradient>();
 function getOrCreateLinearGradient(key: string, ctx: CanvasRenderingContext2D) {
   let gradient = gradients.get(key);
   if (!gradient) {
-    const { x0, y0, x1, y1, stops } = OutputState.gradients.get(key)!;
+    const { x0, y0, x1, y1, stops } = OutputState.scene.gradients.get(key)!;
     gradient = ctx.createLinearGradient(x0, y0, x1, y1);
     for (const [offset, color] of stops) {
       gradient.addColorStop(offset, color);
@@ -168,7 +171,7 @@ function drawBackground() {
     drawCloud(cloud, ctx, resolution);
   }
 
-  for (const [pathName, path] of OutputState.paths) {
+  for (const [pathName, path] of OutputState.scene.paths) {
     const gradient = getOrCreateLinearGradient(pathName, ctx);
     ctx.fillStyle = gradient;
     ctx.fill(path);
@@ -178,10 +181,8 @@ function drawBackground() {
     drawCloud(cloud, ctx, resolution);
   }
 
-  if (LevelState.map) {
-    for (const layer of LevelState.map?.layers) {
-      drawTileLayer(layer, ctx);
-    }
+  for (const layer of OutputState.scene.tiles.layers) {
+    drawTileLayer(layer, ctx);
   }
 }
 

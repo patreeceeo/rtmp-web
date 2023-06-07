@@ -1,6 +1,7 @@
 import { deferred } from "async";
 import { Vec2, Vec2LargeType } from "~/common/Vec2.ts";
 import * as ECS from "bitecs";
+import { Tilemap } from "../../common/Tilemap.ts";
 
 interface ICanvasGradientParams {
   x0: number;
@@ -11,6 +12,12 @@ interface ICanvasGradientParams {
 }
 
 export const PreviousPositionStore = ECS.defineComponent(Vec2LargeType);
+
+class SceneData {
+  readonly gradients = new Map<string, ICanvasGradientParams>();
+  readonly paths = new Map<string, Path2D>();
+  readonly tiles = new Tilemap();
+}
 
 // TODO key/button/axis enum
 class OutputStateApi {
@@ -26,8 +33,7 @@ class OutputStateApi {
     element: null as HTMLCanvasElement | null,
     resolution: new Vec2(),
   };
-  readonly gradients = new Map<string, ICanvasGradientParams>();
-  readonly paths = new Map<string, Path2D>();
+  scene = new SceneData();
   frameCount = 0;
 }
 
