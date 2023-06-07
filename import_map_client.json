@@ -2,8 +2,10 @@
 {
   "imports": {
     "async": "/public/vendor/async/mod.js",
+    "path": "/public/vendor/path/mod.js",
     "hot_mod/": "/public/vendor/hot_mod/",
     "bitecs": "/public/vendor/bitecs-deno/index.mjs",
+    "encoding/": "/public/vendor/encoding/",
     "~/": "/public/modules/"
   }
 }

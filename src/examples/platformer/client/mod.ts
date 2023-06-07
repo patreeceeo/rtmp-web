@@ -36,6 +36,7 @@ import { initPing, updatePing } from "../../../modules/common/state/Ping.ts";
 import { PingSystem } from "../../../modules/client/systems/Ping.ts";
 import { SCREEN_HEIGHT_PX, SCREEN_WIDTH_PX } from "../mod.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
+import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -48,25 +49,29 @@ if (import.meta.hot) {
   });
 }
 
+loadTilemap("/public/assets/level.json").then((map) => {
+  LevelState.map = map;
+});
+
 OutputState.foreground.resolution.set(SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
 OutputState.background.resolution.set(SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
 
 const landscapePoints = [
-  [0, 100],
-  [40, 40],
-  [100, 156],
-  [110, 160],
-  [150, 68],
-  [176, 56],
-  [220, 88],
-  [264, 132],
-  [288, 188],
-  [310, 154],
-  [360, 120],
-  [384, 94],
-  [424, 126],
-  [466, 104],
-  [512, 66],
+  [0, 200],
+  [40, 140],
+  [100, 256],
+  [110, 260],
+  [150, 168],
+  [176, 156],
+  [220, 188],
+  [264, 232],
+  [288, 288],
+  [310, 254],
+  [360, 220],
+  [384, 194],
+  [424, 226],
+  [466, 204],
+  [512, 166],
 ];
 
 for (const point of landscapePoints) {
@@ -74,12 +79,12 @@ for (const point of landscapePoints) {
 }
 
 LevelState.farClouds[0] = {
-  position: new Vec2(360, 152),
+  position: new Vec2(360, 252),
   size: new Vec2(96, 48),
 };
 
 LevelState.nearClouds[0] = {
-  position: new Vec2(24, 120),
+  position: new Vec2(24, 220),
   size: new Vec2(64, 32),
 };
 
