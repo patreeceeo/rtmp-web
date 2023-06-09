@@ -66,27 +66,6 @@ export class PlayerProxy {
   }
 }
 
-class PlayerProxyRecyclable extends PlayerProxy {
-  override __eid: EntityId;
-  constructor() {
-    super(0 as EntityId);
-    this.__eid = 0 as EntityId;
-  }
-
-  get eid() {
-    return this.__eid;
-  }
-
-  set eid(eid: EntityId) {
-    this.__eid = eid;
-    this.position.eid = eid;
-    this.velocity.eid = eid;
-    this.targetPosition.eid = eid;
-    this.acceleration.eid = eid;
-    this.lastActiveTime = this.lastActiveTime || performance.now();
-  }
-}
-
 const PlayerTagStore = ECS.defineComponent();
 const PositionStore = ECS.defineComponent(Vec2LargeType);
 const TargetPositionStore = ECS.defineComponent(Vec2LargeType);
@@ -109,7 +88,7 @@ export enum MetaFlags {
 
 class PlayerStateApi implements IEntityPrefabCollection {
   world = defaultWorld;
-  proxyPool = new ProxyPool(() => new PlayerProxyRecyclable());
+  proxyPool = new ProxyPool((eid) => new PlayerProxy(eid));
 
   readonly components = [
     PlayerTagStore,
@@ -150,9 +129,7 @@ class PlayerStateApi implements IEntityPrefabCollection {
       this.has(eid) &&
       (options.includeDeleted || !this.isDeleted(eid))
     ) {
-      const proxy = this.proxyPool.acquire(eid);
-      proxy.eid = eid;
-      return proxy;
+      return this.proxyPool.acquire(eid);
     } else {
       throw new Error(`Entity ${eid} does not exist`);
     }

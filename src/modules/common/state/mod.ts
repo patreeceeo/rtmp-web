@@ -40,16 +40,16 @@ export interface IEntityProxy {
 
 export class ProxyPool<T> {
   #items: T[] = [];
-  #factory: () => T;
+  #factory: (eid: EntityId) => T;
   #size: number;
   // deno-lint-ignore no-explicit-any
   static registry = new Set<ProxyPool<any>>();
 
-  constructor(factory: () => T, initialSize = 100) {
+  constructor(factory: (eid: EntityId) => T, initialSize = 1) {
     this.#factory = factory;
     this.#size = initialSize;
-    for (let i = 0; i < this.#size; i++) {
-      this.#items.push(factory());
+    for (let eid = 0; eid < this.#size; eid++) {
+      this.#items.push(factory(eid as EntityId));
     }
     ProxyPool.registry.add(this);
   }
@@ -58,7 +58,7 @@ export class ProxyPool<T> {
   }
   acquire(eid: EntityId): T {
     if (!(eid in this.#items)) {
-      this.#items[eid] = this.#factory();
+      this.#items[eid] = this.#factory(eid);
       this.#size++;
     }
     return this.#items[eid];
