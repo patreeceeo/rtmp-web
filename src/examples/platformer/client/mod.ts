@@ -36,6 +36,7 @@ import { initPing, updatePing } from "../../../modules/common/state/Ping.ts";
 import { PingSystem } from "../../../modules/client/systems/Ping.ts";
 import { SCREEN_HEIGHT_PX, SCREEN_WIDTH_PX } from "../mod.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
+import { softDeleteEntity } from "../../../modules/common/state/mod.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -167,7 +168,8 @@ function handlePlayerAdded(
   { isLocal, nid, position, spriteMapId }: IPlayerAdd,
 ) {
   // TODO player system
-  const player = PlayerState.createPlayer();
+  const eid = PlayerState.add();
+  const player = PlayerState.acquireProxy(eid);
   console.log("player nid:", nid);
   player.position.copy(position);
   player.targetPosition.copy(position);
@@ -179,7 +181,7 @@ function handlePlayerAdded(
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
   // TODO player system
   const eid = ClientNetworkState.getEntityId(playerRemove.nid)!;
-  PlayerState.deletePlayer(eid);
+  softDeleteEntity(eid);
   ClientNetworkState.deleteId(playerRemove.nid);
   TraitState.deleteEntity(eid);
 }

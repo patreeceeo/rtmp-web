@@ -32,13 +32,15 @@ import {
 } from "../../../modules/common/Message.ts";
 import { initPing, sendPing } from "../../../modules/common/state/Ping.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
+import { softDeleteEntity } from "../../../modules/common/state/mod.ts";
 
 const idleTimeout = 300;
 
 class DotsServerApp implements ServerApp {
   idleTimeout = idleTimeout;
   handleOpen(ws: WebSocket, _: Event) {
-    const addedPlayer = PlayerState.createPlayer();
+    const addedPlayerEid = PlayerState.add();
+    const addedPlayer = PlayerState.acquireProxy(addedPlayerEid);
     const playerNid = ServerNetworkState.createId();
     const client = ServerNetworkState.getClientForSocket(ws)!;
     client.addNetworkId(playerNid);
@@ -82,15 +84,14 @@ class DotsServerApp implements ServerApp {
     );
 
     // Catch up new client on current state of the world
-    for (const eid of PlayerState.getEntityIds()) {
-      const player = PlayerState.recyclableProxy;
-      player.eid = eid;
-      if (player.eid !== addedPlayer.eid) {
+    for (const eid of PlayerState.query()) {
+      if (eid !== addedPlayer.eid) {
+        const player = PlayerState.acquireProxy(eid);
         sendMessageToClient(ws, PlayerAdd, (p) => {
           p.position.copy(player.position);
           p.spriteMapId = player.spriteMapId;
           p.isLocal = false;
-          p.nid = ServerNetworkState.getId(player.eid)!;
+          p.nid = ServerNetworkState.getId(eid)!;
           p.sid = MessageState.currentStep;
         });
       }
@@ -105,7 +106,7 @@ class DotsServerApp implements ServerApp {
     ServerNetworkState.removeClient(client.nid);
     for (const nid of client.getNetworkIds()) {
       const eid = ServerNetworkState.getEntityId(nid);
-      PlayerState.deletePlayer(eid!);
+      softDeleteEntity(eid!);
       broadcastMessage(PlayerRemove, (p) => {
         p.nid = nid;
         p.sid = MessageState.currentStep;

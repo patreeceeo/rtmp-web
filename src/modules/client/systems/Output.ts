@@ -206,10 +206,9 @@ function drawTweenHelpers() {
   } = OutputState;
   const ctx = context2d!;
 
-  const eids = PlayerState.getEntityIds();
+  const eids = PlayerState.query();
   for (const eid of eids) {
-    const player = PlayerState.recyclableProxy;
-    player.eid = eid;
+    const player = PlayerState.acquireProxy(eid);
     const { x, y } = player.targetPosition;
     const { width: w, height: h } = player;
     const w2 = w >> 1;
@@ -226,9 +225,8 @@ function drawTweenHelpers() {
 
 function isRenderDataDirty() {
   let isDirty = false;
-  for (const eid of PlayerState.getEntityIds({ includeDeleted: true })) {
-    const player = PlayerState.recyclableProxy;
-    player.eid = eid;
+  for (const eid of PlayerState.query({ includeDeleted: true })) {
+    const player = PlayerState.acquireProxy(eid);
     if (
       PreviousPositionStore.x[player.eid] !==
         roundTo8thBit(player.position.x) ||
@@ -248,9 +246,8 @@ function erasePlayers() {
     foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
-  for (const eid of PlayerState.getEntityIds({ includeDeleted: true })) {
-    const player = PlayerState.recyclableProxy;
-    player.eid = eid;
+  for (const eid of PlayerState.query({ includeDeleted: true })) {
+    const player = PlayerState.acquireProxy(eid);
     const sprite = SpriteState.find(
       player.spriteMapId,
       player.pose,
@@ -274,9 +271,8 @@ function drawPlayers() {
     foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
-  for (const eid of PlayerState.getEntityIds()) {
-    const player = PlayerState.recyclableProxy;
-    player.eid = eid;
+  for (const eid of PlayerState.query()) {
+    const player = PlayerState.acquireProxy(eid);
     const sprite = SpriteState.find(player.spriteMapId, player.pose)!;
     const { width: w, height: h } = player;
     const w2 = w >> 1;

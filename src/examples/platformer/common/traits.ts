@@ -36,7 +36,7 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
 
   constructor(readonly entityId: EntityId) {
     this.#nid = NetworkState.getId(this.entityId)!;
-    this.#player = PlayerState.getPlayer(this.entityId)!;
+    this.#player = PlayerState.acquireProxy(this.entityId)!;
   }
   getType() {
     return this.constructor as typeof WasdMoveTrait;
@@ -137,7 +137,7 @@ export class NegotiatePhysicsTrait
 
   constructor(readonly entityId: EntityId) {
     this.#nid = NetworkState.getId(this.entityId)!;
-    this.#player = PlayerState.getPlayer(this.entityId)!;
+    this.#player = PlayerState.acquireProxy(this.entityId)!;
   }
   getType() {
     return this.constructor as typeof NegotiatePhysicsTrait;

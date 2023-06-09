@@ -1,7 +1,13 @@
 import { Vec2FromStore, Vec2LargeType, Vec2SmallType } from "../Vec2.ts";
-import { defaultWorld, EntityId } from "./mod.ts";
+import {
+  defaultEntityQueryOptions,
+  defaultWorld,
+  EntityId,
+  IEntityPrefabCollection,
+  IsDeletedStore,
+  ProxyPool,
+} from "./mod.ts";
 import * as ECS from "bitecs";
-import { map } from "../Iterable.ts";
 
 export class PlayerProxy {
   readonly __eid: EntityId;
@@ -39,14 +45,6 @@ export class PlayerProxy {
     return LastActiveStore.time[this.eid];
   }
 
-  get targetEntity(): EntityId {
-    return EntityStore.eid[this.eid] as EntityId;
-  }
-
-  set targetEntity(eid: EntityId) {
-    EntityStore.eid[this.eid] = eid;
-  }
-
   get spriteMapId() {
     return SpriteMapIdStore.value[this.eid];
   }
@@ -64,15 +62,15 @@ export class PlayerProxy {
   }
 
   get isDeleted() {
-    return MetaFlagsStore.value[this.eid] & MetaFlags.Deleted;
+    return ECS.hasComponent(defaultWorld, IsDeletedStore, this.eid);
   }
 }
 
 class PlayerProxyRecyclable extends PlayerProxy {
   override __eid: EntityId;
-  constructor(eid: EntityId) {
-    super(eid);
-    this.__eid = eid;
+  constructor() {
+    super(0 as EntityId);
+    this.__eid = 0 as EntityId;
   }
 
   get eid() {
@@ -94,12 +92,10 @@ const PositionStore = ECS.defineComponent(Vec2LargeType);
 const TargetPositionStore = ECS.defineComponent(Vec2LargeType);
 const VelocityStore = ECS.defineComponent(Vec2SmallType);
 const AccelerationStore = ECS.defineComponent(Vec2SmallType);
-const EntityStore = ECS.defineComponent({ eid: ECS.Types.ui32 });
 // TODO remove
 const LastActiveStore = ECS.defineComponent({ time: ECS.Types.ui32 });
 const SpriteMapIdStore = ECS.defineComponent({ value: ECS.Types.ui8 });
 const PoseStore = ECS.defineComponent({ value: ECS.Types.ui8 });
-const MetaFlagsStore = ECS.defineComponent({ value: ECS.Types.ui8 });
 
 export enum PoseType {
   facingRight,
@@ -111,82 +107,61 @@ export enum MetaFlags {
   Deleted = 1 << 0,
 }
 
-export interface IGetPlayerOptions {
-  includeDeleted?: boolean;
-}
-
-const defaultGetPlayerOptions: IGetPlayerOptions = {};
-
-class PlayerStateApi {
-  #players = ECS.defineQuery([PlayerTagStore]);
-  #recyclableProxy = new PlayerProxyRecyclable(0 as EntityId);
+class PlayerStateApi implements IEntityPrefabCollection {
   world = defaultWorld;
+  proxyPool = new ProxyPool(() => new PlayerProxyRecyclable());
 
-  createPlayer(): PlayerProxy {
-    const eid = ECS.addEntity(this.world) as EntityId;
+  readonly components = [
+    PlayerTagStore,
+    PositionStore,
+    TargetPositionStore,
+    VelocityStore,
+    AccelerationStore,
+    LastActiveStore,
+    SpriteMapIdStore,
+    PoseStore,
+  ];
+
+  #playersIncludingDeleted = ECS.defineQuery(this.components);
+  #players = ECS.defineQuery([...this.components, ECS.Not(IsDeletedStore)]);
+
+  add(eid = ECS.addEntity(this.world) as EntityId): EntityId {
+    for (const component of this.components) {
+      ECS.addComponent(this.world, component, eid);
+    }
     console.log(`Created player ${eid}`);
-    const player = new PlayerProxy(eid);
-    ECS.addComponent(this.world, PlayerTagStore, eid);
-    ECS.addComponent(this.world, PositionStore, eid);
-    ECS.addComponent(this.world, TargetPositionStore, eid);
-    ECS.addComponent(this.world, VelocityStore, eid);
-    ECS.addComponent(this.world, AccelerationStore, eid);
-    ECS.addComponent(this.world, LastActiveStore, eid);
-    ECS.addComponent(this.world, SpriteMapIdStore, eid);
-    ECS.addComponent(this.world, PoseStore, eid);
-    ECS.addComponent(this.world, MetaFlagsStore, eid);
-    return player;
+    return eid;
   }
 
-  get recyclableProxy() {
-    return this.#recyclableProxy;
-  }
-
-  hasPlayer(eid: EntityId) {
-    return ECS.entityExists(this.world, eid);
-  }
-
-  deletePlayer(eid: EntityId): void {
-    console.log(`Deleted player ${eid}`);
-    MetaFlagsStore.value[eid] |= MetaFlags.Deleted;
+  has(eid: EntityId) {
+    return ECS.entityExists(this.world, eid) &&
+      this.#players(this.world).includes(eid);
   }
 
   isDeleted(eid: EntityId): boolean {
-    return (MetaFlagsStore.value[eid] & MetaFlags.Deleted) !== 0;
+    return ECS.hasComponent(this.world, IsDeletedStore, eid);
   }
 
-  getPlayer(eid: EntityId, options = defaultGetPlayerOptions): PlayerProxy {
+  acquireProxy(
+    eid: EntityId,
+    options = defaultEntityQueryOptions,
+  ): PlayerProxy {
     if (
-      ECS.entityExists(this.world, eid) &&
-      (options.includeDeleted ||
-        (MetaFlagsStore.value[eid] & MetaFlags.Deleted) === 0)
+      this.has(eid) &&
+      (options.includeDeleted || !this.isDeleted(eid))
     ) {
-      return new PlayerProxy(eid);
+      const proxy = this.proxyPool.acquire(eid);
+      proxy.eid = eid;
+      return proxy;
     } else {
       throw new Error(`Entity ${eid} does not exist`);
     }
   }
 
-  *getEntityIds(
-    options: IGetPlayerOptions = defaultGetPlayerOptions,
-  ): Generator<EntityId> {
-    for (const eid of this.#players(this.world)) {
-      if (
-        options.includeDeleted ||
-        (MetaFlagsStore.value[eid] & MetaFlags.Deleted) === 0
-      ) {
-        yield eid as EntityId;
-      }
-    }
-  }
-
-  getPlayers(
-    options: IGetPlayerOptions = defaultGetPlayerOptions,
-  ): Generator<PlayerProxy> {
-    return map(
-      this.getEntityIds(options),
-      (eid) => this.getPlayer(eid, options),
-    );
+  query(options = defaultEntityQueryOptions): Iterable<EntityId> {
+    return (options.includeDeleted
+      ? this.#playersIncludingDeleted(this.world)
+      : this.#players(this.world)) as Iterable<EntityId>;
   }
 }
 

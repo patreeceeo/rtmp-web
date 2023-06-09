@@ -71,8 +71,8 @@ function exec(context: ISystemExecutionContext) {
         for (const [type, write] of snapshots) {
           const eid = NetworkState.getEntityId(nid)!;
           const trait = TraitState.getTrait(Trait, eid);
-          if (trait && PlayerState.hasPlayer(eid)) {
-            const player = PlayerState.getPlayer(eid);
+          if (trait && PlayerState.has(eid)) {
+            const player = PlayerState.acquireProxy(eid);
             const playerIsAtTarget = player.targetPosition.almostEquals(
               player.position,
             );
