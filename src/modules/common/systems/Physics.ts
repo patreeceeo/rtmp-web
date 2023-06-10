@@ -7,6 +7,16 @@ import {
 import { getPhysicsOptions } from "../functions/physicsHelpers.ts";
 import { isClient } from "../env.ts";
 import { Vec2 } from "../Vec2.ts";
+import { IEntityMinimal } from "../state/mod.ts";
+
+export interface IPhysicsEntity extends IEntityMinimal {
+  position: Vec2;
+  targetPosition: Vec2;
+  velocity: Vec2;
+  acceleration: Vec2;
+  maxVelocity: number;
+  pose: PoseType;
+}
 
 const tempPositionDelta = new Vec2();
 

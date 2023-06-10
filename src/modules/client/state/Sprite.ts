@@ -1,13 +1,13 @@
 import { PoseType } from "../../common/state/Player.ts";
 
-export enum SpriteId {
+export enum SpriteEnum {
   penguinRight,
   penguinLeft,
   penguin2Right,
   penguin2Left,
 }
 
-export enum SpriteMapId {
+export enum SpriteCollectionEnum {
   penguin,
   penguin2,
 }
@@ -26,20 +26,20 @@ export class Sprite {
 }
 
 class SpriteStateApi {
-  #sprites: Partial<Record<SpriteId, Sprite>> = {};
+  #sprites: Partial<Record<SpriteEnum, Sprite>> = {};
   #sources: Record<string, HTMLImageElement> = {};
   getSource(imageUrl: string) {
     const source = this.#sources[imageUrl] ||= document.createElement("img");
     source.src = imageUrl;
     return source;
   }
-  set(id: SpriteId, sprite: Sprite) {
+  set(id: SpriteEnum, sprite: Sprite) {
     this.#sprites[id] = sprite;
   }
-  get(id: SpriteId) {
+  get(id: SpriteEnum) {
     return this.#sprites[id];
   }
-  find(mapId: SpriteMapId, pose: PoseType) {
+  find(mapId: SpriteCollectionEnum, pose: PoseType) {
     const id = mapId * 2 + pose;
     return this.get(id);
   }

@@ -32,10 +32,11 @@ export const defaultEntityQueryOptions: IEntityQueryOptions =
 export const IsDeletedStore = ECS.defineComponent();
 
 export interface IEntityProxyConstructor {
-  new (eid: EntityId): IEntityProxy;
+  new (eid: EntityId): IEntityMinimal;
 }
-export interface IEntityProxy {
+export interface IEntityMinimal {
   readonly eid: EntityId;
+  readonly isDeleted: boolean;
 }
 
 export class ProxyPool<T> {

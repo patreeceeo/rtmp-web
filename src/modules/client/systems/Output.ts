@@ -6,16 +6,34 @@ import { roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
 import { Vec2ReadOnly } from "../../common/Vec2.ts";
 import { DebugState } from "../state/Debug.ts";
-import { loadSprite, SpriteId, SpriteState } from "../state/Sprite.ts";
+import {
+  loadSprite,
+  Sprite,
+  SpriteEnum,
+  SpriteState,
+} from "../state/Sprite.ts";
 import { Layer as TilemapLayer } from "../../common/Tilemap.ts";
+import { IEntityMinimal } from "../../common/state/mod.ts";
+
+export interface IOutputEntity extends IEntityMinimal {
+  position: Vec2ReadOnly;
+  targetPosition: Vec2ReadOnly;
+  physicalSize: Vec2ReadOnly;
+  sprite: Sprite;
+}
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
 
-  await loadSprite("/public/assets/penguin.png", SpriteId.penguinRight, 16, 32);
   await loadSprite(
     "/public/assets/penguin.png",
-    SpriteId.penguinLeft,
+    SpriteEnum.penguinRight,
+    16,
+    32,
+  );
+  await loadSprite(
+    "/public/assets/penguin.png",
+    SpriteEnum.penguinLeft,
     16,
     32,
     true,
@@ -23,13 +41,13 @@ export const OutputSystem: SystemLoader = async () => {
 
   await loadSprite(
     "/public/assets/penguin2.png",
-    SpriteId.penguin2Right,
+    SpriteEnum.penguin2Right,
     18,
     32,
   );
   await loadSprite(
     "/public/assets/penguin2.png",
-    SpriteId.penguin2Left,
+    SpriteEnum.penguin2Left,
     18,
     32,
     true,

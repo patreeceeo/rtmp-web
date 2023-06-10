@@ -81,11 +81,6 @@ export enum PoseType {
   facingLeft,
 }
 
-export enum MetaFlags {
-  None = 0,
-  Deleted = 1 << 0,
-}
-
 class PlayerStateApi implements IEntityPrefabCollection {
   world = defaultWorld;
   proxyPool = new ProxyPool((eid) => new PlayerProxy(eid));

@@ -501,6 +501,7 @@ export function asPlainObject<T extends Record<string, any>>(
   return proxy as T;
 }
 
+// TODO unifiy with ECS typedefs (Vec2SmallType, Vec2LargeType)
 export const Vec2SmallSpec: IBufferProxyObjectSpec<IVec2, Vec2> = {
   props: {
     x: [0, PrimitiveValue.Int8],
