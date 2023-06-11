@@ -1,16 +1,16 @@
 import { Box } from "../Box.ts";
 import { Tilemap } from "~/common/Tilemap.ts";
-import { Vec2 } from "../Vec2.ts";
+import { Instance } from "../Vec2.ts";
 
 /** A literal cloud, lol */
 export interface ICloud {
-  position: Vec2;
-  size: Vec2;
+  position: Instance;
+  size: Instance;
 }
 
 class LevelStateApi {
   readonly dimensions = new Box();
-  readonly landscape: Array<Vec2> = [];
+  readonly landscape: Array<Instance> = [];
   readonly farClouds: Array<ICloud> = [];
   readonly nearClouds: Array<ICloud> = [];
   map?: Tilemap;

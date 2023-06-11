@@ -1,4 +1,4 @@
-import { Vec2FromStore, Vec2LargeType, Vec2SmallType } from "../Vec2.ts";
+import { ECSInstance, Vec2LargeType, Vec2SmallType } from "../Vec2.ts";
 import {
   defaultEntityQueryOptions,
   defaultWorld,
@@ -12,12 +12,12 @@ import * as ECS from "bitecs";
 export class PlayerProxy {
   readonly __eid: EntityId;
   /** _Center_ of player's body */
-  readonly position: Vec2FromStore<{ x: "i32"; y: "i32" }>;
+  readonly position: ECSInstance<{ x: "i32"; y: "i32" }>;
   readonly width = 16;
   readonly height = 32;
-  readonly targetPosition: Vec2FromStore<{ x: "i32"; y: "i32" }>;
-  readonly velocity: Vec2FromStore<{ x: "i8"; y: "i8" }>;
-  readonly acceleration: Vec2FromStore<{ x: "i8"; y: "i8" }>;
+  readonly targetPosition: ECSInstance<{ x: "i32"; y: "i32" }>;
+  readonly velocity: ECSInstance<{ x: "i8"; y: "i8" }>;
+  readonly acceleration: ECSInstance<{ x: "i8"; y: "i8" }>;
   /** in 256ths of a pixel per millisecond */
   readonly maxVelocity = 33;
   readonly maxVelocitySq = this.maxVelocity ** 2;
@@ -27,10 +27,10 @@ export class PlayerProxy {
     this.__eid = eid;
     // Don't overwrite value from ECS
     this.lastActiveTime = this.lastActiveTime || performance.now();
-    this.position = new Vec2FromStore(PositionStore, eid);
-    this.velocity = new Vec2FromStore(VelocityStore, eid);
-    this.targetPosition = new Vec2FromStore(TargetPositionStore, eid);
-    this.acceleration = new Vec2FromStore(AccelerationStore, eid);
+    this.position = new ECSInstance(PositionStore, eid);
+    this.velocity = new ECSInstance(VelocityStore, eid);
+    this.targetPosition = new ECSInstance(TargetPositionStore, eid);
+    this.acceleration = new ECSInstance(AccelerationStore, eid);
   }
 
   get eid() {

@@ -1,3 +1,14 @@
+import {
+  add,
+  almostEquals,
+  clamp,
+  copy,
+  getLengthSquared,
+  Instance,
+  isZero,
+  set,
+  sub,
+} from "~/common/Vec2.ts";
 import { Button } from "../../../modules/common/Button.ts";
 import { Just, Nothing } from "../../../modules/common/Maybe.ts";
 import { NetworkId } from "../../../modules/common/NetworkApi.ts";
@@ -8,7 +19,6 @@ import {
   PlayerState,
 } from "../../../modules/common/state/Player.ts";
 import { EntityId } from "../../../modules/common/state/mod.ts";
-import { Vec2 } from "~/common/Vec2.ts";
 import { MaybeAddMessageParameters, Trait } from "~/common/state/Trait.ts";
 import {
   INegotiatePhysics,
@@ -25,7 +35,7 @@ import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 
 const maxAcceleration = 2;
 
-const reAcceleration = new Vec2();
+const reAcceleration = new Instance();
 export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
   static readonly commandType = PlayerMove.type;
   static readonly snapshotType = PlayerSnapshot.type;
@@ -58,8 +68,8 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
         ddx = maxAcceleration;
       }
       if (ddx !== this.#lastDdx || ddy !== this.#lastDdy) {
-        reAcceleration.set(ddx, ddy);
-        reAcceleration.clamp(maxAcceleration);
+        set(reAcceleration, ddx, ddy);
+        clamp(reAcceleration, maxAcceleration);
         this.#lastDdx = ddx;
         this.#lastDdy = ddy;
         return this.#justCommand;
@@ -68,7 +78,7 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
     return Nothing();
   }
   #writeCommand = (p: IPlayerMove) => {
-    p.acceleration.copy(reAcceleration);
+    copy(p.acceleration, reAcceleration);
     p.nid = this.#nid;
     p.sid = MessageState.currentStep;
   };
@@ -81,8 +91,8 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
       PlayerSnapshot,
       (p: IPlayerSnapshot) => {
         const player = this.#player;
-        p.position.copy(player.targetPosition);
-        p.velocity.copy(player.velocity);
+        copy(p.position, player.targetPosition);
+        copy(p.velocity, player.velocity);
         p.pose = player.pose;
         p.nid = nid;
         p.sid = sid;
@@ -93,20 +103,20 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
     { acceleration }: IPlayerMove,
   ) {
     const player = this.#player;
-    player.acceleration.copy(acceleration);
+    copy(player.acceleration, acceleration);
   }
 
   shouldSendSnapshot(snapshot: IPlayerSnapshot, nidReceiver: NetworkId) {
     const client = ServerNetworkState.getClient(nidReceiver)!;
     return client.hasNetworkId(snapshot.nid)
-      ? this.#player.acceleration.isZero
+      ? isZero(this.#player.acceleration)
       : true;
   }
   shouldApplySnapshot(
     { nid, velocity }: IPlayerSnapshot,
   ) {
-    return velocity.lengthSquared < this.#player.maxVelocitySq &&
-        this.#player.acceleration.isZero || !NetworkState.isLocal(nid);
+    return getLengthSquared(velocity) < this.#player.maxVelocitySq &&
+        isZero(this.#player.acceleration) || !NetworkState.isLocal(nid);
   }
   applySnapshot(
     { pose, position, velocity, nid }: IPlayerSnapshot,
@@ -114,17 +124,17 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
   ) {
     const player = this.#player;
     player.lastActiveTime = context.elapsedTime;
-    player.targetPosition.copy(position);
+    copy(player.targetPosition, position);
 
     if (!NetworkState.isLocal(nid)) {
-      player.velocity.copy(velocity);
+      copy(player.velocity, velocity);
     }
     player.pose = pose;
   }
 }
 
-const tempPositionDelta = new Vec2();
-const tempVelocityDelta = new Vec2();
+const tempPositionDelta = new Instance();
+const tempVelocityDelta = new Instance();
 const MAX_POSITION_DELTA = 2000;
 const MAX_VELOCITY_DELTA = 1500;
 export class NegotiatePhysicsTrait
@@ -143,12 +153,12 @@ export class NegotiatePhysicsTrait
     return this.constructor as typeof NegotiatePhysicsTrait;
   }
   getCommandMaybe(context: ISystemExecutionContext) {
-    const speedSquared = this.#player.velocity.lengthSquared;
+    const speedSquared = getLengthSquared(this.#player.velocity);
     const interval = speedSquared / 80;
     if (
       NetworkState.isLocal(this.#nid) &&
       context.elapsedTime - this.#lastSendTime > interval &&
-      !this.#player.targetPosition.almostEquals(this.#player.position) &&
+      !almostEquals(this.#player.targetPosition, this.#player.position) &&
       speedSquared > 0
     ) {
       this.#lastSendTime = context.elapsedTime;
@@ -157,8 +167,8 @@ export class NegotiatePhysicsTrait
     return Nothing();
   }
   #writeCommand = (p: INegotiatePhysics) => {
-    p.velocity.copy(this.#player.velocity);
-    p.position.copy(this.#player.position);
+    copy(p.velocity, this.#player.velocity);
+    copy(p.position, this.#player.position);
     p.nid = this.#nid;
     p.sid = MessageState.currentStep;
   };
@@ -173,13 +183,15 @@ export class NegotiatePhysicsTrait
     { position, velocity }: INegotiatePhysics,
   ) {
     const player = this.#player;
-    tempPositionDelta.copy(position).sub(player.position);
-    tempVelocityDelta.copy(velocity).sub(player.velocity);
-    tempPositionDelta.clamp(MAX_POSITION_DELTA);
-    tempVelocityDelta.clamp(MAX_VELOCITY_DELTA);
+    copy(tempPositionDelta, position);
+    sub(tempPositionDelta, player.position);
+    copy(tempVelocityDelta, velocity);
+    sub(tempVelocityDelta, player.velocity);
+    clamp(tempPositionDelta, MAX_POSITION_DELTA);
+    clamp(tempVelocityDelta, MAX_VELOCITY_DELTA);
 
-    player.position.add(tempPositionDelta);
-    player.velocity.add(tempVelocityDelta);
+    add(player.position, tempPositionDelta);
+    add(player.velocity, tempVelocityDelta);
   }
 
   shouldSendSnapshot() {
@@ -192,6 +204,6 @@ export class NegotiatePhysicsTrait
     { position }: INegotiatePhysics,
   ) {
     const player = this.#player;
-    player.targetPosition.copy(position);
+    copy(player.targetPosition, position);
   }
 }

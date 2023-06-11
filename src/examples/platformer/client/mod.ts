@@ -1,4 +1,5 @@
 import "../mod.ts";
+import * as Vec2 from "~/common/Vec2.ts";
 import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import {
@@ -31,7 +32,7 @@ import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { DebugSystem } from "~/client/systems/DebugSystem.ts";
 import { LevelState } from "../../../modules/common/state/LevelState.ts";
-import { Vec2 } from "../../../modules/common/Vec2.ts";
+import { Instance } from "../../../modules/common/Vec2.ts";
 import { initPing, updatePing } from "../../../modules/common/state/Ping.ts";
 import { PingSystem } from "../../../modules/client/systems/Ping.ts";
 import { SCREEN_HEIGHT_PX, SCREEN_WIDTH_PX } from "../mod.ts";
@@ -49,8 +50,8 @@ if (import.meta.hot) {
   });
 }
 
-OutputState.foreground.resolution.set(SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
-OutputState.background.resolution.set(SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
+Vec2.set(OutputState.foreground.resolution, SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
+Vec2.set(OutputState.background.resolution, SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
 
 const landscapePoints = [
   [0, 200],
@@ -71,17 +72,17 @@ const landscapePoints = [
 ];
 
 for (const point of landscapePoints) {
-  LevelState.landscape.push(new Vec2(point[0], point[1]));
+  LevelState.landscape.push(new Instance(point[0], point[1]));
 }
 
 LevelState.farClouds[0] = {
-  position: new Vec2(360, 252),
-  size: new Vec2(96, 48),
+  position: new Instance(360, 252),
+  size: new Instance(96, 48),
 };
 
 LevelState.nearClouds[0] = {
-  position: new Vec2(24, 220),
-  size: new Vec2(64, 32),
+  position: new Instance(24, 220),
+  size: new Instance(64, 32),
 };
 
 OutputState.scene.gradients.set("sky", {
@@ -171,8 +172,8 @@ function handlePlayerAdded(
   const eid = PlayerState.add();
   const player = PlayerState.acquireProxy(eid);
   console.log("player nid:", nid);
-  player.position.copy(position);
-  player.targetPosition.copy(position);
+  Vec2.copy(player.position, position);
+  Vec2.copy(player.targetPosition, position);
   player.spriteMapId = spriteMapId;
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
   TraitState.add(WasdMoveTrait, player.eid);

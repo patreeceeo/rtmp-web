@@ -1,5 +1,5 @@
 import { deferred } from "async";
-import { Vec2, Vec2LargeType } from "~/common/Vec2.ts";
+import { Instance, Vec2LargeType } from "~/common/Vec2.ts";
 import * as ECS from "bitecs";
 import { Tilemap } from "../../common/Tilemap.ts";
 
@@ -26,12 +26,12 @@ class OutputStateApi {
     clientRect: new DOMRect(),
     context2d: null as (CanvasRenderingContext2D | null),
     element: null as HTMLCanvasElement | null,
-    resolution: new Vec2(),
+    resolution: new Instance(),
   };
   background = {
     context2d: null as (CanvasRenderingContext2D | null),
     element: null as HTMLCanvasElement | null,
-    resolution: new Vec2(),
+    resolution: new Instance(),
   };
   scene = new SceneData();
   frameCount = 0;

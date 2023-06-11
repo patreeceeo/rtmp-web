@@ -1,21 +1,15 @@
 import * as ECS from "bitecs";
 import { defaultWorld, EntityId, IEntityMinimal } from "./state/mod.ts";
-import { Vec2FromStore, Vec2LargeType } from "./Vec2.ts";
+import { ECSInstance, Vec2LargeType } from "./Vec2.ts";
 
 // Idea: component types as entities to allow for recursive composition
 
 type ITagSchema = Record<string | number | symbol, never>;
 
-type ObjectForSchema<S extends ECS.ISchema> = S extends ITagSchema ? boolean
+type ValueForSchema<S extends ECS.ISchema> = S extends ITagSchema ? boolean
   : {
     [K in keyof S]: S[K] extends "eid" ? EntityId : number;
   };
-
-type ComponentInstance<
-  S extends ECS.ISchema,
-  K extends ObjectForSchema<S>,
-> = K extends never ? ObjectForSchema<S>
-  : K;
 
 type WithProperty<T, P extends string, V> =
   & T
@@ -25,7 +19,6 @@ type WithProperty<T, P extends string, V> =
 
 interface IComponentType<
   S extends ECS.ISchema,
-  Klass extends ObjectForSchema<S>,
 > {
   readonly schema: S;
   readonly store: ECS.ComponentType<S>;
@@ -34,23 +27,22 @@ interface IComponentType<
     world: ECS.IWorld,
     store: ECS.ComponentType<S>,
     eid: EntityId,
-  ): Klass;
+  ): ValueForSchema<S>;
   onAdd(target: IEntityMinimal, componentType: this): void;
   onRemove(target: IEntityMinimal, componentType: this): void;
 }
 
 interface IComponentConfigBase<
   S extends ECS.ISchema,
-  Klass extends ObjectForSchema<S> = ObjectForSchema<S>,
 > {
   propName: string;
-  onAdd?: (target: IEntityMinimal, type: IComponentType<S, Klass>) => void;
-  onRemove?: (target: IEntityMinimal, type: IComponentType<S, Klass>) => void;
+  onAdd?: (target: IEntityMinimal, type: IComponentType<S>) => void;
+  onRemove?: (target: IEntityMinimal, type: IComponentType<S>) => void;
 }
 
 type ITagConfig = IComponentConfigBase<ITagSchema>;
 
-function defineTag(config: ITagConfig): IComponentType<ITagSchema, boolean> {
+function defineTag(config: ITagConfig): IComponentType<ITagSchema> {
   const store = ECS.defineComponent<ITagSchema>();
   const result = Object.freeze({
     propName: config.propName,
@@ -81,14 +73,14 @@ function defineTag(config: ITagConfig): IComponentType<ITagSchema, boolean> {
       });
       config.onRemove?.(target, result);
     },
-  }) as IComponentType<ITagSchema, boolean>;
+  }) as IComponentType<ITagSchema>;
   return result;
 }
 
 interface IComponentConfig<
   S extends ECS.ISchema = ITagSchema,
-  Klass extends ObjectForSchema<S> = ObjectForSchema<S>,
-> extends IComponentConfigBase<S, Klass> {
+  Klass extends ValueForSchema<S> = ValueForSchema<S>,
+> extends IComponentConfigBase<S> {
   schema: S;
   getValue(
     world: ECS.IWorld,
@@ -99,14 +91,14 @@ interface IComponentConfig<
 
 function defineComponent<
   S extends ECS.ISchema = ITagSchema,
-  Klass extends ObjectForSchema<S> = ObjectForSchema<S>,
->(config: IComponentConfig<S, Klass>): IComponentType<S, Klass> {
+  Klass extends ValueForSchema<S> = ValueForSchema<S>,
+>(config: IComponentConfig<S, Klass>): IComponentType<S> {
   return Object.freeze({
     propName: config.propName,
     schema: config.schema,
     getValue: config.getValue,
     store: ECS.defineComponent(config.schema),
-    onAdd(target: IEntityMinimal, componentType: IComponentType<S, Klass>) {
+    onAdd(target: IEntityMinimal, componentType: IComponentType<S>) {
       Object.defineProperty(target, this.propName, {
         value: this.getValue(defaultWorld, componentType.store, target.eid),
         writable: false,
@@ -131,23 +123,21 @@ function defineComponent<
 export function addComponent<
   E extends IEntityMinimal,
   S extends ECS.ISchema,
-  K extends ObjectForSchema<S>,
-  C extends IComponentType<S, K>,
+  C extends IComponentType<S>,
 >(
   world: ECS.IWorld,
   componentType: C,
   entity: E,
-): WithProperty<E, C["propName"], ComponentInstance<S, K>> {
+): WithProperty<E, C["propName"], ValueForSchema<S>> {
   ECS.addComponent(world, componentType, entity.eid);
   componentType.onAdd(entity, componentType);
-  return entity as WithProperty<E, C["propName"], ComponentInstance<S, K>>;
+  return entity as WithProperty<E, C["propName"], ValueForSchema<S>>;
 }
 
 export function removeComponent<
   E extends IEntityMinimal,
   S extends ECS.ISchema,
-  K extends ObjectForSchema<S>,
-  C extends IComponentType<S, K>,
+  C extends IComponentType<S>,
 >(
   world: ECS.IWorld,
   componentType: C,
@@ -167,7 +157,7 @@ export const PlayerTag = defineTag({
 
 export const PositionComponent = defineComponent<
   typeof Vec2LargeType,
-  Vec2FromStore<typeof Vec2LargeType>
+  ECSInstance<typeof Vec2LargeType>
 >({
   schema: Vec2LargeType,
   propName: "position",
@@ -176,7 +166,7 @@ export const PositionComponent = defineComponent<
     store: ECS.ComponentType<typeof Vec2LargeType>,
     eid: EntityId,
   ) {
-    return new Vec2FromStore(store, eid);
+    return new ECSInstance(store, eid);
   },
 });
 
@@ -185,10 +175,4 @@ const e: IEntityMinimal = {
   isDeleted: false,
 };
 
-// Why do I have to specify the type parameters here?
-const e2 = addComponent<
-  IEntityMinimal,
-  typeof Vec2LargeType,
-  Vec2FromStore<typeof Vec2LargeType>,
-  typeof PositionComponent
->(defaultWorld, PositionComponent, e);
+const e2 = addComponent(defaultWorld, PositionComponent, e);

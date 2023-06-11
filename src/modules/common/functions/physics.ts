@@ -1,5 +1,5 @@
 import { Box, IBox } from "../Box.ts";
-import { IVec2Class, IVec2Readonly, Vec2 } from "../Vec2.ts";
+import { add, clamp, extend, Instance, ReadOnly } from "../Vec2.ts";
 
 /**
  * @fileoverview
@@ -10,35 +10,34 @@ export interface ISimulateOptions {
   friction: number;
   maxVelocity: number;
   worldDimensions: IBox;
-  hitBox: IVec2Readonly;
+  hitBox: ReadOnly;
 }
 
 export class SimulateOptions implements ISimulateOptions {
   friction = 0;
   maxVelocity = Infinity;
   worldDimensions = Box.INFINITY;
-  hitBox = new Vec2();
+  hitBox = new Instance();
 }
 
 const defaultOptions = new SimulateOptions();
 
-// Make this a method of Vec2?
 function accumulate(
-  targetVector: IVec2Class,
+  targetVector: Instance,
   deltaTime: number,
-  deltaVector: IVec2Readonly,
+  deltaVector: ReadOnly,
 ) {
-  targetVector.add(deltaVector, deltaTime);
+  add(targetVector, deltaVector, deltaTime);
 }
 
 export function simulatePositionWithVelocity(
-  position: IVec2Class,
-  velocity: IVec2Class,
+  position: Instance,
+  velocity: Instance,
   deltaTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {
   if (options.friction) {
-    velocity.extend(-(options.friction / 256) * deltaTime, velocity);
+    extend(velocity, -(options.friction / 256) * deltaTime, velocity);
   }
 
   accumulate(position, deltaTime, velocity);
@@ -73,14 +72,14 @@ export function simulatePositionWithVelocity(
 }
 
 export function simulateVelocityWithAcceleration(
-  velocity: IVec2Class,
-  acceleration: IVec2Readonly,
+  velocity: Instance,
+  acceleration: ReadOnly,
   deltaTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {
   accumulate(velocity, deltaTime, acceleration);
 
   if (options.maxVelocity) {
-    velocity.clamp(options.maxVelocity);
+    clamp(velocity, options.maxVelocity);
   }
 }

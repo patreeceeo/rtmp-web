@@ -7,7 +7,7 @@ import {
 } from "../../../modules/common/BufferValue.ts";
 import { defMessageType } from "../../../modules/common/Message.ts";
 import { NetworkId } from "../../../modules/common/NetworkApi.ts";
-import { Vec2 } from "../../../modules/common/Vec2.ts";
+import { Instance } from "../../../modules/common/Vec2.ts";
 import { PoseType } from "../../../modules/common/state/Player.ts";
 import { IPingMsg, PingMsgSpec } from "../../../modules/common/state/Ping.ts";
 
@@ -53,7 +53,7 @@ const NilPayloadSpec: IBufferProxyObjectSpec<INilPayload> = {
 defMessageType<INilPayload>(MsgType.nil, NilPayloadSpec);
 
 interface IPlayerAdd extends INilPayload {
-  position: Vec2;
+  position: Instance;
   spriteMapId: number;
   isLocal: boolean;
 }
@@ -80,8 +80,8 @@ const PlayerAdd = defMessageType<IPlayerAdd>(
 
 // TODO(perf) maybe this should be broken up into two messages
 interface IPlayerSnapshot extends INilPayload {
-  position: Vec2;
-  velocity: Vec2;
+  position: Instance;
+  velocity: Instance;
   pose: PoseType;
 }
 
@@ -109,7 +109,7 @@ const PlayerRemove = defMessageType<IPlayerRemove>(
 );
 
 interface IPlayerMove extends INilPayload {
-  acceleration: Vec2;
+  acceleration: Instance;
 }
 
 const playerMoveStack = stack.fork();
@@ -129,8 +129,8 @@ const PlayerMove = defMessageType<IPlayerMove>(
 );
 
 interface INegotiatePhysics extends INilPayload {
-  position: Vec2;
-  velocity: Vec2;
+  position: Instance;
+  velocity: Instance;
 }
 
 const negotiateStack = stack.fork();

@@ -1,3 +1,4 @@
+import * as Vec2 from "~/common/Vec2.ts";
 import {
   copyMessage,
   defMessageType,
@@ -8,7 +9,6 @@ import {
 import * as asserts from "asserts";
 import { PrimitiveValue, Vec2SmallSpec } from "./BufferValue.ts";
 import { DataViewMovable } from "./DataView.ts";
-import { Vec2 } from "./Vec2.ts";
 
 Deno.test("Message type", () => {
   interface IMyMessage {
@@ -63,7 +63,7 @@ Deno.test("Message read/write", () => {
 
 Deno.test("Message Vec2 bug", () => {
   interface IMyMessage {
-    delta: Vec2;
+    delta: Vec2.Instance;
     isEvil: boolean;
   }
   const type = 2;
@@ -80,14 +80,14 @@ Deno.test("Message Vec2 bug", () => {
 
   const buf = new DataViewMovable(new ArrayBuffer(bufferLength));
   Msg.write(buf, byteOffset, (payload) => {
-    payload.delta.set(11, 22);
+    Vec2.set(payload.delta, 11, 22);
     payload.isEvil = true;
   });
 
   const [typeRead, payload] = readMessage<IMyMessage>(buf, byteOffset);
 
   asserts.assertEquals(typeRead, type);
-  asserts.assertEquals(payload.delta, new Vec2(11, 22));
+  asserts.assertEquals(payload.delta, new Vec2.Instance(11, 22));
   reset();
 });
 

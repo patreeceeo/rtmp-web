@@ -1,3 +1,4 @@
+import { copy, getLengthSquared } from "~/common/Vec2.ts";
 import { filter, map } from "../../common/Iterable.ts";
 import { flattenMaybes, Nothing } from "../../common/Maybe.ts";
 import { IPayloadAny } from "../../common/Message.ts";
@@ -44,14 +45,14 @@ function exec(context: ISystemExecutionContext) {
         ([_, payload]) => payload,
       );
 
-      let lastCommand = activeCommandForTraitPerClient.get(Trait.commandType)!
+      let lastCommand = activeCommandForTraitPerClient
+        .get(Trait.commandType)!
         .get(nid);
       for (const command of commands) {
         if (!lastCommand || command.sid > lastCommand.sid) {
-          activeCommandForTraitPerClient.get(Trait.commandType)!.set(
-            nid,
-            command,
-          );
+          activeCommandForTraitPerClient
+            .get(Trait.commandType)!
+            .set(nid, command);
           lastCommand = command;
         }
       }
@@ -73,10 +74,11 @@ function exec(context: ISystemExecutionContext) {
           const trait = TraitState.getTrait(Trait, eid);
           if (trait && PlayerState.has(eid)) {
             const player = PlayerState.acquireProxy(eid);
-            const playerIsAtTarget = player.targetPosition.almostEquals(
+            const playerIsAtTarget = copy(
+              player.targetPosition,
               player.position,
             );
-            const speedSquared = player.velocity.lengthSquared;
+            const speedSquared = getLengthSquared(player.velocity);
             const intermediateUpdateInterval = speedSquared / 80;
             const timeSinceLastUpdate = context.elapsedTime -
               (lastUpdatedTime.get(nid) ?? -1);
@@ -88,9 +90,9 @@ function exec(context: ISystemExecutionContext) {
               trait.applySnapshot(payload, context);
               lastUpdatedTime.set(nid, context.elapsedTime);
               if (playerIsAtTarget) {
-                activeCommandForTraitPerClient.get(Trait.commandType)!.delete(
-                  nid,
-                );
+                activeCommandForTraitPerClient
+                  .get(Trait.commandType)!
+                  .delete(nid);
               }
             }
           }

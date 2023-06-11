@@ -1,4 +1,5 @@
 import "../mod.ts";
+import * as Vec2 from "~/common/Vec2.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { NetworkSystem } from "~/server/systems/Network.ts";
 import {
@@ -46,7 +47,8 @@ class DotsServerApp implements ServerApp {
     client.addNetworkId(playerNid);
     console.log("player nid", playerNid);
 
-    addedPlayer.position.set(
+    Vec2.set(
+      addedPlayer.position,
       getRandomIntBetween(
         LevelState.dimensions.xMin,
         LevelState.dimensions.xMax,
@@ -58,13 +60,13 @@ class DotsServerApp implements ServerApp {
     );
     addedPlayer.spriteMapId = (addedPlayer.eid / 2) % 2;
 
-    addedPlayer.targetPosition.copy(addedPlayer.position);
+    Vec2.copy(addedPlayer.targetPosition, addedPlayer.position);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
     TraitState.add(WasdMoveTrait, addedPlayer.eid);
     TraitState.add(NegotiatePhysicsTrait, addedPlayer.eid);
 
     sendMessageToClient(ws, PlayerAdd, (p) => {
-      p.position.copy(addedPlayer.position);
+      Vec2.copy(p.position, addedPlayer.position);
       p.spriteMapId = addedPlayer.spriteMapId;
       p.isLocal = true;
       p.nid = playerNid;
@@ -74,7 +76,7 @@ class DotsServerApp implements ServerApp {
     broadcastMessage(
       PlayerAdd,
       (p) => {
-        p.position.copy(addedPlayer.position);
+        Vec2.copy(p.position, addedPlayer.position);
         p.spriteMapId = addedPlayer.spriteMapId;
         p.isLocal = false;
         p.nid = playerNid;
@@ -88,7 +90,7 @@ class DotsServerApp implements ServerApp {
       if (eid !== addedPlayer.eid) {
         const player = PlayerState.acquireProxy(eid);
         sendMessageToClient(ws, PlayerAdd, (p) => {
-          p.position.copy(player.position);
+          Vec2.copy(p.position, player.position);
           p.spriteMapId = player.spriteMapId;
           p.isLocal = false;
           p.nid = ServerNetworkState.getId(eid)!;

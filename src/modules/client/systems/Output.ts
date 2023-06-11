@@ -1,10 +1,10 @@
+import * as Vec2 from "~/common/Vec2.ts";
 import { OutputState, PreviousPositionStore } from "~/client/state/Output.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { loadTilemap } from "../../common/loaders/TiledTMJTilemapLoader.ts";
 import { roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
-import { Vec2ReadOnly } from "../../common/Vec2.ts";
 import { DebugState } from "../state/Debug.ts";
 import {
   loadSprite,
@@ -16,9 +16,9 @@ import { Layer as TilemapLayer } from "../../common/Tilemap.ts";
 import { IEntityMinimal } from "../../common/state/mod.ts";
 
 export interface IOutputEntity extends IEntityMinimal {
-  position: Vec2ReadOnly;
-  targetPosition: Vec2ReadOnly;
-  physicalSize: Vec2ReadOnly;
+  position: Vec2.ReadOnly;
+  targetPosition: Vec2.ReadOnly;
+  physicalSize: Vec2.ReadOnly;
   sprite: Sprite;
 }
 
@@ -117,7 +117,7 @@ export const OutputSystem: SystemLoader = async () => {
   return { exec };
 };
 
-function setupCanvas(el: HTMLCanvasElement, resolution: Vec2ReadOnly) {
+function setupCanvas(el: HTMLCanvasElement, resolution: Vec2.ReadOnly) {
   // Get the DPR and size of the canvas
   const dpr = 2 ** Math.ceil(Math.log2(window.devicePixelRatio));
 
@@ -151,7 +151,7 @@ const PI2 = 2 * Math.PI;
 function drawCloud(
   cloud: ICloud,
   ctx: CanvasRenderingContext2D,
-  resolution: Vec2ReadOnly,
+  resolution: Vec2.ReadOnly,
 ) {
   const { position, size } = cloud;
   const yFlipped = resolution.y - position.y;

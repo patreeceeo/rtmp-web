@@ -1,3 +1,4 @@
+import * as Vec2 from "~/common/Vec2.ts";
 import { InputState } from "~/common/state/Input.ts";
 import {
   IEventSystemExecutionContext,
@@ -29,10 +30,11 @@ function exec(context: IEventSystemExecutionContext) {
       const {
         foreground: { resolution, clientRect },
       } = OutputState;
-      mousePosition.set(me.clientX, me.clientY);
+      Vec2.set(mousePosition, me.clientX, me.clientY);
       const xScale = resolution.x / clientRect.width;
       const yScale = resolution.y / clientRect.height;
-      mousePositionOnCanvas.set(
+      Vec2.set(
+        mousePositionOnCanvas,
         (mousePosition.x - clientRect.left) * xScale,
         (mousePosition.y - clientRect.top) * yScale,
       );

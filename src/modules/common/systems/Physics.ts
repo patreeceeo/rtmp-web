@@ -1,3 +1,4 @@
+import { add, clamp, copy, getLengthSquared, sub } from "~/common/Vec2.ts";
 import { PlayerState, PoseType } from "../state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
@@ -6,19 +7,19 @@ import {
 } from "../../../modules/common/functions/physics.ts";
 import { getPhysicsOptions } from "../functions/physicsHelpers.ts";
 import { isClient } from "../env.ts";
-import { Vec2 } from "../Vec2.ts";
+import { Instance } from "../Vec2.ts";
 import { IEntityMinimal } from "../state/mod.ts";
 
 export interface IPhysicsEntity extends IEntityMinimal {
-  position: Vec2;
-  targetPosition: Vec2;
-  velocity: Vec2;
-  acceleration: Vec2;
+  position: Instance;
+  targetPosition: Instance;
+  velocity: Instance;
+  acceleration: Instance;
   maxVelocity: number;
   pose: PoseType;
 }
 
-const tempPositionDelta = new Vec2();
+const tempPositionDelta = new Instance();
 
 export const PhysicsSystem: SystemLoader<
   ISystemExecutionContext,
@@ -29,15 +30,16 @@ export const PhysicsSystem: SystemLoader<
       const player = PlayerState.acquireProxy(eid);
       const options = getPhysicsOptions(player);
       if (!isClient) {
-        player.targetPosition.copy(player.position);
+        copy(player.targetPosition, player.position);
       } else {
-        player.targetPosition.add(player.velocity, fixedDeltaTime);
-        tempPositionDelta.copy(player.targetPosition).sub(player.position);
+        add(player.targetPosition, player.velocity, fixedDeltaTime);
+        copy(tempPositionDelta, player.targetPosition);
+        sub(tempPositionDelta, player.position);
         if (
-          tempPositionDelta.lengthSquared > 1
+          getLengthSquared(tempPositionDelta) > 1
         ) {
-          tempPositionDelta.clamp(player.maxVelocity * fixedDeltaTime);
-          player.position.add(tempPositionDelta);
+          clamp(tempPositionDelta, player.maxVelocity * fixedDeltaTime);
+          add(player.position, tempPositionDelta);
         }
       }
       player.pose = player.acceleration.x == 0
