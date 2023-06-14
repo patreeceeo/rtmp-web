@@ -1,21 +1,16 @@
 import { Box, IBox } from "../Box.ts";
 import { add, clamp, extend, Instance, ReadOnly } from "../Vec2.ts";
 
-/**
- * @fileoverview
- * Networked physics needs to be deterministic. In deterministic physics, whenever the simulation receives input to accelerate, the final position is calculated then and there, then it simply uses a curve function to move the player from the current position to the final position. It also maintains a velocity vector which comes in handy when the simulation receives input to accelerate in another direction while the player is already moving. The velocity vector is basically the sum of the vectors of previous vectors of start positions to final positions. The momentum vector is used to make the players movement curve when they change direction.
- */
-
 export interface ISimulateOptions {
   friction: number;
-  maxVelocity: number;
+  maxSpeed: number;
   worldDimensions: IBox;
   hitBox: ReadOnly;
 }
 
 export class SimulateOptions implements ISimulateOptions {
   friction = 0;
-  maxVelocity = Infinity;
+  maxSpeed = Infinity;
   worldDimensions = Box.INFINITY;
   hitBox = new Instance();
 }
@@ -37,6 +32,7 @@ export function simulatePositionWithVelocity(
   options: ISimulateOptions = defaultOptions,
 ) {
   if (options.friction) {
+    // TODO these friction units are silly
     extend(velocity, -(options.friction / 256) * deltaTime, velocity);
   }
 
@@ -79,7 +75,7 @@ export function simulateVelocityWithAcceleration(
 ) {
   accumulate(velocity, deltaTime, acceleration);
 
-  if (options.maxVelocity) {
-    clamp(velocity, options.maxVelocity);
+  if (options.maxSpeed) {
+    clamp(velocity, options.maxSpeed);
   }
 }

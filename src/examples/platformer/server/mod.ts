@@ -26,22 +26,19 @@ import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { ServerPurgeSystem } from "../../../modules/server/systems/ServerPurgeSystem.ts";
 import {
-  readMessage,
-  readMessagePayload,
   readMessageType,
   readPingId,
 } from "../../../modules/common/Message.ts";
 import { initPing, sendPing } from "../../../modules/common/state/Ping.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
-import { softDeleteEntity } from "../../../modules/common/state/mod.ts";
+import { addEntity, softDeleteEntity } from "~/common/Entity.ts";
 
 const idleTimeout = 300;
 
 class DotsServerApp implements ServerApp {
   idleTimeout = idleTimeout;
   handleOpen(ws: WebSocket, _: Event) {
-    const addedPlayerEid = PlayerState.add();
-    const addedPlayer = PlayerState.acquireProxy(addedPlayerEid);
+    const addedPlayer = PlayerState.addPlayer(addEntity());
     const playerNid = ServerNetworkState.createId();
     const client = ServerNetworkState.getClientForSocket(ws)!;
     client.addNetworkId(playerNid);
@@ -58,16 +55,16 @@ class DotsServerApp implements ServerApp {
         LevelState.dimensions.yMax,
       ),
     );
-    addedPlayer.spriteMapId = (addedPlayer.eid / 2) % 2;
+    addedPlayer.spriteSheet = (addedPlayer.eid / 2) % 2;
 
     Vec2.copy(addedPlayer.targetPosition, addedPlayer.position);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
-    TraitState.add(WasdMoveTrait, addedPlayer.eid);
-    TraitState.add(NegotiatePhysicsTrait, addedPlayer.eid);
+    TraitState.add(WasdMoveTrait, addedPlayer);
+    TraitState.add(NegotiatePhysicsTrait, addedPlayer);
 
     sendMessageToClient(ws, PlayerAdd, (p) => {
       Vec2.copy(p.position, addedPlayer.position);
-      p.spriteMapId = addedPlayer.spriteMapId;
+      p.spriteMapId = addedPlayer.spriteSheet;
       p.isLocal = true;
       p.nid = playerNid;
       p.sid = MessageState.currentStep;
@@ -77,7 +74,7 @@ class DotsServerApp implements ServerApp {
       PlayerAdd,
       (p) => {
         Vec2.copy(p.position, addedPlayer.position);
-        p.spriteMapId = addedPlayer.spriteMapId;
+        p.spriteMapId = addedPlayer.spriteSheet;
         p.isLocal = false;
         p.nid = playerNid;
         p.sid = MessageState.currentStep;
@@ -86,14 +83,13 @@ class DotsServerApp implements ServerApp {
     );
 
     // Catch up new client on current state of the world
-    for (const eid of PlayerState.query()) {
-      if (eid !== addedPlayer.eid) {
-        const player = PlayerState.acquireProxy(eid);
+    for (const player of PlayerState.entities.query()) {
+      if (player.eid !== addedPlayer.eid) {
         sendMessageToClient(ws, PlayerAdd, (p) => {
           Vec2.copy(p.position, player.position);
-          p.spriteMapId = player.spriteMapId;
+          p.spriteMapId = player.spriteSheet;
           p.isLocal = false;
-          p.nid = ServerNetworkState.getId(eid)!;
+          p.nid = ServerNetworkState.getId(player.eid)!;
           p.sid = MessageState.currentStep;
         });
       }

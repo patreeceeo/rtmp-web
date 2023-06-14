@@ -1,7 +1,16 @@
 import { deferred } from "async";
-import { Instance, Vec2LargeType } from "~/common/Vec2.ts";
-import * as ECS from "bitecs";
+import { Instance } from "~/common/Vec2.ts";
 import { Tilemap } from "../../common/Tilemap.ts";
+import {
+  PhysicalSizeComponent,
+  PoseComponent,
+  PositionComponent,
+  PreviousPositionComponent,
+  SpriteSheetComponent,
+  TargetPositionComponent,
+} from "../../common/components.ts";
+import { EntityPrefabCollection } from "../../common/Entity.ts";
+import { isClient } from "../../common/env.ts";
 
 interface ICanvasGradientParams {
   x0: number;
@@ -10,8 +19,6 @@ interface ICanvasGradientParams {
   y1: number;
   stops: Array<[number, string]>;
 }
-
-export const PreviousPositionStore = ECS.defineComponent(Vec2LargeType);
 
 class SceneData {
   readonly gradients = new Map<string, ICanvasGradientParams>();
@@ -35,6 +42,17 @@ class OutputStateApi {
   };
   scene = new SceneData();
   frameCount = 0;
+  readonly components = [
+    PositionComponent,
+    PreviousPositionComponent,
+    TargetPositionComponent,
+    PhysicalSizeComponent,
+    SpriteSheetComponent,
+    PoseComponent,
+  ] as const;
+  readonly entities = new EntityPrefabCollection(this.components);
 }
 
-export const OutputState = new OutputStateApi();
+export const OutputState = isClient
+  ? new OutputStateApi()
+  : null as unknown as OutputStateApi;

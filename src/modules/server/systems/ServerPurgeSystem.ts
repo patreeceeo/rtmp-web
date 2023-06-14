@@ -4,7 +4,7 @@ import { MessageState } from "~/common/state/Message.ts";
 import { broadcastMessage } from "../mod.ts";
 import { ServerNetworkState } from "../state/Network.ts";
 import { NetworkId } from "../../common/NetworkApi.ts";
-import { softDeleteEntity } from "../../common/state/mod.ts";
+import { softDeleteEntity } from "../../common/Entity.ts";
 
 type MessageTranscoder<P extends IPayloadAny> = [
   IMessageDef<P>,

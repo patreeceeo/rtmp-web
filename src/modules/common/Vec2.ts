@@ -1,6 +1,11 @@
-import * as ECS from "bitecs";
+import {
+  PrimativeType,
+  PrimativeTypes,
+  StoreType,
+  TypedArray,
+} from "./Component.ts";
+import { EntityId } from "./Entity.ts";
 import { isAlmostZero } from "./math.ts";
-import { EntityId } from "./state/mod.ts";
 
 export function isZero({ x, y }: ReadOnly) {
   return x === 0 && y === 0;
@@ -142,16 +147,16 @@ export class Instance implements Interface {
   constructor(public x = 0, public y = 0) {}
 }
 
-export class ECSInstance<ComponentType extends { x: ECS.Type; y: ECS.Type }>
+export class ECSInstance<Schema extends { x: PrimativeType; y: PrimativeType }>
   implements Interface {
   public maxLength: number;
   constructor(
-    readonly store: ECS.ComponentType<ComponentType>,
+    readonly store: StoreType<Schema>,
     public eid: EntityId,
   ) {
     const byteLength = Math.min(
-      (store.x as ECS.TypedArray).BYTES_PER_ELEMENT,
-      (store.y as ECS.TypedArray).BYTES_PER_ELEMENT,
+      (store.x as TypedArray).BYTES_PER_ELEMENT,
+      (store.y as TypedArray).BYTES_PER_ELEMENT,
     );
     this.maxLength = (1 << (byteLength * 8 - 1)) - 1;
   }
@@ -172,12 +177,12 @@ export class ECSInstance<ComponentType extends { x: ECS.Type; y: ECS.Type }>
   }
 }
 
-export const Vec2LargeType = {
-  x: ECS.Types.i32,
-  y: ECS.Types.i32,
+export const Vec2LargeSchema = {
+  x: PrimativeTypes.i32,
+  y: PrimativeTypes.i32,
 };
 
-export const Vec2SmallType = {
-  x: ECS.Types.i8,
-  y: ECS.Types.i8,
+export const Vec2SmallSchema = {
+  x: PrimativeTypes.i8,
+  y: PrimativeTypes.i8,
 };

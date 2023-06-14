@@ -1,14 +1,15 @@
 import { LevelState } from "../state/LevelState.ts";
-import { PlayerProxy } from "../state/Player.ts";
+import { IPhysicsEntity } from "../state/Physics.ts";
 import { SimulateOptions } from "./physics.ts";
 
 const reOptions = new SimulateOptions();
 
-export function getPhysicsOptions(player: PlayerProxy, target = reOptions) {
+export function getPhysicsOptions(entity: IPhysicsEntity, target = reOptions) {
+  const size = entity.physicalSize;
   target.worldDimensions = LevelState.dimensions;
-  target.maxVelocity = player.maxVelocity;
-  target.friction = player.friction;
-  target.hitBox.x = player.width << 8;
-  target.hitBox.y = player.height << 8;
+  target.maxSpeed = entity.maxSpeed;
+  target.friction = entity.friction;
+  target.hitBox.x = size.x << 8;
+  target.hitBox.y = size.y << 8;
   return target;
 }

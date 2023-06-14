@@ -1,8 +1,13 @@
-import { EntityId } from "./mod.ts";
 import { Maybe } from "../Maybe.ts";
 import { IMessageDef, IPayloadAny, IWritePayload } from "../Message.ts";
 import { ISystemExecutionContext } from "../systems/mod.ts";
 import { NetworkId } from "../NetworkApi.ts";
+import { EntityId, EntityPrefabCollection, IEntityMinimal } from "../Entity.ts";
+import {
+  EntityWithComponents,
+  IAnyComponentType,
+  IEntityMaximal,
+} from "../Component.ts";
 
 export type MaybeAddMessageParameters<P extends IPayloadAny> = Maybe<
   [IMessageDef<P>, IWritePayload<P>]
@@ -11,19 +16,30 @@ export type MaybeAddMessageParameters<P extends IPayloadAny> = Maybe<
 export interface ITraitConstructor<
   CommandPayload extends IPayloadAny,
   SnapshotPayload extends IPayloadAny,
+  ComponentTypes extends ReadonlyArray<IAnyComponentType>,
 > {
-  new (eid: EntityId): Trait<CommandPayload, SnapshotPayload>;
-  commandType: number;
-  snapshotType: number;
+  new (
+    entity: EntityWithComponents<ComponentTypes>,
+  ): ITrait<CommandPayload, SnapshotPayload, ComponentTypes>;
+  readonly components: ComponentTypes;
+  readonly commandType: number;
+  readonly snapshotType: number;
+  readonly entities: EntityPrefabCollection<ComponentTypes>;
 }
-export type ITraitConstructorAny = ITraitConstructor<IPayloadAny, IPayloadAny>;
+export type ITraitConstructorAny = ITraitConstructor<
+  IPayloadAny,
+  IPayloadAny,
+  ReadonlyArray<IAnyComponentType>
+>;
 
-export interface Trait<
+export interface ITrait<
   CommandPayload extends IPayloadAny,
   SnapshotPayload extends IPayloadAny,
+  ComponentTypes extends ReadonlyArray<IAnyComponentType>,
 > {
-  readonly entityId: EntityId;
-  getType(): ITraitConstructor<CommandPayload, SnapshotPayload>;
+  readonly eid: EntityId;
+  readonly entity: EntityWithComponents<ComponentTypes>;
+  getType(): ITraitConstructor<CommandPayload, SnapshotPayload, ComponentTypes>;
   getCommandMaybe(
     context: ISystemExecutionContext,
   ): MaybeAddMessageParameters<CommandPayload>;
@@ -45,42 +61,90 @@ export interface Trait<
     context: ISystemExecutionContext,
   ): void;
 }
-export type TraitAny = Trait<IPayloadAny, IPayloadAny>;
+export type TraitAny = ITrait<
+  IPayloadAny,
+  IPayloadAny,
+  ReadonlyArray<IAnyComponentType>
+>;
 
-class TraitStateApi {
-  #instanceMap = new Map<ITraitConstructorAny, Record<EntityId, TraitAny>>();
-  #commandTypeMap = new Map<number, ITraitConstructorAny>();
-  #snapshotTypeMap = new Map<number, ITraitConstructorAny>();
-  #getEntityMap<C extends IPayloadAny, P extends IPayloadAny>(
-    type: ITraitConstructor<C, P>,
+class TraitEntityMap {
+  #map = new Map<ITraitConstructorAny, Record<EntityId, TraitAny>>();
+  set<
+    C extends IPayloadAny,
+    P extends IPayloadAny,
+    ComponentTypes extends ReadonlyArray<IAnyComponentType>,
+  >(
+    type: ITraitConstructor<C, P, ComponentTypes>,
+    entity: EntityWithComponents<ComponentTypes>,
   ) {
-    return this.#instanceMap.get(type as ITraitConstructorAny) || {};
+    const trait = new type(entity);
+    // deno-lint-ignore no-explicit-any
+    const entityMap = this.#map.get(type as any) || {};
+    // deno-lint-ignore no-explicit-any
+    entityMap[trait.eid] = trait as any;
+    // deno-lint-ignore no-explicit-any
+    this.#map.set(type as any, entityMap);
   }
-  add<CommandType extends IPayloadAny, SnapshotType extends IPayloadAny>(
-    type: ITraitConstructor<CommandType, SnapshotType>,
+  get<
+    C extends IPayloadAny,
+    P extends IPayloadAny,
+    ComponentTypes extends ReadonlyArray<IAnyComponentType>,
+  >(
+    type: ITraitConstructor<C, P, ComponentTypes>,
     eid: EntityId,
   ) {
-    const trait = new type(eid);
-    const entityMap = this.#getEntityMap(type);
-    entityMap[trait.entityId] = trait as TraitAny;
-    this.#instanceMap.set(type as ITraitConstructorAny, entityMap);
-    this.#commandTypeMap.set(type.commandType, type as ITraitConstructorAny);
-    this.#snapshotTypeMap.set(type.snapshotType, type as ITraitConstructorAny);
+    // deno-lint-ignore no-explicit-any
+    const entityMap = this.#map.get(type as any) || {};
+    return entityMap[eid] as unknown as
+      | ITrait<C, P, ComponentTypes>
+      | undefined;
   }
-  deleteEntity(eid: EntityId) {
-    for (const map of Object.entries(this.#instanceMap)) {
-      delete map[eid];
+  deleteEntity(
+    eid: EntityId,
+  ) {
+    for (const entityMap of this.#map.values()) {
+      delete entityMap[eid];
     }
   }
   *getAll() {
-    for (const map of this.#instanceMap.values()) {
+    for (const map of this.#map.values()) {
       for (const trait of Object.values(map)) {
         yield trait;
       }
     }
   }
+  getTraitTypes(): Iterable<ITraitConstructorAny> {
+    return this.#map.keys();
+  }
+}
+
+class TraitStateApi {
+  #entityMap = new TraitEntityMap();
+  #commandTypeMap = new Map<number, ITraitConstructorAny>();
+  #snapshotTypeMap = new Map<number, ITraitConstructorAny>();
+  add<
+    CommandType extends IPayloadAny,
+    SnapshotType extends IPayloadAny,
+    ComponentTypes extends ReadonlyArray<IAnyComponentType>,
+  >(
+    type: ITraitConstructor<CommandType, SnapshotType, ComponentTypes>,
+    entity: IEntityMinimal & Partial<IEntityMaximal>,
+  ) {
+    const entityWithComponents = type.entities.add(entity);
+    this.#entityMap.set(type, entityWithComponents);
+    // deno-lint-ignore no-explicit-any
+    this.#commandTypeMap.set(type.commandType, type as any);
+    // deno-lint-ignore no-explicit-any
+    this.#snapshotTypeMap.set(type.snapshotType, type as any);
+  }
+  deleteEntity(eid: EntityId) {
+    this.#entityMap.deleteEntity(eid);
+  }
+  getAll() {
+    return this.#entityMap.getAll();
+  }
   getTypes(): Iterable<ITraitConstructorAny> {
-    return this.#instanceMap.keys();
+    return this.#entityMap.getTraitTypes();
   }
   getTypeByCommandType(commandType: number) {
     return this.#commandTypeMap.get(commandType);
@@ -91,10 +155,12 @@ class TraitStateApi {
   getTrait<
     CommandPayload extends IPayloadAny,
     SnapshotPayload extends IPayloadAny,
-  >(type: ITraitConstructor<CommandPayload, SnapshotPayload>, eid: EntityId) {
-    return this.#instanceMap.get(type as ITraitConstructorAny)![
-      eid
-    ] as Trait<CommandPayload, SnapshotPayload> | undefined;
+    ComponentTypes extends ReadonlyArray<IAnyComponentType>,
+  >(
+    type: ITraitConstructor<CommandPayload, SnapshotPayload, ComponentTypes>,
+    eid: EntityId,
+  ) {
+    return this.#entityMap.get(type, eid);
   }
 }
 

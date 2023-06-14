@@ -14,12 +14,7 @@ import { Just, Nothing } from "../../../modules/common/Maybe.ts";
 import { NetworkId } from "../../../modules/common/NetworkApi.ts";
 import { InputState } from "../../../modules/common/state/Input.ts";
 import { NetworkState } from "../../../modules/common/state/Network.ts";
-import {
-  PlayerProxy,
-  PlayerState,
-} from "../../../modules/common/state/Player.ts";
-import { EntityId } from "../../../modules/common/state/mod.ts";
-import { MaybeAddMessageParameters, Trait } from "~/common/state/Trait.ts";
+import { ITrait, MaybeAddMessageParameters } from "~/common/state/Trait.ts";
 import {
   INegotiatePhysics,
   IPlayerMove,
@@ -32,21 +27,50 @@ import {
 import { MessageState } from "../../../modules/common/state/Message.ts";
 import { ISystemExecutionContext } from "../../../modules/common/systems/mod.ts";
 import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
+import {
+  EntityId,
+  EntityPrefabCollection,
+} from "../../../modules/common/Entity.ts";
+import {
+  AccelerationComponent,
+  LastActiveTimeComponent,
+  MaxSpeedComponent,
+  PoseComponent,
+  PositionComponent,
+  TargetPositionComponent,
+  VelocityComponent,
+} from "../../../modules/common/components.ts";
+import { EntityWithComponents } from "../../../modules/common/Component.ts";
 
 const maxAcceleration = 2;
 
 const reAcceleration = new Instance();
-export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
+const WASD_MOVE_COMPONENTS = [
+  TargetPositionComponent,
+  AccelerationComponent,
+  PoseComponent,
+  VelocityComponent,
+  MaxSpeedComponent,
+  LastActiveTimeComponent,
+] as const;
+export class WasdMoveTrait
+  implements ITrait<IPlayerMove, IPlayerSnapshot, typeof WASD_MOVE_COMPONENTS> {
   static readonly commandType = PlayerMove.type;
   static readonly snapshotType = PlayerSnapshot.type;
+  static readonly components = WASD_MOVE_COMPONENTS;
+
+  static readonly entities = new EntityPrefabCollection(this.components);
+
   readonly #nid: NetworkId;
-  readonly #player: PlayerProxy;
   #lastDdx = 0;
   #lastDdy = 0;
 
-  constructor(readonly entityId: EntityId) {
-    this.#nid = NetworkState.getId(this.entityId)!;
-    this.#player = PlayerState.acquireProxy(this.entityId)!;
+  eid: EntityId;
+  constructor(
+    readonly entity: EntityWithComponents<typeof WASD_MOVE_COMPONENTS>,
+  ) {
+    this.#nid = NetworkState.getId(entity.eid)!;
+    this.eid = entity.eid;
   }
   getType() {
     return this.constructor as typeof WasdMoveTrait;
@@ -90,7 +114,7 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
     return Just([
       PlayerSnapshot,
       (p: IPlayerSnapshot) => {
-        const player = this.#player;
+        const player = this.entity;
         copy(p.position, player.targetPosition);
         copy(p.velocity, player.velocity);
         p.pose = player.pose;
@@ -99,30 +123,30 @@ export class WasdMoveTrait implements Trait<IPlayerMove, IPlayerSnapshot> {
       },
     ]) as MaybeAddMessageParameters<IPlayerSnapshot>;
   }
-  applyCommand(
-    { acceleration }: IPlayerMove,
-  ) {
-    const player = this.#player;
+  applyCommand({ acceleration }: IPlayerMove) {
+    const player = this.entity;
     copy(player.acceleration, acceleration);
   }
 
   shouldSendSnapshot(snapshot: IPlayerSnapshot, nidReceiver: NetworkId) {
     const client = ServerNetworkState.getClient(nidReceiver)!;
     return client.hasNetworkId(snapshot.nid)
-      ? isZero(this.#player.acceleration)
+      ? isZero(this.entity.acceleration)
       : true;
   }
-  shouldApplySnapshot(
-    { nid, velocity }: IPlayerSnapshot,
-  ) {
-    return getLengthSquared(velocity) < this.#player.maxVelocitySq &&
-        isZero(this.#player.acceleration) || !NetworkState.isLocal(nid);
+  shouldApplySnapshot({ nid, velocity }: IPlayerSnapshot) {
+    // TODO precompute maxSpeedSquared
+    return (
+      (getLengthSquared(velocity) < this.entity.maxSpeed ** 2 &&
+        isZero(this.entity.acceleration)) ||
+      !NetworkState.isLocal(nid)
+    );
   }
   applySnapshot(
     { pose, position, velocity, nid }: IPlayerSnapshot,
     context: ISystemExecutionContext,
   ) {
-    const player = this.#player;
+    const player = this.entity;
     player.lastActiveTime = context.elapsedTime;
     copy(player.targetPosition, position);
 
@@ -137,28 +161,42 @@ const tempPositionDelta = new Instance();
 const tempVelocityDelta = new Instance();
 const MAX_POSITION_DELTA = 2000;
 const MAX_VELOCITY_DELTA = 1500;
-export class NegotiatePhysicsTrait
-  implements Trait<INegotiatePhysics, INegotiatePhysics> {
+const NEGOTIATE_PHYSICS_COMPONENTS = [
+  PositionComponent,
+  TargetPositionComponent,
+  VelocityComponent,
+] as const;
+export class NegotiatePhysicsTrait implements
+  ITrait<
+    INegotiatePhysics,
+    INegotiatePhysics,
+    typeof NEGOTIATE_PHYSICS_COMPONENTS
+  > {
   static readonly commandType = MsgType.negotiatePhysics;
   static readonly snapshotType = MsgType.negotiatePhysics;
   readonly #nid: NetworkId;
-  readonly #player: PlayerProxy;
-  #lastSendTime = 0;
+  static readonly components = NEGOTIATE_PHYSICS_COMPONENTS;
 
-  constructor(readonly entityId: EntityId) {
-    this.#nid = NetworkState.getId(this.entityId)!;
-    this.#player = PlayerState.acquireProxy(this.entityId)!;
+  static readonly entities = new EntityPrefabCollection(this.components);
+  #lastSendTime = 0;
+  eid: EntityId;
+
+  constructor(
+    readonly entity: EntityWithComponents<typeof NEGOTIATE_PHYSICS_COMPONENTS>,
+  ) {
+    this.eid = entity.eid;
+    this.#nid = NetworkState.getId(this.eid)!;
   }
   getType() {
     return this.constructor as typeof NegotiatePhysicsTrait;
   }
   getCommandMaybe(context: ISystemExecutionContext) {
-    const speedSquared = getLengthSquared(this.#player.velocity);
+    const speedSquared = getLengthSquared(this.entity.velocity);
     const interval = speedSquared / 80;
     if (
       NetworkState.isLocal(this.#nid) &&
       context.elapsedTime - this.#lastSendTime > interval &&
-      !almostEquals(this.#player.targetPosition, this.#player.position) &&
+      !almostEquals(this.entity.targetPosition, this.entity.position) &&
       speedSquared > 0
     ) {
       this.#lastSendTime = context.elapsedTime;
@@ -167,8 +205,8 @@ export class NegotiatePhysicsTrait
     return Nothing();
   }
   #writeCommand = (p: INegotiatePhysics) => {
-    copy(p.velocity, this.#player.velocity);
-    copy(p.position, this.#player.position);
+    copy(p.velocity, this.entity.velocity);
+    copy(p.position, this.entity.position);
     p.nid = this.#nid;
     p.sid = MessageState.currentStep;
   };
@@ -179,19 +217,18 @@ export class NegotiatePhysicsTrait
   getSnapshotMaybe() {
     return Nothing();
   }
-  applyCommand(
-    { position, velocity }: INegotiatePhysics,
-  ) {
-    const player = this.#player;
+  applyCommand({ position, velocity }: INegotiatePhysics) {
+    const entity = this.entity;
+
     copy(tempPositionDelta, position);
-    sub(tempPositionDelta, player.position);
+    sub(tempPositionDelta, entity.position);
     copy(tempVelocityDelta, velocity);
-    sub(tempVelocityDelta, player.velocity);
+    sub(tempVelocityDelta, entity.velocity);
     clamp(tempPositionDelta, MAX_POSITION_DELTA);
     clamp(tempVelocityDelta, MAX_VELOCITY_DELTA);
 
-    add(player.position, tempPositionDelta);
-    add(player.velocity, tempVelocityDelta);
+    add(entity.position, tempPositionDelta);
+    add(entity.velocity, tempVelocityDelta);
   }
 
   shouldSendSnapshot() {
@@ -200,10 +237,7 @@ export class NegotiatePhysicsTrait
   shouldApplySnapshot() {
     return true;
   }
-  applySnapshot(
-    { position }: INegotiatePhysics,
-  ) {
-    const player = this.#player;
-    copy(player.targetPosition, position);
+  applySnapshot({ position }: INegotiatePhysics) {
+    copy(this.entity.targetPosition, position);
   }
 }

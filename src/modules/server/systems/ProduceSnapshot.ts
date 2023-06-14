@@ -1,11 +1,10 @@
-import { copy, getLengthSquared } from "~/common/Vec2.ts";
+import { almostEquals, copy, getLengthSquared } from "~/common/Vec2.ts";
 import { filter, map } from "../../common/Iterable.ts";
 import { flattenMaybes, Nothing } from "../../common/Maybe.ts";
 import { IPayloadAny } from "../../common/Message.ts";
 import { NetworkId } from "../../common/NetworkApi.ts";
 import { MessageState } from "../../common/state/Message.ts";
 import { NetworkState } from "../../common/state/Network.ts";
-import { PlayerState } from "../../common/state/Player.ts";
 import { TraitState } from "../../common/state/Trait.ts";
 import {
   ISystemExecutionContext,
@@ -72,9 +71,9 @@ function exec(context: ISystemExecutionContext) {
         for (const [type, write] of snapshots) {
           const eid = NetworkState.getEntityId(nid)!;
           const trait = TraitState.getTrait(Trait, eid);
-          if (trait && PlayerState.has(eid)) {
-            const player = PlayerState.acquireProxy(eid);
-            const playerIsAtTarget = copy(
+          if (trait) {
+            const player = trait.entity;
+            const playerIsAtTarget = almostEquals(
               player.targetPosition,
               player.position,
             );

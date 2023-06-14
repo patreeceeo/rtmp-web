@@ -1,6 +1,6 @@
+import { EntityId } from "./Entity.ts";
 import { join } from "./Iterable.ts";
-import { EntityId } from "./state/mod.ts";
-import { OpaqueType } from "./state/mod.ts";
+import { OpaqueType } from "./util.ts";
 
 // TODO reorganize this code
 

@@ -6,8 +6,8 @@
 // TODO this file is too large
 import { DataViewMovable } from "./DataView.ts";
 import { invariant } from "./Error.ts";
-import { OpaqueType } from "./state/mod.ts";
 import { NetworkId } from "./state/Network.ts";
+import { OpaqueType } from "./util.ts";
 import { Instance as Vec2Instance } from "./Vec2.ts";
 
 export interface IBufferPrimativeValue<Type, BoxType = Type> {
@@ -262,7 +262,6 @@ export class BufferProxyObject<
   readonly meta__dataView!: DataView;
   meta__byteOffset!: number;
   meta__dataViewSource!: DataViewMovable;
-  #bytesRemainingSelf: number;
   constructor(
     dataViewSource: DataViewMovable,
     public meta__relByteOffset: number,
@@ -273,8 +272,6 @@ export class BufferProxyObject<
       meta__spec as IBufferValueSpec<Iface>,
     );
     const instance = "Klass" in meta__spec ? new meta__spec.Klass!() : this;
-    // TODO this doesn't work if the same property is written to more than once
-    this.#bytesRemainingSelf = byteLength;
 
     const getByteOffset = (o: BufferProxyObject<any, any>): number => {
       return (

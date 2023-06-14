@@ -23,7 +23,6 @@ import { useClient } from "hot_mod/dist/client/mod.js";
 import { IPlayerAdd, IPlayerRemove, MsgType } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import {
-  readMessage,
   readMessagePayload,
   readMessageType,
   readPingId,
@@ -37,7 +36,7 @@ import { initPing, updatePing } from "../../../modules/common/state/Ping.ts";
 import { PingSystem } from "../../../modules/client/systems/Ping.ts";
 import { SCREEN_HEIGHT_PX, SCREEN_WIDTH_PX } from "../mod.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
-import { softDeleteEntity } from "../../../modules/common/state/mod.ts";
+import { addEntity, softDeleteEntity } from "~/common/Entity.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -168,21 +167,19 @@ function handlePlayerAdded(
   _server: WebSocket,
   { isLocal, nid, position, spriteMapId }: IPlayerAdd,
 ) {
-  // TODO player system
-  const eid = PlayerState.add();
-  const player = PlayerState.acquireProxy(eid);
   console.log("player nid:", nid);
+  const player = PlayerState.addPlayer(addEntity());
   Vec2.copy(player.position, position);
   Vec2.copy(player.targetPosition, position);
-  player.spriteMapId = spriteMapId;
+  player.spriteSheet = spriteMapId;
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
-  TraitState.add(WasdMoveTrait, player.eid);
-  TraitState.add(NegotiatePhysicsTrait, player.eid);
+  TraitState.add(WasdMoveTrait, player);
+  TraitState.add(NegotiatePhysicsTrait, player);
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
-  // TODO player system
   const eid = ClientNetworkState.getEntityId(playerRemove.nid)!;
   softDeleteEntity(eid);
+  // TODO move this stuff to PurgeSystem
   ClientNetworkState.deleteId(playerRemove.nid);
   TraitState.deleteEntity(eid);
 }

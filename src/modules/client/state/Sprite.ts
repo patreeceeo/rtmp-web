@@ -7,7 +7,7 @@ export enum SpriteEnum {
   penguin2Left,
 }
 
-export enum SpriteCollectionEnum {
+export enum SpriteSheetEnum {
   penguin,
   penguin2,
 }
@@ -39,7 +39,7 @@ class SpriteStateApi {
   get(id: SpriteEnum) {
     return this.#sprites[id];
   }
-  find(mapId: SpriteCollectionEnum, pose: PoseType) {
+  find(mapId: SpriteSheetEnum, pose: PoseType) {
     const id = mapId * 2 + pose;
     return this.get(id);
   }

@@ -23,7 +23,7 @@ Deno.test("physics: max velocity", () => {
   const acceleration = new Vec2.Instance();
   const options = new SimulateOptions();
 
-  options.maxVelocity = 10;
+  options.maxSpeed = 10;
 
   acceleration.x = 3; // space units per time unit squared
 

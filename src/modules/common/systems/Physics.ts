@@ -1,5 +1,5 @@
 import { add, clamp, copy, getLengthSquared, sub } from "~/common/Vec2.ts";
-import { PlayerState, PoseType } from "../state/Player.ts";
+import { PoseType } from "../state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
   simulatePositionWithVelocity,
@@ -8,16 +8,7 @@ import {
 import { getPhysicsOptions } from "../functions/physicsHelpers.ts";
 import { isClient } from "../env.ts";
 import { Instance } from "../Vec2.ts";
-import { IEntityMinimal } from "../state/mod.ts";
-
-export interface IPhysicsEntity extends IEntityMinimal {
-  position: Instance;
-  targetPosition: Instance;
-  velocity: Instance;
-  acceleration: Instance;
-  maxVelocity: number;
-  pose: PoseType;
-}
+import { PhysicsState } from "../state/Physics.ts";
 
 const tempPositionDelta = new Instance();
 
@@ -26,36 +17,37 @@ export const PhysicsSystem: SystemLoader<
   [{ fixedDeltaTime: number }]
 > = ({ fixedDeltaTime }) => {
   function exec() {
-    for (const eid of PlayerState.query()) {
-      const player = PlayerState.acquireProxy(eid);
-      const options = getPhysicsOptions(player);
+    for (const entity of PhysicsState.entities.query()) {
+      const options = getPhysicsOptions(entity);
       if (!isClient) {
-        copy(player.targetPosition, player.position);
+        copy(entity.targetPosition, entity.position);
       } else {
-        add(player.targetPosition, player.velocity, fixedDeltaTime);
-        copy(tempPositionDelta, player.targetPosition);
-        sub(tempPositionDelta, player.position);
+        add(entity.targetPosition, entity.velocity, fixedDeltaTime);
+
+        // Calculate how far we are from where we should be
+        copy(tempPositionDelta, entity.targetPosition);
+        sub(tempPositionDelta, entity.position);
         if (
           getLengthSquared(tempPositionDelta) > 1
         ) {
-          clamp(tempPositionDelta, player.maxVelocity * fixedDeltaTime);
-          add(player.position, tempPositionDelta);
+          clamp(tempPositionDelta, entity.maxSpeed * fixedDeltaTime);
+          add(entity.position, tempPositionDelta);
         }
       }
-      player.pose = player.acceleration.x == 0
-        ? player.pose
-        : player.acceleration.x > 0
+      entity.pose = entity.acceleration.x == 0
+        ? entity.pose
+        : entity.acceleration.x > 0
         ? PoseType.facingRight
         : PoseType.facingLeft;
       simulateVelocityWithAcceleration(
-        player.velocity,
-        player.acceleration,
+        entity.velocity,
+        entity.acceleration,
         fixedDeltaTime,
         options,
       );
       simulatePositionWithVelocity(
-        player.position,
-        player.velocity,
+        entity.position,
+        entity.velocity,
         fixedDeltaTime,
         options,
       );

@@ -1,26 +1,12 @@
 import * as Vec2 from "~/common/Vec2.ts";
-import { OutputState, PreviousPositionStore } from "~/client/state/Output.ts";
-import { PlayerState } from "~/common/state/Player.ts";
+import { OutputState } from "~/client/state/Output.ts";
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { loadTilemap } from "../../common/loaders/TiledTMJTilemapLoader.ts";
 import { roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
 import { DebugState } from "../state/Debug.ts";
-import {
-  loadSprite,
-  Sprite,
-  SpriteEnum,
-  SpriteState,
-} from "../state/Sprite.ts";
+import { loadSprite, SpriteEnum, SpriteState } from "../state/Sprite.ts";
 import { Layer as TilemapLayer } from "../../common/Tilemap.ts";
-import { IEntityMinimal } from "../../common/state/mod.ts";
-
-export interface IOutputEntity extends IEntityMinimal {
-  position: Vec2.ReadOnly;
-  targetPosition: Vec2.ReadOnly;
-  physicalSize: Vec2.ReadOnly;
-  sprite: Sprite;
-}
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
@@ -224,33 +210,27 @@ function drawTweenHelpers() {
   } = OutputState;
   const ctx = context2d!;
 
-  const eids = PlayerState.query();
-  for (const eid of eids) {
-    const player = PlayerState.acquireProxy(eid);
-    const { x, y } = player.targetPosition;
-    const { width: w, height: h } = player;
+  const entities = OutputState.entities.query();
+  for (const entity of entities) {
+    const { x, y } = entity.targetPosition;
+    const { x: w, y: h } = entity.physicalSize;
     const w2 = w >> 1;
     const h2 = h >> 1;
     ctx.strokeStyle = "red";
-    ctx.strokeRect(
-      roundTo8thBit(x) - w2,
-      roundTo8thBit(y) - h2,
-      w,
-      h,
-    );
+    ctx.strokeRect(roundTo8thBit(x) - w2, roundTo8thBit(y) - h2, w, h);
   }
 }
 
+const eraseQueryOptions = { includeSoftDeleted: true };
 function isRenderDataDirty() {
   let isDirty = false;
-  for (const eid of PlayerState.query({ includeDeleted: true })) {
-    const player = PlayerState.acquireProxy(eid);
+  for (const entity of OutputState.entities.query(eraseQueryOptions)) {
     if (
-      PreviousPositionStore.x[player.eid] !==
-        roundTo8thBit(player.position.x) ||
-      PreviousPositionStore.y[player.eid] !==
-        roundTo8thBit(player.position.y) ||
-      player.isDeleted
+      entity.previousPosition.x !==
+        roundTo8thBit(entity.position.x) ||
+      entity.previousPosition.y !==
+        roundTo8thBit(entity.position.y) ||
+      entity.isSoftDeleted
     ) {
       isDirty = true;
       break;
@@ -264,23 +244,19 @@ function erasePlayers() {
     foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
-  for (const eid of PlayerState.query({ includeDeleted: true })) {
-    const player = PlayerState.acquireProxy(eid);
-    const sprite = SpriteState.find(
-      player.spriteMapId,
-      player.pose,
-    )!;
-    const { width: w, height: h } = player;
+  for (const entity of OutputState.entities.query(eraseQueryOptions)) {
+    const sprite = SpriteState.find(entity.spriteSheet, entity.pose)!;
+    const { x: w, y: h } = entity.physicalSize;
     const w2 = w >> 1;
     const h2 = h >> 1;
     ctx.clearRect(
-      PreviousPositionStore.x[player.eid] - 2 - w2,
-      PreviousPositionStore.y[player.eid] - 2 - h2,
+      entity.previousPosition.x - 2 - w2,
+      entity.previousPosition.y - 2 - h2,
       sprite.width + 4 + w2,
       sprite.height + 4 + h2,
     );
-    PreviousPositionStore.x[player.eid] = roundTo8thBit(player.position.x);
-    PreviousPositionStore.y[player.eid] = roundTo8thBit(player.position.y);
+    entity.previousPosition.x = roundTo8thBit(entity.position.x);
+    entity.previousPosition.y = roundTo8thBit(entity.position.y);
   }
 }
 
@@ -289,16 +265,15 @@ function drawPlayers() {
     foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
-  for (const eid of PlayerState.query()) {
-    const player = PlayerState.acquireProxy(eid);
-    const sprite = SpriteState.find(player.spriteMapId, player.pose)!;
-    const { width: w, height: h } = player;
+  for (const entity of OutputState.entities.query()) {
+    const sprite = SpriteState.find(entity.spriteSheet, entity.pose)!;
+    const { x: w, y: h } = entity.physicalSize;
     const w2 = w >> 1;
     const h2 = h >> 1;
     ctx.drawImage(
       sprite.source,
-      roundTo8thBit(player.position.x) - w2,
-      roundTo8thBit(player.position.y) - h2,
+      roundTo8thBit(entity.position.x) - w2,
+      roundTo8thBit(entity.position.y) - h2,
     );
   }
 }
