@@ -1,4 +1,3 @@
-import { Maybe } from "../Maybe.ts";
 import { IMessageDef, IPayloadAny, IWritePayload } from "../Message.ts";
 import { ISystemExecutionContext } from "../systems/mod.ts";
 import { NetworkId } from "../NetworkApi.ts";
@@ -9,9 +8,10 @@ import {
   IEntityMaximal,
 } from "../Component.ts";
 
-export type MaybeAddMessageParameters<P extends IPayloadAny> = Maybe<
-  [IMessageDef<P>, IWritePayload<P>]
->;
+export type MaybeAddMessageParameters<P extends IPayloadAny> = [
+  IMessageDef<P>,
+  IWritePayload<P>,
+] | null;
 
 export interface ITraitConstructor<
   CommandPayload extends IPayloadAny,

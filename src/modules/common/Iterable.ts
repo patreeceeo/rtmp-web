@@ -1,7 +1,7 @@
 export function* filter<T>(
   iter: Iterable<T>,
   test: (t: T) => boolean,
-): Generator<T> {
+): Iterable<T> {
   for (const el of iter) {
     if (test(el)) {
       yield el;

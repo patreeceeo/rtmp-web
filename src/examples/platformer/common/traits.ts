@@ -10,7 +10,6 @@ import {
   sub,
 } from "~/common/Vec2.ts";
 import { Button } from "../../../modules/common/Button.ts";
-import { Just, Nothing } from "../../../modules/common/Maybe.ts";
 import { NetworkId } from "../../../modules/common/NetworkApi.ts";
 import { InputState } from "../../../modules/common/state/Input.ts";
 import { NetworkState } from "../../../modules/common/state/Network.ts";
@@ -102,19 +101,19 @@ export class WasdMoveTrait
         return this.#justCommand;
       }
     }
-    return Nothing();
+    return null;
   }
   #writeCommand = (p: IPlayerMove) => {
     copy(p.acceleration, reAcceleration);
     p.nid = this.#nid;
     p.sid = MessageState.currentStep;
   };
-  #justCommand = Just([
+  #justCommand = [
     PlayerMove,
     this.#writeCommand,
-  ]) as MaybeAddMessageParameters<IPlayerMove>;
+  ] as MaybeAddMessageParameters<IPlayerMove>;
   getSnapshotMaybe({ nid, sid }: IPlayerMove) {
-    return Just([
+    return [
       PlayerSnapshot,
       (p: IPlayerSnapshot) => {
         const player = this.entity;
@@ -124,7 +123,7 @@ export class WasdMoveTrait
         p.nid = nid;
         p.sid = sid;
       },
-    ]) as MaybeAddMessageParameters<IPlayerSnapshot>;
+    ] as MaybeAddMessageParameters<IPlayerSnapshot>;
   }
   applyCommand({ acceleration }: IPlayerMove) {
     const player = this.entity;
@@ -206,7 +205,7 @@ export class NegotiatePhysicsTrait implements
       this.#lastSendTime = context.elapsedTime;
       return this.#justCommand;
     }
-    return Nothing();
+    return null;
   }
   #writeCommand = (p: INegotiatePhysics) => {
     copy(p.velocity, this.entity.velocity);
@@ -214,12 +213,12 @@ export class NegotiatePhysicsTrait implements
     p.nid = this.#nid;
     p.sid = MessageState.currentStep;
   };
-  #justCommand = Just([
+  #justCommand = [
     NegotiatePhysics,
     this.#writeCommand,
-  ]) as MaybeAddMessageParameters<INegotiatePhysics>;
+  ] as MaybeAddMessageParameters<INegotiatePhysics>;
   getSnapshotMaybe() {
-    return Nothing();
+    return null;
   }
   applyCommand({ position, velocity }: INegotiatePhysics) {
     const entity = this.entity;
