@@ -14,6 +14,8 @@ import {
 } from "bitecs";
 import { SpriteSheetEnum } from "../client/state/Sprite.ts";
 import { EntityId, IEntityMinimal } from "./Entity.ts";
+import { invariant } from "./Error.ts";
+import { ModifierFlags } from "./Query.ts";
 import { PoseType } from "./state/Player.ts";
 import { ECSInstance, Vec2LargeSchema, Vec2SmallSchema } from "./Vec2.ts";
 import { defaultWorld } from "./World.ts";
@@ -69,6 +71,7 @@ export interface IComponentType<
   readonly store: StoreType<S>;
   readonly queryable: StoreType<S> | Component | QueryModifier;
   readonly propName: PropName;
+  readonly modifiers: number;
   getValue(
     world: IWorld,
     store: StoreType<S>,
@@ -109,6 +112,7 @@ export function defineTag<PropName extends keyof IEntityMaximal>(
     schema: {},
     store,
     queryable: store,
+    modifiers: ModifierFlags.None,
     getValue(world: IWorld, store: StoreType<ITagSchema>, eid: EntityId) {
       return hasComponent(world, store, eid);
     },
@@ -163,6 +167,7 @@ export function defineComponent<
     getValue: config.getValue,
     store,
     queryable: store,
+    modifiers: ModifierFlags.None,
     onAdd(target: IEntityMinimal, componentType: IComponentType<S, PropName>) {
       const base = {
         configurable: true,
@@ -213,8 +218,15 @@ export function addComponent<
   entity: E,
   world = defaultWorld,
 ): WithPropertyForComponent<E, PropName> {
-  addToStore(world, componentType.store, entity.eid);
-  componentType.onAdd(entity, componentType);
+  invariant(
+    !(componentType.modifiers & ModifierFlags.Not) ||
+      !hasComponent(world, componentType.store, entity.eid),
+    `Not implemented: Add Not(ComponentX) to entity with ComponentX`,
+  );
+  if (componentType.modifiers === ModifierFlags.None) {
+    addToStore(world, componentType.store, entity.eid);
+    componentType.onAdd(entity, componentType);
+  }
   return entity as WithPropertyForComponent<E, PropName>;
 }
 
@@ -240,7 +252,14 @@ export function removeComponent<
   entity: E,
   world = defaultWorld,
 ): Omit<E, PropName> {
-  removeFromStore(world, componentType.store, entity.eid);
-  componentType.onRemove(entity, componentType);
+  invariant(
+    !(componentType.modifiers & ModifierFlags.Not) ||
+      hasComponent(world, componentType.store, entity.eid),
+    `Not implemented: Remove Not(ComponentX) from entity without ComponentX`,
+  );
+  if (componentType.modifiers === ModifierFlags.None) {
+    removeFromStore(world, componentType.store, entity.eid);
+    componentType.onRemove(entity, componentType);
+  }
   return entity as Omit<E, PropName>;
 }

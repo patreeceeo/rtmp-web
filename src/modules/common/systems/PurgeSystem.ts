@@ -5,11 +5,10 @@ import { SoftDeletedTag } from "../components.ts";
 // TODO purge state api?
 const deletedEntityTimestamps: number[] = [];
 const entities = new EntityPrefabCollection([SoftDeletedTag]);
-const queryOptions = { includeSoftDeleted: true };
 
 export const PurgeSystem: SystemLoader<ISystemExecutionContext> = () => {
   function exec({ elapsedTime }: ISystemExecutionContext) {
-    for (const entity of entities.query(queryOptions)) {
+    for (const entity of entities.query()) {
       const eid = entity.eid;
       if (
         eid in deletedEntityTimestamps &&

@@ -31,7 +31,7 @@ import {
 } from "../../../modules/common/Message.ts";
 import { initPing, sendPing } from "../../../modules/common/state/Ping.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
-import { addEntity, softDeleteEntity } from "~/common/Entity.ts";
+import { addEntity, hasEntity, softDeleteEntity } from "~/common/Entity.ts";
 
 const idleTimeout = 300;
 
@@ -104,11 +104,13 @@ class DotsServerApp implements ServerApp {
     ServerNetworkState.removeClient(client.nid);
     for (const nid of client.getNetworkIds()) {
       const eid = ServerNetworkState.getEntityId(nid);
-      softDeleteEntity(eid!);
-      broadcastMessage(PlayerRemove, (p) => {
-        p.nid = nid;
-        p.sid = MessageState.currentStep;
-      });
+      if (hasEntity(eid!)) {
+        softDeleteEntity(eid!);
+        broadcastMessage(PlayerRemove, (p) => {
+          p.nid = nid;
+          p.sid = MessageState.currentStep;
+        });
+      }
     }
   }
 

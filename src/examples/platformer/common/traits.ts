@@ -37,15 +37,18 @@ import {
   MaxSpeedComponent,
   PoseComponent,
   PositionComponent,
+  SoftDeletedTag,
   TargetPositionComponent,
   VelocityComponent,
 } from "../../../modules/common/components.ts";
 import { EntityWithComponents } from "../../../modules/common/Component.ts";
+import { Not } from "../../../modules/common/Query.ts";
 
 const maxAcceleration = 2;
 
 const reAcceleration = new Instance();
 const WASD_MOVE_COMPONENTS = [
+  Not(SoftDeletedTag),
   TargetPositionComponent,
   AccelerationComponent,
   PoseComponent,
@@ -162,6 +165,7 @@ const tempVelocityDelta = new Instance();
 const MAX_POSITION_DELTA = 2000;
 const MAX_VELOCITY_DELTA = 1500;
 const NEGOTIATE_PHYSICS_COMPONENTS = [
+  Not(SoftDeletedTag),
   PositionComponent,
   TargetPositionComponent,
   VelocityComponent,

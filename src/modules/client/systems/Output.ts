@@ -221,10 +221,9 @@ function drawTweenHelpers() {
   }
 }
 
-const eraseQueryOptions = { includeSoftDeleted: true };
 function isRenderDataDirty() {
   let isDirty = false;
-  for (const entity of OutputState.entities.query(eraseQueryOptions)) {
+  for (const entity of OutputState.entities.query()) {
     if (
       entity.previousPosition.x !==
         roundTo8thBit(entity.position.x) ||
@@ -244,7 +243,7 @@ function erasePlayers() {
     foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
-  for (const entity of OutputState.entities.query(eraseQueryOptions)) {
+  for (const entity of OutputState.entities.query()) {
     const sprite = SpriteState.find(entity.spriteSheet, entity.pose)!;
     const { x: w, y: h } = entity.physicalSize;
     const w2 = w >> 1;

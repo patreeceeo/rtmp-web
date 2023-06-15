@@ -6,14 +6,17 @@ import {
   PhysicalSizeComponent,
   PoseComponent,
   PositionComponent,
+  SoftDeletedTag,
   TargetPositionComponent,
   VelocityComponent,
 } from "../components.ts";
+import { Not } from "../Query.ts";
 
 export type IPhysicsEntity = ReturnType<typeof PhysicsState.entities.add>;
 
 class PhysicsStateApi {
   readonly components = [
+    Not(SoftDeletedTag),
     PositionComponent,
     TargetPositionComponent,
     PhysicalSizeComponent,

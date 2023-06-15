@@ -10,7 +10,7 @@ import {
   IAnyComponentType,
 } from "./Component.ts";
 import { SoftDeletedTag } from "./components.ts";
-import { defineQuery, IQuery, Not } from "./Query.ts";
+import { defineQuery, IQuery } from "./Query.ts";
 import { OpaqueType } from "./util.ts";
 import { defaultWorld } from "./World.ts";
 
@@ -64,6 +64,10 @@ export function addEntity(world = defaultWorld): IEntityMinimal {
   return pool.acquire(world);
 }
 
+export function hasEntity(eid: EntityId, world = defaultWorld): boolean {
+  return entityExists(world, eid);
+}
+
 export function softDeleteEntity(
   eid: EntityId,
   world = defaultWorld,
@@ -76,18 +80,6 @@ export function deleteEntity(eid: EntityId, world = defaultWorld): void {
   pool.release(eid);
 }
 
-export interface IEntityQueryOptions {
-  // TODO get rid of this option and just create a separate collection
-  includeSoftDeleted: boolean;
-}
-
-class EntityQueryOptions implements IEntityQueryOptions {
-  includeSoftDeleted = false;
-}
-
-export const defaultEntityQueryOptions: IEntityQueryOptions =
-  new EntityQueryOptions();
-
 /**
 * @example
 interface ITest extends IEntityMinimal {
@@ -99,14 +91,9 @@ const result: ITest = test.add({ eid: 0 as EntityId, isSoftDeleted: false})
 export class EntityPrefabCollection<
   ComponentTypes extends ReadonlyArray<IAnyComponentType>,
 > {
-  #queryNotDeleted: IQuery;
   #query: IQuery;
   constructor(readonly components: ComponentTypes) {
     this.#query = defineQuery(this.components);
-    this.#queryNotDeleted = defineQuery([
-      ...this.components,
-      Not(SoftDeletedTag),
-    ]);
   }
   add<InputEntity extends IEntityMinimal>(entity: InputEntity) {
     const prefab = addComponents<
@@ -115,27 +102,18 @@ export class EntityPrefabCollection<
     >(this.components, entity);
     return prefab;
   }
-  query(
-    options: IEntityQueryOptions = defaultEntityQueryOptions,
-  ): Iterable<
+  query(): Iterable<
     EntityWithComponents<ComponentTypes>
   > {
-    const eids =
-      (options.includeSoftDeleted
-        ? this.#query(defaultWorld)
-        : this.#queryNotDeleted(defaultWorld)) as EntityId[];
+    const eids = this.#query(defaultWorld);
     return eids.map((eid) => {
-      return pool.get(eid) as EntityWithComponents<ComponentTypes>;
+      return pool.get(eid as EntityId) as EntityWithComponents<ComponentTypes>;
     });
   }
   has(
     entity: EntityWithComponents<ComponentTypes>,
-    options: IEntityQueryOptions = defaultEntityQueryOptions,
   ) {
-    const eids =
-      (options.includeSoftDeleted
-        ? this.#query(defaultWorld)
-        : this.#queryNotDeleted(defaultWorld)) as EntityId[];
+    const eids = this.#query(defaultWorld);
     return entityExists(defaultWorld, entity.eid) && eids.includes(entity.eid);
   }
   get(eid: EntityId): EntityWithComponents<ComponentTypes> | undefined {

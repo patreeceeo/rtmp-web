@@ -6,6 +6,7 @@ import {
 } from "./components.ts";
 import { addEntity } from "./Entity.ts";
 import { assertEquals, assertThrows } from "asserts";
+import { Not } from "./Query.ts";
 
 Deno.test("Tag component", () => {
   const entity = addEntity();
@@ -69,4 +70,18 @@ Deno.test("Component with complex schema", () => {
 
   const e2 = removeComponent(PositionComponent, entity);
   assertThrows(() => (e2 as any).position);
+});
+
+Deno.test("Component with modifier", () => {
+  const entity = addEntity();
+  addComponent(SoftDeletedTag, entity);
+
+  assertEquals(entity.isSoftDeleted, true);
+
+  assertThrows(() => addComponent(Not(SoftDeletedTag), entity));
+  removeComponent(SoftDeletedTag, entity);
+
+  addComponent(Not(SoftDeletedTag), entity);
+
+  assertEquals(entity.isSoftDeleted, false);
 });
