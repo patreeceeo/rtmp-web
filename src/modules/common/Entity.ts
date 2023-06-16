@@ -7,6 +7,7 @@ import {
 import {
   addComponents,
   EntityWithComponents,
+  hasComponent,
   IAnyComponentType,
 } from "./Component.ts";
 import { SoftDeletedTag } from "./components.ts";
@@ -119,4 +120,23 @@ export class EntityPrefabCollection<
   get(eid: EntityId): EntityWithComponents<ComponentTypes> | undefined {
     return pool.get(eid) as EntityWithComponents<ComponentTypes>;
   }
+}
+
+export function castEntity<
+  ComponentTypes extends ReadonlyArray<IAnyComponentType>,
+>(
+  entity: IEntityMinimal,
+  Components: ComponentTypes,
+): EntityWithComponents<ComponentTypes> {
+  let hasAllComponents = true;
+  for (const Component of Components) {
+    if (!hasComponent(Component, entity)) {
+      hasAllComponents = false;
+      break;
+    }
+  }
+  if (!hasAllComponents) {
+    throw new Error(`Entity ${entity.eid} does not have all components`);
+  }
+  return entity as EntityWithComponents<ComponentTypes>;
 }

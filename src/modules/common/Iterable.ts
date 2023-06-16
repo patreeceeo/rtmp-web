@@ -69,4 +69,36 @@ export function average(iter: Iterable<number>, maxItems = Infinity) {
   return sum / count;
 }
 
+/*
+// Used in an attempt at keeping the client and server simulations more in sync using rollback. See examples/platformer/common/traits.ts
+export function zip<T>(iterables: Array<Iterable<T>>, targetTuple: Array<T> = []): Iterable<Array<T>> {
+  return {
+    *[Symbol.iterator]() {
+      const iterators = iterables.map((iter) => iter[Symbol.iterator]());
+      while (true) {
+        const nexts = iterators.map((iter) => iter.next());
+        if (nexts.every((next) => next.done)) {
+          break;
+        }
+        targetTuple.length = 0;
+        for (const next of nexts) {
+          targetTuple.push(next.value);
+        }
+        yield targetTuple;
+      }
+    },
+  };
+}
+
+export function *tail<T>(iter: Iterable<T>, headLenght = 1): Iterable<T> {
+  let count = 0
+  for (const el of iter) {
+    if (count >= headLenght) {
+      yield el;
+    }
+    count++;
+  }
+}
+*/
+
 export const emtpyIterable = (new Set()).values();

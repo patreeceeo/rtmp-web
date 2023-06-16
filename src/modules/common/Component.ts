@@ -3,7 +3,7 @@ import {
   Component,
   ComponentType as _StoreType,
   defineComponent as createStore,
-  hasComponent,
+  hasComponent as _hasComponent,
   ISchema as _ISchema,
   IWorld,
   QueryModifier,
@@ -114,7 +114,7 @@ export function defineTag<PropName extends keyof IEntityMaximal>(
     queryable: store,
     modifiers: ModifierFlags.None,
     getValue(world: IWorld, store: StoreType<ITagSchema>, eid: EntityId) {
-      return hasComponent(world, store, eid);
+      return _hasComponent(world, store, eid);
     },
     onAdd(target: IEntityMinimal) {
       Object.defineProperty(target, this.propName, {
@@ -220,7 +220,7 @@ export function addComponent<
 ): WithPropertyForComponent<E, PropName> {
   invariant(
     !(componentType.modifiers & ModifierFlags.Not) ||
-      !hasComponent(world, componentType.store, entity.eid),
+      !_hasComponent(world, componentType.store, entity.eid),
     `Not implemented: Add Not(ComponentX) to entity with ComponentX`,
   );
   if (componentType.modifiers === ModifierFlags.None) {
@@ -254,7 +254,7 @@ export function removeComponent<
 ): Omit<E, PropName> {
   invariant(
     !(componentType.modifiers & ModifierFlags.Not) ||
-      hasComponent(world, componentType.store, entity.eid),
+      _hasComponent(world, componentType.store, entity.eid),
     `Not implemented: Remove Not(ComponentX) from entity without ComponentX`,
   );
   if (componentType.modifiers === ModifierFlags.None) {
@@ -262,4 +262,13 @@ export function removeComponent<
     componentType.onRemove(entity, componentType);
   }
   return entity as Omit<E, PropName>;
+}
+
+export function hasComponent<E extends IEntityMinimal>(
+  componentType: IAnyComponentType,
+  entity: E,
+  world = defaultWorld,
+): boolean {
+  return _hasComponent(world, componentType.store, entity.eid) ||
+    componentType.modifiers != ModifierFlags.None;
 }

@@ -42,12 +42,12 @@ import {
 } from "../../../modules/common/components.ts";
 import { EntityWithComponents } from "../../../modules/common/Component.ts";
 import { Not } from "../../../modules/common/Query.ts";
-
 const maxAcceleration = 2;
 
 const reAcceleration = new Instance();
 const WASD_MOVE_COMPONENTS = [
   Not(SoftDeletedTag),
+  PositionComponent,
   TargetPositionComponent,
   AccelerationComponent,
   PoseComponent,
@@ -55,6 +55,7 @@ const WASD_MOVE_COMPONENTS = [
   MaxSpeedComponent,
   LastActiveTimeComponent,
 ] as const;
+
 export class WasdMoveTrait
   implements ITrait<IPlayerMove, IPlayerSnapshot, typeof WASD_MOVE_COMPONENTS> {
   static readonly commandType = PlayerMove.type;
@@ -127,7 +128,9 @@ export class WasdMoveTrait
   }
   applyCommand({ acceleration }: IPlayerMove) {
     const player = this.entity;
+    // rollback(player, sid);
     copy(player.acceleration, acceleration);
+    // resimulate(player, sid);
   }
 
   shouldSendSnapshot(snapshot: IPlayerSnapshot, nidReceiver: NetworkId) {
@@ -144,12 +147,9 @@ export class WasdMoveTrait
       !NetworkState.isLocal(nid)
     );
   }
-  applySnapshot(
-    { pose, position, velocity, nid }: IPlayerSnapshot,
-    context: ISystemExecutionContext,
-  ) {
+  applySnapshot({ pose, position, velocity, nid }: IPlayerSnapshot) {
     const player = this.entity;
-    player.lastActiveTime = context.elapsedTime;
+    player.lastActiveTime = MessageState.currentStep;
     copy(player.targetPosition, position);
 
     if (!NetworkState.isLocal(nid)) {
@@ -244,3 +244,57 @@ export class NegotiatePhysicsTrait implements
     copy(this.entity.targetPosition, position);
   }
 }
+
+/*
+// An attempt at keeping the client and server simulations more in sync using rollback
+
+ function rollback(
+   entity: EntityWithComponents<typeof WASD_MOVE_COMPONENTS>,
+   sid: number
+ ) {
+   const snapshots = MessageState.getSnapshotsByCommandStepCreated(sid);
+
+   for (const [type, p] of snapshots) {
+     if (type === PlayerSnapshot.type) {
+       const s = p as IPlayerSnapshot;
+       copy(entity.position, s.position);
+       copy(entity.velocity, s.velocity);
+       set(entity.acceleration, 0, 0);
+     }
+   }
+ }
+
+ const reuseTuple: Array<[number, IPayloadAny]> = [];
+
+ function resimulate(
+   entity: EntityWithComponents<typeof WASD_MOVE_COMPONENTS>,
+   sid: number
+ ) {
+   const commands = MessageState.getCommandsByStepReceived(
+     sid,
+     MessageState.currentStep
+   );
+   const moveCommands = filter(commands, (c) => c[0] === PlayerMove.type);
+   const moveCommandPairs = zip([moveCommands, tail(moveCommands)], reuseTuple);
+   for (const [command, nextCommand] of moveCommandPairs) {
+     const [_, p] = command;
+     const [__, nextPayload] = nextCommand || [];
+     const { acceleration, nid, sid } = p as IPlayerMove;
+     const eid = NetworkState.getEntityId(nid);
+     if (eid === entity.eid) {
+       copy(entity.acceleration, acceleration);
+     }
+     const dt = (nextPayload ? nextPayload.sid : MessageState.currentStep) - sid;
+     const options = getPhysicsOptions(
+       castEntity(entity, PhysicsState.components)
+     );
+     simulateVelocityWithAcceleration(
+       entity.velocity,
+       entity.acceleration,
+       dt,
+       options
+     );
+     simulatePositionWithVelocity(entity.position, entity.velocity, dt, options);
+   }
+ }
+ */
