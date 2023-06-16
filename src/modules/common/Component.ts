@@ -48,6 +48,8 @@ export type EntityWithComponents<
 
 export interface IEntityMaximal extends IEntityMinimal {
   isPlayer: boolean;
+  bodyIsStatic: boolean;
+  bodyDimensions: ECSInstance<typeof Vec2SmallSchema>;
   position: ECSInstance<typeof Vec2LargeSchema>;
   targetPosition: ECSInstance<typeof Vec2LargeSchema>;
   previousPosition: ECSInstance<typeof Vec2LargeSchema>;
@@ -55,7 +57,6 @@ export interface IEntityMaximal extends IEntityMinimal {
   maxSpeed: number;
   friction: number;
   acceleration: ECSInstance<typeof Vec2SmallSchema>;
-  physicalSize: ECSInstance<typeof Vec2SmallSchema>;
   spriteSheet: SpriteSheetEnum;
   pose: PoseType;
   lastActiveTime: number;

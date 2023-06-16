@@ -1,9 +1,9 @@
 import { EntityPrefabCollection } from "../Entity.ts";
 import {
   AccelerationComponent,
+  BodyDimensions,
   FrictionComponent,
   MaxSpeedComponent,
-  PhysicalSizeComponent,
   PoseComponent,
   PositionComponent,
   SoftDeletedTag,
@@ -19,7 +19,7 @@ class PhysicsStateApi {
     Not(SoftDeletedTag),
     PositionComponent,
     TargetPositionComponent,
-    PhysicalSizeComponent,
+    BodyDimensions,
     VelocityComponent,
     MaxSpeedComponent,
     FrictionComponent,

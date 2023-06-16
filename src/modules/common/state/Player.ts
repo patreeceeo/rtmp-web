@@ -22,7 +22,7 @@ class PlayerStateApi {
   addPlayer(entity: IEntityMinimal) {
     const player = this.entities.add(entity);
     player.friction = 80;
-    set(player.physicalSize, 16, 32);
+    set(player.bodyDimensions, 16, 32);
     player.maxSpeed = 99;
     return player;
   }

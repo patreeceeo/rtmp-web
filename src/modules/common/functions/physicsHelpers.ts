@@ -5,7 +5,7 @@ import { SimulateOptions } from "./physics.ts";
 const reOptions = new SimulateOptions();
 
 export function getPhysicsOptions(entity: IPhysicsEntity, target = reOptions) {
-  const size = entity.physicalSize;
+  const size = entity.bodyDimensions;
   target.worldDimensions = LevelState.dimensions;
   target.maxSpeed = entity.maxSpeed;
   target.friction = entity.friction;

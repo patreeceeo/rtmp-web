@@ -213,7 +213,7 @@ function drawTweenHelpers() {
   const entities = OutputState.entities.query();
   for (const entity of entities) {
     const { x, y } = entity.targetPosition;
-    const { x: w, y: h } = entity.physicalSize;
+    const { x: w, y: h } = entity.bodyDimensions;
     const w2 = w >> 1;
     const h2 = h >> 1;
     ctx.strokeStyle = "red";
@@ -245,7 +245,7 @@ function erasePlayers() {
   const ctx = context2d!;
   for (const entity of OutputState.entities.query()) {
     const sprite = SpriteState.find(entity.spriteSheet, entity.pose)!;
-    const { x: w, y: h } = entity.physicalSize;
+    const { x: w, y: h } = entity.bodyDimensions;
     const w2 = w >> 1;
     const h2 = h >> 1;
     ctx.clearRect(
@@ -266,7 +266,7 @@ function drawPlayers() {
   const ctx = context2d!;
   for (const entity of OutputState.entities.query()) {
     const sprite = SpriteState.find(entity.spriteSheet, entity.pose)!;
-    const { x: w, y: h } = entity.physicalSize;
+    const { x: w, y: h } = entity.bodyDimensions;
     const w2 = w >> 1;
     const h2 = h >> 1;
     ctx.drawImage(

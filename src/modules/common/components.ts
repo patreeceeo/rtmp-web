@@ -19,6 +19,10 @@ export const PlayerTag = defineTag({
   propName: "isPlayer",
 });
 
+export const BodyStaticTag = defineTag({
+  propName: "bodyIsStatic",
+});
+
 export const PositionComponent = defineComponent({
   schema: Vec2LargeSchema,
   propName: "position",
@@ -55,9 +59,9 @@ export const PreviousPositionComponent = defineComponent({
   },
 });
 
-export const PhysicalSizeComponent = defineComponent({
+export const BodyDimensions = defineComponent({
   schema: Vec2SmallSchema,
-  propName: "physicalSize",
+  propName: "bodyDimensions",
   getValue(
     _world: IWorld,
     store: StoreType<typeof Vec2SmallSchema>,

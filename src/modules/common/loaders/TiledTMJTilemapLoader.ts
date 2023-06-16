@@ -3,6 +3,12 @@ import { dirname } from "path";
 import { IReadonlyTilemap, Layer, Tile, Tilemap } from "../Tilemap.ts";
 /**
  * @file Loads a JSON string from a Tiled TMJ file into a Tilemap object.
+ *
+ * Tile Entity:
+ * - position
+ * - bodyIsStatic
+ * - bodyDimensions
+ * - image
  */
 
 interface ITilemapJson {

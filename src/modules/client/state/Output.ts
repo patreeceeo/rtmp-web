@@ -2,7 +2,7 @@ import { deferred } from "async";
 import { Instance } from "~/common/Vec2.ts";
 import { Tilemap } from "../../common/Tilemap.ts";
 import {
-  PhysicalSizeComponent,
+  BodyDimensions,
   PoseComponent,
   PositionComponent,
   PreviousPositionComponent,
@@ -46,7 +46,7 @@ class OutputStateApi {
     PositionComponent,
     PreviousPositionComponent,
     TargetPositionComponent,
-    PhysicalSizeComponent,
+    BodyDimensions,
     SpriteSheetComponent,
     PoseComponent,
   ] as const;
