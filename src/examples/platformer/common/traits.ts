@@ -82,16 +82,28 @@ export class WasdMoveTrait
     if (NetworkState.isLocal(this.#nid)) {
       let ddx = 0,
         ddy = 0;
-      if (InputState.isButtonPressed(Button.KeyA)) {
+      if (
+        InputState.isButtonPressed(Button.KeyA) ||
+        InputState.isButtonPressed(Button.KeyJ)
+      ) {
         ddx = -maxAcceleration;
       }
-      if (InputState.isButtonPressed(Button.KeyW)) {
+      if (
+        InputState.isButtonPressed(Button.KeyW) ||
+        InputState.isButtonPressed(Button.KeyI)
+      ) {
         ddy = -maxAcceleration;
       }
-      if (InputState.isButtonPressed(Button.KeyS)) {
+      if (
+        InputState.isButtonPressed(Button.KeyS) ||
+        InputState.isButtonPressed(Button.KeyK)
+      ) {
         ddy = maxAcceleration;
       }
-      if (InputState.isButtonPressed(Button.KeyD)) {
+      if (
+        InputState.isButtonPressed(Button.KeyD) ||
+        InputState.isButtonPressed(Button.KeyL)
+      ) {
         ddx = maxAcceleration;
       }
       if (ddx !== this.#lastDdx || ddy !== this.#lastDdy) {
