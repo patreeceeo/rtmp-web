@@ -4,6 +4,7 @@ import { Box } from "../Box.ts";
 import {
   getDataUrl,
   getFromCache,
+  ImageFormat,
   ImageOptions,
   loadFromUrl,
 } from "../functions/image.ts";
@@ -149,6 +150,7 @@ function loadTile(
     _imageOptions.flipD = isFlagSet(flags, TileFlags.FLIPPED_DIAGONALLY_FLAG);
 
     target.image.src = getDataUrl(image, _imageSourceBox, _imageOptions);
+
     target.screenX = mapX * tileset.tilewidth;
     target.screenY = mapY * tileset.tileheight;
     target.width = tileset.tilewidth;

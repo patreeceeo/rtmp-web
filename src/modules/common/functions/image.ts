@@ -1,17 +1,25 @@
 import { IBox } from "../Box.ts";
 
-const _canvas = document.createElement("canvas");
+export enum ImageFormat {
+  PNG = "image/png",
+  JPEG = "image/jpeg",
+  GIF = "image/gif",
+}
+
 export class ImageOptions {
   flipH = false;
   flipV = false;
   flipD = false;
+  format = ImageFormat.PNG;
   reset() {
     this.flipH = false;
     this.flipD = false;
     this.flipV = false;
+    this.format = ImageFormat.GIF;
   }
 }
 
+const _canvas = document.createElement("canvas");
 const _defaultOptions = new ImageOptions();
 
 const _imagePromiseCache: { [url: string]: Promise<HTMLImageElement> } = {};
@@ -76,5 +84,5 @@ export function getDataUrl(
     sourceBox.h,
   );
 
-  return _canvas.toDataURL("image/png");
+  return _canvas.toDataURL(options.format);
 }
