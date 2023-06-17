@@ -12,12 +12,38 @@ export class ImageOptions {
   }
 }
 
-const defaultOptions = new ImageOptions();
+const _defaultOptions = new ImageOptions();
+
+const _imagePromiseCache: { [url: string]: Promise<HTMLImageElement> } = {};
+const _imageCache: { [url: string]: HTMLImageElement } = {};
+
+export function loadFromUrl(
+  url: string,
+  cacheKey = url,
+): Promise<HTMLImageElement> {
+  if (!(cacheKey in _imagePromiseCache)) {
+    return _imagePromiseCache[cacheKey] = new Promise<HTMLImageElement>(
+      (res, rej) => {
+        const img = new Image();
+        img.onload = () => res(img);
+        img.onerror = rej;
+        img.src = url;
+        _imageCache[cacheKey] = img;
+      },
+    );
+  } else {
+    return _imagePromiseCache[cacheKey];
+  }
+}
+
+export function getFromCache(cacheKey: string) {
+  return _imageCache[cacheKey];
+}
 
 export function getDataUrl(
   image: HTMLImageElement,
   sourceBox: IBox,
-  options = defaultOptions,
+  options = _defaultOptions,
 ) {
   _canvas.width = sourceBox.w;
   _canvas.height = sourceBox.h;

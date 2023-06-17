@@ -1,7 +1,12 @@
 import { decode } from "encoding/base64.ts";
 import { dirname } from "path";
 import { Box } from "../Box.ts";
-import { getDataUrl, ImageOptions } from "../functions/image.ts";
+import {
+  getDataUrl,
+  getFromCache,
+  ImageOptions,
+  loadFromUrl,
+} from "../functions/image.ts";
 import { IReadonlyTilemap, Layer, Tile, Tilemap } from "../Tilemap.ts";
 /**
  * @file Loads a JSON string from a Tiled TMJ file into a Tilemap object.
@@ -68,20 +73,11 @@ export async function loadTilemap(
   return target as IReadonlyTilemap;
 }
 
-// TODO create cache class
-const imageCache: { [url: string]: HTMLImageElement } = {};
-
 async function cacheImages(json: ITilemapJson, tilemapUrl: string) {
   const tilemapDir = dirname(tilemapUrl);
   const tilesetPaths = new Set(json.tilesets.map((tileset) => tileset.image));
   const promises = Array.from(tilesetPaths).map(
-    (path) =>
-      new Promise<void>((res) => {
-        const img = new Image();
-        img.onload = () => res();
-        img.src = `${tilemapDir}/${path}`;
-        imageCache[path] = img;
-      }),
+    (relPath) => loadFromUrl(`${tilemapDir}/${relPath}`, relPath),
   );
   await Promise.all(promises);
 }
@@ -142,7 +138,7 @@ function loadTile(
     const tilesetIndex = getTilesetIndexForGid(tilesets, gid);
     const tileset = tilesets[tilesetIndex];
     const localId = getTileLocalId(gid, tileset.firstgid);
-    const image = imageCache[tileset.image];
+    const image = getFromCache(tileset.image);
     const imageX = (localId % tileset.columns) * tileset.tilewidth;
     const imageY = Math.floor(localId / tileset.columns) * tileset.tileheight;
     _imageSourceBox.set(imageX, imageY, tileset.tilewidth, tileset.tileheight);
