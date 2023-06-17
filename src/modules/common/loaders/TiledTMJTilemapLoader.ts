@@ -1,5 +1,7 @@
 import { decode } from "encoding/base64.ts";
 import { dirname } from "path";
+import { Box } from "../Box.ts";
+import { getDataUrl, ImageOptions } from "../functions/image.ts";
 import { IReadonlyTilemap, Layer, Tile, Tilemap } from "../Tilemap.ts";
 /**
  * @file Loads a JSON string from a Tiled TMJ file into a Tilemap object.
@@ -121,8 +123,8 @@ enum TileFlags {
     TileFlags.FLIPPED_DIAGONALLY_FLAG,
 }
 
-const _canvasEl = document.createElement("canvas");
-
+const _imageSourceBox = new Box();
+const _imageOptions = new ImageOptions();
 function loadTile(
   bits: number,
   tilesets: ReadonlyArray<ITilesetJson>,
@@ -136,48 +138,21 @@ function loadTile(
     return undefined;
   } else {
     const flags = bits & TileFlags.ALL_FLIP_FLAGS;
-    const flipH = isFlagSet(flags, TileFlags.FLIPPED_HORIZONTALLY_FLAG);
-    const flipV = isFlagSet(flags, TileFlags.FLIPPED_VERTICALLY_FLAG);
-    const flipD = isFlagSet(flags, TileFlags.FLIPPED_DIAGONALLY_FLAG);
+
     const tilesetIndex = getTilesetIndexForGid(tilesets, gid);
     const tileset = tilesets[tilesetIndex];
     const localId = getTileLocalId(gid, tileset.firstgid);
     const image = imageCache[tileset.image];
     const imageX = (localId % tileset.columns) * tileset.tilewidth;
     const imageY = Math.floor(localId / tileset.columns) * tileset.tileheight;
-    const canvas = _canvasEl;
+    _imageSourceBox.set(imageX, imageY, tileset.tilewidth, tileset.tileheight);
 
-    canvas.width = tileset.tilewidth;
-    canvas.height = tileset.tileheight;
-    const ctx = canvas.getContext("2d")!;
+    _imageOptions.reset();
+    _imageOptions.flipH = isFlagSet(flags, TileFlags.FLIPPED_HORIZONTALLY_FLAG);
+    _imageOptions.flipV = isFlagSet(flags, TileFlags.FLIPPED_VERTICALLY_FLAG);
+    _imageOptions.flipD = isFlagSet(flags, TileFlags.FLIPPED_DIAGONALLY_FLAG);
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (flipH) {
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-    }
-    if (flipV) {
-      ctx.translate(0, canvas.height);
-      ctx.scale(1, -1);
-    }
-    if (flipD) {
-      ctx.translate(canvas.width, 0);
-      ctx.rotate(Math.PI / 2);
-    }
-    ctx.drawImage(
-      image,
-      imageX,
-      imageY,
-      tileset.tilewidth,
-      tileset.tileheight,
-      0,
-      0,
-      tileset.tilewidth,
-      tileset.tileheight,
-    );
-
-    target.image.src = canvas.toDataURL("image/png");
+    target.image.src = getDataUrl(image, _imageSourceBox, _imageOptions);
     target.screenX = mapX * tileset.tilewidth;
     target.screenY = mapY * tileset.tileheight;
     target.width = tileset.tilewidth;
