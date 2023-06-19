@@ -1,14 +1,24 @@
 import { decode } from "encoding/base64.ts";
 import { dirname } from "path";
 import { Box } from "../Box.ts";
+import { addComponents } from "../Component.ts";
 import {
-  getDataUrl,
+  BodyDimensions,
+  BodyStaticTag,
+  ImageIdComponent,
+  PositionComponent,
+} from "../components.ts";
+import { addEntity } from "../Entity.ts";
+import { incrementId } from "../functions/id.ts";
+import {
+  getChunk,
   getFromCache,
-  ImageFormat,
   ImageOptions,
   loadFromUrl,
+  LoadOptions,
+  setCache,
 } from "../functions/image.ts";
-import { IReadonlyTilemap, Layer, Tile, Tilemap } from "../Tilemap.ts";
+import { set } from "../Vec2.ts";
 /**
  * @file Loads a JSON string from a Tiled TMJ file into a Tilemap object.
  *
@@ -18,6 +28,12 @@ import { IReadonlyTilemap, Layer, Tile, Tilemap } from "../Tilemap.ts";
  * - bodyDimensions
  * - image
  */
+const TILE_COMPONENTS = [
+  ImageIdComponent,
+  PositionComponent,
+  BodyStaticTag,
+  BodyDimensions,
+] as const;
 
 interface ITilemapJson {
   width: number;
@@ -56,60 +72,6 @@ interface ITilesetJson {
   tilewidth: number;
 }
 
-export async function loadTilemap(
-  url: string,
-  target = new Tilemap(),
-): Promise<IReadonlyTilemap> {
-  const json = await fetch(url).then((res) => res.json());
-  await cacheImages(json, url);
-  target.width = json.width;
-  target.height = json.height;
-  target.tileWidth = json.tilewidth;
-  target.tileHeight = json.tileheight;
-
-  for (let i = 0; i < json.layers.length; i++) {
-    const layerJson = json.layers[i];
-    target.layers[i] = loadLayer(layerJson, json.tilesets, target.layers[i]);
-  }
-  return target as IReadonlyTilemap;
-}
-
-async function cacheImages(json: ITilemapJson, tilemapUrl: string) {
-  const tilemapDir = dirname(tilemapUrl);
-  const tilesetPaths = new Set(json.tilesets.map((tileset) => tileset.image));
-  const promises = Array.from(tilesetPaths).map(
-    (relPath) => loadFromUrl(`${tilemapDir}/${relPath}`, relPath),
-  );
-  await Promise.all(promises);
-}
-
-function loadLayer(
-  json: ILayerJson,
-  jsonTilesets: ReadonlyArray<ITilesetJson>,
-  target = new Layer(),
-): Layer {
-  let tileIndex = 0;
-  for (let chunkIndex = 0; chunkIndex < json.chunks.length; chunkIndex++) {
-    const chunk = json.chunks[chunkIndex];
-    const u8Array = decode(chunk.data);
-    const u32Array = new Uint32Array(u8Array.buffer);
-    for (let u32Index = 0; u32Index < u32Array.length; u32Index++) {
-      const mapX = chunk.x + (u32Index % chunk.width);
-      const mapY = chunk.y + Math.floor(u32Index / chunk.width);
-      // TODO store tiles in a 2d array?
-      target.tiles[tileIndex] = loadTile(
-        u32Array[u32Index],
-        jsonTilesets,
-        mapX,
-        mapY,
-        target.tiles[tileIndex],
-      );
-      tileIndex++;
-    }
-  }
-  return target;
-}
-
 const GID_EMPTY = 0;
 enum TileFlags {
   FLIPPED_HORIZONTALLY_FLAG = 0x80000000,
@@ -122,13 +84,62 @@ enum TileFlags {
 
 const _imageSourceBox = new Box();
 const _imageOptions = new ImageOptions();
-function loadTile(
+const _loadImageOptions = new LoadOptions();
+
+export async function loadTilemap(
+  url: string,
+): Promise<void> {
+  const json = await fetch(url).then((res) => res.json());
+  const promises = [];
+  await cacheImages(json, url);
+
+  for (let i = 0; i < json.layers.length; i++) {
+    const layerJson = json.layers[i];
+    promises.push(loadLayer(layerJson, json.tilesets));
+  }
+  await Promise.all(promises);
+}
+
+async function cacheImages(json: ITilemapJson, tilemapUrl: string) {
+  const tilemapDir = dirname(tilemapUrl);
+  const tilesetPaths = new Set(json.tilesets.map((tileset) => tileset.image));
+  const promises = Array.from(tilesetPaths).map((relPath) => {
+    _loadImageOptions.reset();
+    _loadImageOptions.cacheKey = relPath;
+    return loadFromUrl(`${tilemapDir}/${relPath}`, _loadImageOptions);
+  });
+  await Promise.all(promises);
+}
+
+async function loadLayer(
+  json: ILayerJson,
+  jsonTilesets: ReadonlyArray<ITilesetJson>,
+): Promise<void> {
+  const promises: Array<Promise<void>> = [];
+  for (let chunkIndex = 0; chunkIndex < json.chunks.length; chunkIndex++) {
+    const chunk = json.chunks[chunkIndex];
+    const u8Array = decode(chunk.data);
+    const u32Array = new Uint32Array(u8Array.buffer);
+    for (let u32Index = 0; u32Index < u32Array.length; u32Index++) {
+      const mapX = chunk.x + (u32Index % chunk.width);
+      const mapY = chunk.y + Math.floor(u32Index / chunk.width);
+      promises.push(loadTile(
+        u32Array[u32Index],
+        jsonTilesets,
+        mapX,
+        mapY,
+      ));
+    }
+  }
+  await Promise.all(promises);
+}
+
+async function loadTile(
   bits: number,
   tilesets: ReadonlyArray<ITilesetJson>,
   mapX: number,
   mapY: number,
-  target = new Tile(),
-) {
+): Promise<void> {
   const gid = bits & ~TileFlags.ALL_FLIP_FLAGS;
 
   if (gid === GID_EMPTY) {
@@ -148,15 +159,21 @@ function loadTile(
     _imageOptions.flipH = isFlagSet(flags, TileFlags.FLIPPED_HORIZONTALLY_FLAG);
     _imageOptions.flipV = isFlagSet(flags, TileFlags.FLIPPED_VERTICALLY_FLAG);
     _imageOptions.flipD = isFlagSet(flags, TileFlags.FLIPPED_DIAGONALLY_FLAG);
+    _imageOptions.target = new Image();
 
-    target.image.src = getDataUrl(image, _imageSourceBox, _imageOptions);
+    const chunk = await getChunk(image, _imageSourceBox, _imageOptions);
+    const imageId = incrementId("image");
 
-    target.screenX = mapX * tileset.tilewidth;
-    target.screenY = mapY * tileset.tileheight;
-    target.width = tileset.tilewidth;
-    target.height = tileset.tileheight;
+    setCache(imageId, chunk);
 
-    return target;
+    const entity = addComponents(
+      TILE_COMPONENTS,
+      addEntity(),
+    );
+
+    entity.imageId = imageId;
+    set(entity.position, mapX * tileset.tilewidth, mapY * tileset.tileheight);
+    set(entity.bodyDimensions, tileset.tilewidth, tileset.tileheight);
   }
 }
 

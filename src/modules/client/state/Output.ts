@@ -1,12 +1,13 @@
 import { deferred } from "async";
 import { Instance } from "~/common/Vec2.ts";
-import { Tilemap } from "../../common/Tilemap.ts";
 import {
   BodyDimensions,
+  BodyStaticTag,
+  ImageCollectionComponent,
+  ImageIdComponent,
   PoseComponent,
   PositionComponent,
   PreviousPositionComponent,
-  SpriteSheetComponent,
   TargetPositionComponent,
 } from "../../common/components.ts";
 import { EntityPrefabCollection } from "../../common/Entity.ts";
@@ -23,7 +24,6 @@ interface ICanvasGradientParams {
 class SceneData {
   readonly gradients = new Map<string, ICanvasGradientParams>();
   readonly paths = new Map<string, Path2D>();
-  readonly tiles = new Tilemap();
 }
 
 // TODO key/button/axis enum
@@ -42,15 +42,26 @@ class OutputStateApi {
   };
   scene = new SceneData();
   frameCount = 0;
-  readonly components = [
+  readonly dynamicEntityComponents = [
     PositionComponent,
     PreviousPositionComponent,
     TargetPositionComponent,
     BodyDimensions,
-    SpriteSheetComponent,
+    ImageCollectionComponent,
     PoseComponent,
   ] as const;
-  readonly entities = new EntityPrefabCollection(this.components);
+  readonly staticEntityComponents = [
+    BodyStaticTag,
+    PositionComponent,
+    BodyDimensions,
+    ImageIdComponent,
+  ] as const;
+  readonly dynamicEntities = new EntityPrefabCollection(
+    this.dynamicEntityComponents,
+  );
+  readonly staticEntities = new EntityPrefabCollection(
+    this.staticEntityComponents,
+  );
 }
 
 export const OutputState = isClient

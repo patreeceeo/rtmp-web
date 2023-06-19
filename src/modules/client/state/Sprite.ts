@@ -1,4 +1,16 @@
-import { PoseType } from "../../common/state/Player.ts";
+import { Box } from "../../common/Box.ts";
+import { incrementId } from "../../common/functions/id.ts";
+import {
+  getChunk,
+  ImageOptions,
+  loadFromUrl,
+  setCache,
+} from "../../common/functions/image.ts";
+
+export enum PoseType {
+  facingRight,
+  facingLeft,
+}
 
 export enum SpriteEnum {
   penguinRight,
@@ -7,72 +19,54 @@ export enum SpriteEnum {
   penguin2Left,
 }
 
-export enum SpriteSheetEnum {
+export enum ImageCollectionEnum {
   penguin,
   penguin2,
 }
 
-export class Sprite {
-  source: HTMLCanvasElement;
+class Sprite {
   constructor(
-    readonly imageUrl: string,
-    readonly width: number,
-    readonly height: number,
-    readonly mirror = false,
-  ) {
-    this.source = document.createElement("canvas");
-  }
-  loaded = false;
+    public imageId: number,
+    public width: number,
+    public height: number,
+  ) {}
 }
 
 class SpriteStateApi {
-  #sprites: Partial<Record<SpriteEnum, Sprite>> = {};
-  #sources: Record<string, HTMLImageElement> = {};
-  getSource(imageUrl: string) {
-    const source = this.#sources[imageUrl] ||= document.createElement("img");
-    source.src = imageUrl;
-    return source;
+  #map: Array<Array<Sprite>> = [];
+  bind(images: ImageCollectionEnum, pose: PoseType, sprite: Sprite) {
+    (this.#map[images] = this.#map[images] || [])[pose] = sprite;
   }
-  set(id: SpriteEnum, sprite: Sprite) {
-    this.#sprites[id] = sprite;
-  }
-  get(id: SpriteEnum) {
-    return this.#sprites[id];
-  }
-  find(mapId: SpriteSheetEnum, pose: PoseType) {
-    const id = mapId * 2 + pose;
-    return this.get(id);
+  find(images: ImageCollectionEnum, pose: PoseType) {
+    return this.#map[images][pose];
   }
 }
 
 export const SpriteState = new SpriteStateApi();
 
+const _frame = new Box();
+const _chunkOptions = new ImageOptions();
+
 export async function loadSprite(
   src: string,
-  id: number,
+  images: ImageCollectionEnum,
+  pose: PoseType,
   width: number,
   height: number,
   flipped = false,
 ) {
-  const sprite = new Sprite(src, width, height, flipped);
-  SpriteState.set(id, sprite);
-  const source = SpriteState.getSource(sprite.imageUrl);
-  await new Promise((resolve) => (source.onload = resolve));
-  const context = sprite.source.getContext("2d")!;
-  if (sprite.mirror) {
-    context.scale(-1, 1);
-    context.translate(-sprite.width, 0);
-  }
+  const image = await loadFromUrl(src);
 
-  context.drawImage(
-    source,
-    0,
-    0,
-    sprite.width,
-    sprite.height,
-    0,
-    0,
-    sprite.width,
-    sprite.height,
-  );
+  _frame.xMin = 0;
+  _frame.yMin = 0;
+  _frame.w = width;
+  _frame.h = height;
+  _chunkOptions.reset();
+  _chunkOptions.flipH = flipped;
+  _chunkOptions.target = new Image();
+  const chunk = await getChunk(image, _frame, _chunkOptions);
+  const imageId = incrementId("image");
+
+  setCache(imageId, chunk);
+  SpriteState.bind(images, pose, new Sprite(imageId, width, height));
 }

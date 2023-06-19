@@ -55,7 +55,7 @@ class DotsServerApp implements ServerApp {
         LevelState.dimensions.yMax,
       ),
     );
-    addedPlayer.spriteSheet = (addedPlayer.eid / 2) % 2;
+    addedPlayer.imageCollection = (addedPlayer.eid / 2) % 2;
 
     Vec2.copy(addedPlayer.targetPosition, addedPlayer.position);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
@@ -64,7 +64,7 @@ class DotsServerApp implements ServerApp {
 
     sendMessageToClient(ws, PlayerAdd, (p) => {
       Vec2.copy(p.position, addedPlayer.position);
-      p.spriteMapId = addedPlayer.spriteSheet;
+      p.spriteMapId = addedPlayer.imageCollection;
       p.isLocal = true;
       p.nid = playerNid;
       p.sid = MessageState.currentStep;
@@ -74,7 +74,7 @@ class DotsServerApp implements ServerApp {
       PlayerAdd,
       (p) => {
         Vec2.copy(p.position, addedPlayer.position);
-        p.spriteMapId = addedPlayer.spriteSheet;
+        p.spriteMapId = addedPlayer.imageCollection;
         p.isLocal = false;
         p.nid = playerNid;
         p.sid = MessageState.currentStep;
@@ -87,7 +87,7 @@ class DotsServerApp implements ServerApp {
       if (player.eid !== addedPlayer.eid) {
         sendMessageToClient(ws, PlayerAdd, (p) => {
           Vec2.copy(p.position, player.position);
-          p.spriteMapId = player.spriteSheet;
+          p.spriteMapId = player.imageCollection;
           p.isLocal = false;
           p.nid = ServerNetworkState.getId(player.eid)!;
           p.sid = MessageState.currentStep;

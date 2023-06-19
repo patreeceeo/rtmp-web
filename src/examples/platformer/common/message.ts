@@ -8,8 +8,8 @@ import {
 import { defMessageType } from "../../../modules/common/Message.ts";
 import { NetworkId } from "../../../modules/common/NetworkApi.ts";
 import { Instance } from "../../../modules/common/Vec2.ts";
-import { PoseType } from "../../../modules/common/state/Player.ts";
 import { IPingMsg, PingMsgSpec } from "../../../modules/common/state/Ping.ts";
+import { PoseType } from "../../../modules/client/state/Sprite.ts";
 
 export enum MsgType {
   nil,

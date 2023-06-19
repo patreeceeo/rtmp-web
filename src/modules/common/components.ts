@@ -1,13 +1,11 @@
-import { SpriteSheetEnum } from "../client/state/Sprite.ts";
+import { ImageCollectionEnum, PoseType } from "../client/state/Sprite.ts";
 import {
   defineComponent,
   defineTag,
-  EntityWithComponents,
   PrimativeTypes,
   StoreType,
 } from "./Component.ts";
 import { EntityId } from "./Entity.ts";
-import { PoseType } from "./state/Player.ts";
 import { ECSInstance, Vec2LargeSchema, Vec2SmallSchema } from "./Vec2.ts";
 import { IWorld } from "./World.ts";
 
@@ -21,6 +19,18 @@ export const PlayerTag = defineTag({
 
 export const BodyStaticTag = defineTag({
   propName: "bodyIsStatic",
+});
+
+export const BodyDimensions = defineComponent({
+  schema: Vec2SmallSchema,
+  propName: "bodyDimensions",
+  getValue(
+    _world: IWorld,
+    store: StoreType<typeof Vec2SmallSchema>,
+    eid: EntityId,
+  ) {
+    return new ECSInstance(store, eid);
+  },
 });
 
 export const PositionComponent = defineComponent({
@@ -53,18 +63,6 @@ export const PreviousPositionComponent = defineComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof Vec2LargeSchema>,
-    eid: EntityId,
-  ) {
-    return new ECSInstance(store, eid);
-  },
-});
-
-export const BodyDimensions = defineComponent({
-  schema: Vec2SmallSchema,
-  propName: "bodyDimensions",
-  getValue(
-    _world: IWorld,
-    store: StoreType<typeof Vec2SmallSchema>,
     eid: EntityId,
   ) {
     return new ECSInstance(store, eid);
@@ -138,25 +136,25 @@ export const AccelerationComponent = defineComponent({
   },
 });
 
-const SpriteSheetSchema = {
+const ImageCollectionSchema = {
   value: PrimativeTypes.ui8,
 };
 
-export const SpriteSheetComponent = defineComponent({
-  schema: SpriteSheetSchema,
-  propName: "spriteSheet",
+export const ImageCollectionComponent = defineComponent({
+  schema: ImageCollectionSchema,
+  propName: "imageCollection",
   getValue(
     _world: IWorld,
-    store: StoreType<typeof SpriteSheetSchema>,
+    store: StoreType<typeof ImageCollectionSchema>,
     eid: EntityId,
   ) {
     return store.value[eid];
   },
   setValue(
     _world: IWorld,
-    store: StoreType<typeof SpriteSheetSchema>,
+    store: StoreType<typeof ImageCollectionSchema>,
     eid: EntityId,
-    value: SpriteSheetEnum,
+    value: ImageCollectionEnum,
   ) {
     store.value[eid] = value;
   },
@@ -167,7 +165,7 @@ const PoseSchema = {
 };
 
 export const PoseComponent = defineComponent({
-  schema: SpriteSheetSchema,
+  schema: PoseSchema,
   propName: "pose",
   getValue(_world: IWorld, store: StoreType<typeof PoseSchema>, eid: EntityId) {
     return store.value[eid];
@@ -177,6 +175,30 @@ export const PoseComponent = defineComponent({
     store: StoreType<typeof PoseSchema>,
     eid: EntityId,
     value: PoseType,
+  ) {
+    store.value[eid] = value;
+  },
+});
+
+const ImageIdSchema = {
+  value: PrimativeTypes.ui16,
+};
+
+export const ImageIdComponent = defineComponent({
+  schema: ImageIdSchema,
+  propName: "imageId",
+  getValue(
+    _world: IWorld,
+    store: StoreType<typeof ImageIdSchema>,
+    eid: EntityId,
+  ) {
+    return store.value[eid];
+  },
+  setValue(
+    _world: IWorld,
+    store: StoreType<typeof ImageIdSchema>,
+    eid: EntityId,
+    value: number,
   ) {
     store.value[eid] = value;
   },

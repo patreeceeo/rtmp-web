@@ -12,11 +12,10 @@ import {
   TypedArray as _TypedArray,
   Types as _Types,
 } from "bitecs";
-import { SpriteSheetEnum } from "../client/state/Sprite.ts";
+import { ImageCollectionEnum, PoseType } from "../client/state/Sprite.ts";
 import { EntityId, IEntityMinimal } from "./Entity.ts";
 import { invariant } from "./Error.ts";
 import { ModifierFlags } from "./Query.ts";
-import { PoseType } from "./state/Player.ts";
 import { ECSInstance, Vec2LargeSchema, Vec2SmallSchema } from "./Vec2.ts";
 import { defaultWorld } from "./World.ts";
 
@@ -57,7 +56,8 @@ export interface IEntityMaximal extends IEntityMinimal {
   maxSpeed: number;
   friction: number;
   acceleration: ECSInstance<typeof Vec2SmallSchema>;
-  spriteSheet: SpriteSheetEnum;
+  imageId: number;
+  imageCollection: ImageCollectionEnum;
   pose: PoseType;
   lastActiveTime: number;
 }

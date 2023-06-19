@@ -171,7 +171,7 @@ function handlePlayerAdded(
   const player = PlayerState.addPlayer(addEntity());
   Vec2.copy(player.position, position);
   Vec2.copy(player.targetPosition, position);
-  player.spriteSheet = spriteMapId;
+  player.imageCollection = spriteMapId;
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
   TraitState.add(WasdMoveTrait, player);
   TraitState.add(NegotiatePhysicsTrait, player);

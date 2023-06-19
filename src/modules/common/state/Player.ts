@@ -6,15 +6,10 @@ import { set } from "../Vec2.ts";
 
 // TODO delete this file?
 
-export enum PoseType {
-  facingRight,
-  facingLeft,
-}
-
 class PlayerStateApi {
   readonly components = [
     ...PhysicsState.components,
-    ...(isClient ? OutputState.components : []),
+    ...(isClient ? OutputState.dynamicEntityComponents : []),
   ] as const;
 
   readonly entities = new EntityPrefabCollection(this.components);

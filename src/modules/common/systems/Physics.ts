@@ -1,5 +1,4 @@
 import { add, clamp, copy, getLengthSquared, sub } from "~/common/Vec2.ts";
-import { PoseType } from "../state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
   simulatePositionWithVelocity,
@@ -9,6 +8,7 @@ import { getPhysicsOptions } from "../functions/physicsHelpers.ts";
 import { isClient } from "../env.ts";
 import { Instance } from "../Vec2.ts";
 import { PhysicsState } from "../state/Physics.ts";
+import { PoseType } from "../../client/state/Sprite.ts";
 
 const tempPositionDelta = new Instance();
 
