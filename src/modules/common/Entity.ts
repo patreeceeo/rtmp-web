@@ -62,6 +62,7 @@ function createEntity(world = defaultWorld): IEntityMinimal {
 
 const pool = new Pool();
 
+// TODO it would be nice to be able to pass an array of components to add
 export function addEntity(world = defaultWorld): IEntityMinimal {
   return pool.acquire(world);
 }
