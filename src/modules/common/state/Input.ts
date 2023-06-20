@@ -1,5 +1,5 @@
 import { Button } from "../Button.ts";
-import { Vec2 } from "../Vec2.ts";
+import { Instance } from "../Vec2.ts";
 
 export interface ButtonState {
   pressTime: number;
@@ -7,8 +7,8 @@ export interface ButtonState {
 }
 class InputStateApi {
   #buttonStateMap: Map<Button, ButtonState> = new Map();
-  mousePosition = new Vec2();
-  mousePositionOnCanvas = new Vec2();
+  mousePosition = new Instance();
+  mousePositionOnCanvas = new Instance();
   #initInput(button: Button) {
     this.#buttonStateMap.set(button, {
       pressTime: 0,

@@ -1,4 +1,5 @@
 import "../mod.ts";
+import * as Vec2 from "~/common/Vec2.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { NetworkSystem } from "~/server/systems/Network.ts";
 import {
@@ -25,26 +26,26 @@ import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { ServerPurgeSystem } from "../../../modules/server/systems/ServerPurgeSystem.ts";
 import {
-  readMessage,
-  readMessagePayload,
   readMessageType,
   readPingId,
 } from "../../../modules/common/Message.ts";
 import { initPing, sendPing } from "../../../modules/common/state/Ping.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
+import { addEntity, hasEntity, softDeleteEntity } from "~/common/Entity.ts";
 
 const idleTimeout = 300;
 
 class DotsServerApp implements ServerApp {
   idleTimeout = idleTimeout;
   handleOpen(ws: WebSocket, _: Event) {
-    const addedPlayer = PlayerState.createPlayer();
+    const addedPlayer = PlayerState.addPlayer(addEntity());
     const playerNid = ServerNetworkState.createId();
     const client = ServerNetworkState.getClientForSocket(ws)!;
     client.addNetworkId(playerNid);
     console.log("player nid", playerNid);
 
-    addedPlayer.position.set(
+    Vec2.set(
+      addedPlayer.position,
       getRandomIntBetween(
         LevelState.dimensions.xMin,
         LevelState.dimensions.xMax,
@@ -54,16 +55,16 @@ class DotsServerApp implements ServerApp {
         LevelState.dimensions.yMax,
       ),
     );
-    addedPlayer.spriteMapId = (addedPlayer.eid / 2) % 2;
+    addedPlayer.imageCollection = (addedPlayer.eid / 2) % 2;
 
-    addedPlayer.targetPosition.copy(addedPlayer.position);
+    Vec2.copy(addedPlayer.targetPosition, addedPlayer.position);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
-    TraitState.add(WasdMoveTrait, addedPlayer.eid);
-    TraitState.add(NegotiatePhysicsTrait, addedPlayer.eid);
+    TraitState.add(WasdMoveTrait, addedPlayer);
+    TraitState.add(NegotiatePhysicsTrait, addedPlayer);
 
     sendMessageToClient(ws, PlayerAdd, (p) => {
-      p.position.copy(addedPlayer.position);
-      p.spriteMapId = addedPlayer.spriteMapId;
+      Vec2.copy(p.position, addedPlayer.position);
+      p.spriteMapId = addedPlayer.imageCollection;
       p.isLocal = true;
       p.nid = playerNid;
       p.sid = MessageState.currentStep;
@@ -72,8 +73,8 @@ class DotsServerApp implements ServerApp {
     broadcastMessage(
       PlayerAdd,
       (p) => {
-        p.position.copy(addedPlayer.position);
-        p.spriteMapId = addedPlayer.spriteMapId;
+        Vec2.copy(p.position, addedPlayer.position);
+        p.spriteMapId = addedPlayer.imageCollection;
         p.isLocal = false;
         p.nid = playerNid;
         p.sid = MessageState.currentStep;
@@ -82,13 +83,11 @@ class DotsServerApp implements ServerApp {
     );
 
     // Catch up new client on current state of the world
-    for (const eid of PlayerState.getEntityIds()) {
-      const player = PlayerState.recyclableProxy;
-      player.eid = eid;
+    for (const player of PlayerState.entities.query()) {
       if (player.eid !== addedPlayer.eid) {
         sendMessageToClient(ws, PlayerAdd, (p) => {
-          p.position.copy(player.position);
-          p.spriteMapId = player.spriteMapId;
+          Vec2.copy(p.position, player.position);
+          p.spriteMapId = player.imageCollection;
           p.isLocal = false;
           p.nid = ServerNetworkState.getId(player.eid)!;
           p.sid = MessageState.currentStep;
@@ -104,12 +103,14 @@ class DotsServerApp implements ServerApp {
     console.log("Client disconnected", client.nid);
     ServerNetworkState.removeClient(client.nid);
     for (const nid of client.getNetworkIds()) {
-      const eid = ServerNetworkState.getEntityId(nid);
-      PlayerState.deletePlayer(eid!);
-      broadcastMessage(PlayerRemove, (p) => {
-        p.nid = nid;
-        p.sid = MessageState.currentStep;
-      });
+      const eid = ServerNetworkState.getEntityId(nid)!;
+      if (hasEntity(eid)) {
+        softDeleteEntity(eid);
+        broadcastMessage(PlayerRemove, (p) => {
+          p.nid = nid;
+          p.sid = MessageState.currentStep;
+        });
+      }
     }
   }
 

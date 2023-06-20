@@ -1,4 +1,4 @@
-import { PlayerState, PoseType } from "../state/Player.ts";
+import { add, clamp, copy, getLengthSquared, sub } from "~/common/Vec2.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
   simulatePositionWithVelocity,
@@ -6,45 +6,48 @@ import {
 } from "../../../modules/common/functions/physics.ts";
 import { getPhysicsOptions } from "../functions/physicsHelpers.ts";
 import { isClient } from "../env.ts";
-import { Vec2 } from "../Vec2.ts";
+import { Instance } from "../Vec2.ts";
+import { PhysicsState } from "../state/Physics.ts";
+import { PoseType } from "../../client/state/Sprite.ts";
 
-const tempPositionDelta = new Vec2();
+const tempPositionDelta = new Instance();
 
 export const PhysicsSystem: SystemLoader<
   ISystemExecutionContext,
   [{ fixedDeltaTime: number }]
 > = ({ fixedDeltaTime }) => {
   function exec() {
-    for (const eid of PlayerState.getEntityIds()) {
-      const player = PlayerState.recyclableProxy;
-      player.eid = eid;
-      const options = getPhysicsOptions(player);
+    for (const entity of PhysicsState.entities.query()) {
+      const options = getPhysicsOptions(entity);
       if (!isClient) {
-        player.targetPosition.copy(player.position);
+        copy(entity.targetPosition, entity.position);
       } else {
-        player.targetPosition.add(player.velocity, fixedDeltaTime);
-        tempPositionDelta.copy(player.targetPosition).sub(player.position);
+        add(entity.targetPosition, entity.velocity, fixedDeltaTime);
+
+        // Calculate how far we are from where we should be
+        copy(tempPositionDelta, entity.targetPosition);
+        sub(tempPositionDelta, entity.position);
         if (
-          tempPositionDelta.lengthSquared > 1
+          getLengthSquared(tempPositionDelta) > 1
         ) {
-          tempPositionDelta.clamp(player.maxVelocity * fixedDeltaTime);
-          player.position.add(tempPositionDelta);
+          clamp(tempPositionDelta, entity.maxSpeed * fixedDeltaTime);
+          add(entity.position, tempPositionDelta);
         }
       }
-      player.pose = player.acceleration.x == 0
-        ? player.pose
-        : player.acceleration.x > 0
+      entity.pose = entity.acceleration.x == 0
+        ? entity.pose
+        : entity.acceleration.x > 0
         ? PoseType.facingRight
         : PoseType.facingLeft;
       simulateVelocityWithAcceleration(
-        player.velocity,
-        player.acceleration,
+        entity.velocity,
+        entity.acceleration,
         fixedDeltaTime,
         options,
       );
       simulatePositionWithVelocity(
-        player.position,
-        player.velocity,
+        entity.position,
+        entity.velocity,
         fixedDeltaTime,
         options,
       );

@@ -1,10 +1,10 @@
 import { IMessageDef, IPayloadAny } from "~/common/Message.ts";
-import { PlayerState } from "~/common/state/Player.ts";
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { broadcastMessage } from "../mod.ts";
 import { ServerNetworkState } from "../state/Network.ts";
 import { NetworkId } from "../../common/NetworkApi.ts";
+import { softDeleteEntity } from "../../common/Entity.ts";
 
 type MessageTranscoder<P extends IPayloadAny> = [
   IMessageDef<P>,
@@ -22,7 +22,10 @@ interface Options {
   }>;
 }
 
-export const ServerPurgeSystem: SystemLoader<ISystemExecutionContext, [Options]> = (
+export const ServerPurgeSystem: SystemLoader<
+  ISystemExecutionContext,
+  [Options]
+> = (
   opts,
 ) => {
   const idleTimeout = opts?.idleTimeout || 60;
@@ -34,7 +37,7 @@ export const ServerPurgeSystem: SystemLoader<ISystemExecutionContext, [Options]>
         for (const nid of client.getNetworkIds()) {
           const playerEid = ServerNetworkState.getEntityId(nid!)!;
 
-          PlayerState.deletePlayer(playerEid);
+          softDeleteEntity(playerEid);
           broadcastMessage(
             opts.msgPlayerRemoved[0],
             (p) => {

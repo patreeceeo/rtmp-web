@@ -1,5 +1,5 @@
 import * as asserts from "asserts";
-import { IVec2, Vec2 } from "./Vec2.ts";
+import * as Vec2 from "./Vec2.ts";
 import {
   BufferProxyObject,
   getDataView,
@@ -53,7 +53,7 @@ Deno.test("BufferProxyObject: 2 objs of same type differing data", () => {
 Deno.test("BufferProxyObject: metadata", () => {
   interface IMyObject {
     score: number;
-    position: Vec2;
+    position: Vec2.Instance;
   }
   const buf = new DataViewMovable(new ArrayBuffer(128));
   const buf2 = new DataViewMovable(new ArrayBuffer(128));
@@ -100,7 +100,7 @@ Deno.test("BufferProxyObject: metadata", () => {
 
 Deno.test("BufferProxyObject: obj with obj properties", () => {
   interface IMyObject {
-    position: IVec2;
+    position: Vec2.Instance;
   }
   const buf = new DataViewMovable(new ArrayBuffer(128));
   const obj = new BufferProxyObject<IMyObject>(buf, 0, {
@@ -118,7 +118,7 @@ Deno.test("BufferProxyObject: obj with obj properties", () => {
 
 Deno.test("BufferProxyObject: moveable instances", () => {
   interface IMyObject {
-    position: IVec2;
+    position: Vec2.Instance;
   }
   const buf1 = new DataViewMovable(new ArrayBuffer(128));
   const buf2 = new DataViewMovable(new ArrayBuffer(128));
@@ -160,37 +160,9 @@ Deno.test("BufferProxyObject: moveable instances", () => {
   asserts.assertEquals(obj.position.y, 66);
 });
 
-Deno.test("BufferProxyObject: classes", () => {
-  interface IMyObject {
-    position: Vec2;
-    isEvil: boolean;
-  }
-  const buf = new DataViewMovable(new ArrayBuffer(128));
-  const spec: IBufferProxyObjectSpec<IMyObject> = {
-    props: {
-      isEvil: [0, PrimitiveValue.Bool],
-      position: [1, Vec2LargeSpec],
-    },
-  };
-  const obj = new BufferProxyObject<IMyObject>(
-    buf,
-    0,
-    spec,
-  ) as unknown as IBufferProxyObject<IMyObject>;
-
-  const vec2 = new Vec2(22, 33);
-
-  obj.position.copy(vec2);
-  obj.isEvil = true;
-
-  asserts.assertEquals(obj.position, vec2);
-  asserts.assertEquals(obj.isEvil, true);
-  asserts.assertEquals(obj.meta__bytesRemaining, 0);
-});
-
 Deno.test("BufferProxyObject: plain", () => {
   interface IMyObject {
-    position: Vec2;
+    position: Vec2.Instance;
     isEvil: boolean;
   }
   const buf = new DataViewMovable(new ArrayBuffer(128));
@@ -201,9 +173,9 @@ Deno.test("BufferProxyObject: plain", () => {
     },
   }) as unknown as IBufferProxyObject<IMyObject>;
 
-  const vec2 = new Vec2(22, 33);
+  const vec2 = new Vec2.Instance(22, 33);
 
-  obj.position.copy(vec2);
+  Vec2.copy(obj.position, vec2);
   obj.isEvil = true;
 
   asserts.assertEquals(obj.meta__plain, {
@@ -214,7 +186,7 @@ Deno.test("BufferProxyObject: plain", () => {
 
 Deno.test("BufferProxyObject: meta__dataView", () => {
   interface IMyObject {
-    position: Vec2;
+    position: Vec2.Instance;
   }
   const buf = new DataViewMovable(new ArrayBuffer(128));
   const spec = {

@@ -1,20 +1,32 @@
-import { OutputState, PreviousPositionStore } from "~/client/state/Output.ts";
-import { PlayerState } from "~/common/state/Player.ts";
+import * as Vec2 from "~/common/Vec2.ts";
+import { OutputState } from "~/client/state/Output.ts";
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
-import { TilemapLayer } from "~/common/Tilemap.ts";
+import { loadTilemap } from "../../common/loaders/TiledTMJTilemapLoader.ts";
 import { roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
-import { Vec2ReadOnly } from "../../common/Vec2.ts";
 import { DebugState } from "../state/Debug.ts";
-import { loadSprite, SpriteId, SpriteState } from "../state/Sprite.ts";
+import {
+  ImageCollectionEnum,
+  loadSprite,
+  PoseType,
+  SpriteState,
+} from "../state/Sprite.ts";
+import { getFromCache } from "../../common/functions/image.ts";
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
 
-  await loadSprite("/public/assets/penguin.png", SpriteId.penguinRight, 16, 32);
   await loadSprite(
     "/public/assets/penguin.png",
-    SpriteId.penguinLeft,
+    ImageCollectionEnum.penguin,
+    PoseType.facingRight,
+    16,
+    32,
+  );
+  await loadSprite(
+    "/public/assets/penguin.png",
+    ImageCollectionEnum.penguin,
+    PoseType.facingLeft,
     16,
     32,
     true,
@@ -22,17 +34,21 @@ export const OutputSystem: SystemLoader = async () => {
 
   await loadSprite(
     "/public/assets/penguin2.png",
-    SpriteId.penguin2Right,
+    ImageCollectionEnum.penguin2,
+    PoseType.facingRight,
     18,
     32,
   );
   await loadSprite(
     "/public/assets/penguin2.png",
-    SpriteId.penguin2Left,
+    ImageCollectionEnum.penguin2,
+    PoseType.facingLeft,
     18,
     32,
     true,
   );
+
+  await loadTilemap("/public/assets/level.json");
 
   const {
     foreground: { resolution },
@@ -85,7 +101,7 @@ export const OutputSystem: SystemLoader = async () => {
         OutputState.frameCount++;
       }
       if (isRenderDataDirty()) {
-        erasePlayers();
+        eraseDynamicEntities();
         DebugState.enabled && drawTweenHelpers();
         drawPlayers();
         lastRender = context.elapsedTime;
@@ -96,7 +112,7 @@ export const OutputSystem: SystemLoader = async () => {
   return { exec };
 };
 
-function setupCanvas(el: HTMLCanvasElement, resolution: Vec2ReadOnly) {
+function setupCanvas(el: HTMLCanvasElement, resolution: Vec2.ReadOnly) {
   // Get the DPR and size of the canvas
   const dpr = 2 ** Math.ceil(Math.log2(window.devicePixelRatio));
 
@@ -115,7 +131,7 @@ const gradients = new Map<string, CanvasGradient>();
 function getOrCreateLinearGradient(key: string, ctx: CanvasRenderingContext2D) {
   let gradient = gradients.get(key);
   if (!gradient) {
-    const { x0, y0, x1, y1, stops } = OutputState.gradients.get(key)!;
+    const { x0, y0, x1, y1, stops } = OutputState.scene.gradients.get(key)!;
     gradient = ctx.createLinearGradient(x0, y0, x1, y1);
     for (const [offset, color] of stops) {
       gradient.addColorStop(offset, color);
@@ -130,7 +146,7 @@ const PI2 = 2 * Math.PI;
 function drawCloud(
   cloud: ICloud,
   ctx: CanvasRenderingContext2D,
-  resolution: Vec2ReadOnly,
+  resolution: Vec2.ReadOnly,
 ) {
   const { position, size } = cloud;
   const yFlipped = resolution.y - position.y;
@@ -168,7 +184,7 @@ function drawBackground() {
     drawCloud(cloud, ctx, resolution);
   }
 
-  for (const [pathName, path] of OutputState.paths) {
+  for (const [pathName, path] of OutputState.scene.paths) {
     const gradient = getOrCreateLinearGradient(pathName, ctx);
     ctx.fillStyle = gradient;
     ctx.fill(path);
@@ -178,24 +194,17 @@ function drawBackground() {
     drawCloud(cloud, ctx, resolution);
   }
 
-  if (LevelState.map) {
-    for (const layer of LevelState.map?.layers) {
-      drawTileLayer(layer, ctx);
-    }
-  }
+  drawTileLayer(ctx);
 }
 
-function drawTileLayer(layer: TilemapLayer, ctx: CanvasRenderingContext2D) {
-  for (const tile of layer.tiles) {
-    if (tile) {
-      ctx.drawImage(
-        tile.image,
-        tile.screenX,
-        tile.screenY,
-        tile.width,
-        tile.height,
-      );
-    }
+function drawTileLayer(ctx: CanvasRenderingContext2D) {
+  for (const entity of OutputState.staticEntities.query()) {
+    const image = getFromCache(entity.imageId);
+    ctx.drawImage(
+      image,
+      entity.position.x,
+      entity.position.y,
+    );
   }
 }
 
@@ -205,35 +214,26 @@ function drawTweenHelpers() {
   } = OutputState;
   const ctx = context2d!;
 
-  const eids = PlayerState.getEntityIds();
-  for (const eid of eids) {
-    const player = PlayerState.recyclableProxy;
-    player.eid = eid;
-    const { x, y } = player.targetPosition;
-    const { width: w, height: h } = player;
+  const entities = OutputState.dynamicEntities.query();
+  for (const entity of entities) {
+    const { x, y } = entity.targetPosition;
+    const { x: w, y: h } = entity.bodyDimensions;
     const w2 = w >> 1;
     const h2 = h >> 1;
     ctx.strokeStyle = "red";
-    ctx.strokeRect(
-      roundTo8thBit(x) - w2,
-      roundTo8thBit(y) - h2,
-      w,
-      h,
-    );
+    ctx.strokeRect(roundTo8thBit(x) - w2, roundTo8thBit(y) - h2, w, h);
   }
 }
 
 function isRenderDataDirty() {
   let isDirty = false;
-  for (const eid of PlayerState.getEntityIds({ includeDeleted: true })) {
-    const player = PlayerState.recyclableProxy;
-    player.eid = eid;
+  for (const entity of OutputState.dynamicEntities.query()) {
     if (
-      PreviousPositionStore.x[player.eid] !==
-        roundTo8thBit(player.position.x) ||
-      PreviousPositionStore.y[player.eid] !==
-        roundTo8thBit(player.position.y) ||
-      player.isDeleted
+      entity.previousPosition.x !==
+        roundTo8thBit(entity.position.x) ||
+      entity.previousPosition.y !==
+        roundTo8thBit(entity.position.y) ||
+      entity.isSoftDeleted
     ) {
       isDirty = true;
       break;
@@ -242,29 +242,24 @@ function isRenderDataDirty() {
   return isDirty;
 }
 
-function erasePlayers() {
+function eraseDynamicEntities() {
   const {
     foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
-  for (const eid of PlayerState.getEntityIds({ includeDeleted: true })) {
-    const player = PlayerState.recyclableProxy;
-    player.eid = eid;
-    const sprite = SpriteState.find(
-      player.spriteMapId,
-      player.pose,
-    )!;
-    const { width: w, height: h } = player;
+  for (const entity of OutputState.dynamicEntities.query()) {
+    const sprite = SpriteState.find(entity.imageCollection, entity.pose)!;
+    const { x: w, y: h } = entity.bodyDimensions;
     const w2 = w >> 1;
     const h2 = h >> 1;
     ctx.clearRect(
-      PreviousPositionStore.x[player.eid] - 2 - w2,
-      PreviousPositionStore.y[player.eid] - 2 - h2,
+      entity.previousPosition.x - 2 - w2,
+      entity.previousPosition.y - 2 - h2,
       sprite.width + 4 + w2,
       sprite.height + 4 + h2,
     );
-    PreviousPositionStore.x[player.eid] = roundTo8thBit(player.position.x);
-    PreviousPositionStore.y[player.eid] = roundTo8thBit(player.position.y);
+    entity.previousPosition.x = roundTo8thBit(entity.position.x);
+    entity.previousPosition.y = roundTo8thBit(entity.position.y);
   }
 }
 
@@ -273,17 +268,16 @@ function drawPlayers() {
     foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
-  for (const eid of PlayerState.getEntityIds()) {
-    const player = PlayerState.recyclableProxy;
-    player.eid = eid;
-    const sprite = SpriteState.find(player.spriteMapId, player.pose)!;
-    const { width: w, height: h } = player;
+  for (const entity of OutputState.activeDynamicEntities.query()) {
+    const sprite = SpriteState.find(entity.imageCollection, entity.pose)!;
+    const { x: w, y: h } = entity.bodyDimensions;
     const w2 = w >> 1;
     const h2 = h >> 1;
+    const image = getFromCache(sprite.imageId);
     ctx.drawImage(
-      sprite.source,
-      roundTo8thBit(player.position.x) - w2,
-      roundTo8thBit(player.position.y) - h2,
+      image,
+      roundTo8thBit(entity.position.x) - w2,
+      roundTo8thBit(entity.position.y) - h2,
     );
   }
 }

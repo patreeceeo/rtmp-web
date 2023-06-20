@@ -1,4 +1,4 @@
-import { Vec2 } from "../Vec2.ts";
+import * as Vec2 from "~/common/Vec2.ts";
 import { assertEquals } from "asserts";
 import {
   SimulateOptions,
@@ -8,8 +8,8 @@ import {
 
 Deno.test("physics: acceleration", () => {
   const deltaTime = 10;
-  const velocity = new Vec2(5);
-  const acceleration = new Vec2();
+  const velocity = new Vec2.Instance(5);
+  const acceleration = new Vec2.Instance();
 
   acceleration.x = 3; // space units per time unit squared
   simulateVelocityWithAcceleration(velocity, acceleration, deltaTime);
@@ -19,11 +19,11 @@ Deno.test("physics: acceleration", () => {
 
 Deno.test("physics: max velocity", () => {
   const timeDelta = 10;
-  const velocity = new Vec2(5);
-  const acceleration = new Vec2();
+  const velocity = new Vec2.Instance(5);
+  const acceleration = new Vec2.Instance();
   const options = new SimulateOptions();
 
-  options.maxVelocity = 10;
+  options.maxSpeed = 10;
 
   acceleration.x = 3; // space units per time unit squared
 
@@ -34,8 +34,8 @@ Deno.test("physics: max velocity", () => {
 
 Deno.test("physics: friction", () => {
   const timeDelta = 10;
-  const position = new Vec2();
-  const velocity = new Vec2(4);
+  const position = new Vec2.Instance();
+  const velocity = new Vec2.Instance(4);
   const options = new SimulateOptions();
 
   options.friction = 128;

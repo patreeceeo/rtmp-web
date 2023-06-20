@@ -1,10 +1,13 @@
+import { almostEquals, getLengthSquared } from "~/common/Vec2.ts";
 import { filter, map } from "../../common/Iterable.ts";
-import { flattenMaybes, Nothing } from "../../common/Maybe.ts";
-import { IPayloadAny } from "../../common/Message.ts";
+import {
+  IMessageDef,
+  IPayloadAny,
+  IWritePayload,
+} from "../../common/Message.ts";
 import { NetworkId } from "../../common/NetworkApi.ts";
 import { MessageState } from "../../common/state/Message.ts";
 import { NetworkState } from "../../common/state/Network.ts";
-import { PlayerState } from "../../common/state/Player.ts";
 import { TraitState } from "../../common/state/Trait.ts";
 import {
   ISystemExecutionContext,
@@ -44,40 +47,46 @@ function exec(context: ISystemExecutionContext) {
         ([_, payload]) => payload,
       );
 
-      let lastCommand = activeCommandForTraitPerClient.get(Trait.commandType)!
+      let lastCommand = activeCommandForTraitPerClient
+        .get(Trait.commandType)!
         .get(nid);
       for (const command of commands) {
         if (!lastCommand || command.sid > lastCommand.sid) {
-          activeCommandForTraitPerClient.get(Trait.commandType)!.set(
-            nid,
-            command,
-          );
+          activeCommandForTraitPerClient
+            .get(Trait.commandType)!
+            .set(nid, command);
           lastCommand = command;
         }
       }
 
       if (lastCommand) {
-        const snapshots = flattenMaybes(
+        const snapshots = filter(
           map([lastCommand], (payload) => {
             // was making these instance methods really a good idea?
             const eid = NetworkState.getEntityId(nid)!;
             const trait = TraitState.getTrait(Trait, eid);
             if (trait) {
-              return trait.getSnapshotMaybe(payload!, context);
+              return trait.getSnapshotMaybe(
+                payload!,
+                context,
+              );
             }
-            return Nothing();
+            return null;
           }),
-        );
+          (x) => x !== null,
+        ) as Iterable<[IMessageDef<IPayloadAny>, IWritePayload<IPayloadAny>]>;
+
         for (const [type, write] of snapshots) {
           const eid = NetworkState.getEntityId(nid)!;
           const trait = TraitState.getTrait(Trait, eid);
-          if (trait && PlayerState.hasPlayer(eid)) {
-            const player = PlayerState.getPlayer(eid);
-            const playerIsAtTarget = player.targetPosition.almostEquals(
+          if (trait) {
+            const player = trait.entity;
+            const playerIsAtTarget = almostEquals(
+              player.targetPosition,
               player.position,
             );
-            const speedSquared = player.velocity.lengthSquared;
-            const intermediateUpdateInterval = speedSquared / 80;
+            const speedSquared = getLengthSquared(player.velocity);
+            const intermediateUpdateInterval = speedSquared / 160;
             const timeSinceLastUpdate = context.elapsedTime -
               (lastUpdatedTime.get(nid) ?? -1);
             if (
@@ -88,9 +97,9 @@ function exec(context: ISystemExecutionContext) {
               trait.applySnapshot(payload, context);
               lastUpdatedTime.set(nid, context.elapsedTime);
               if (playerIsAtTarget) {
-                activeCommandForTraitPerClient.get(Trait.commandType)!.delete(
-                  nid,
-                );
+                activeCommandForTraitPerClient
+                  .get(Trait.commandType)!
+                  .delete(nid);
               }
             }
           }

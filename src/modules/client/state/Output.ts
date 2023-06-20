@@ -1,6 +1,19 @@
 import { deferred } from "async";
-import { Vec2, Vec2LargeType } from "~/common/Vec2.ts";
-import * as ECS from "bitecs";
+import { Instance } from "~/common/Vec2.ts";
+import {
+  BodyDimensions,
+  BodyStaticTag,
+  ImageCollectionComponent,
+  ImageIdComponent,
+  PoseComponent,
+  PositionComponent,
+  PreviousPositionComponent,
+  SoftDeletedTag,
+  TargetPositionComponent,
+} from "../../common/components.ts";
+import { Not } from "~/common/Query.ts";
+import { EntityPrefabCollection } from "../../common/Entity.ts";
+import { isClient } from "../../common/env.ts";
 
 interface ICanvasGradientParams {
   x0: number;
@@ -10,7 +23,10 @@ interface ICanvasGradientParams {
   stops: Array<[number, string]>;
 }
 
-export const PreviousPositionStore = ECS.defineComponent(Vec2LargeType);
+class SceneData {
+  readonly gradients = new Map<string, ICanvasGradientParams>();
+  readonly paths = new Map<string, Path2D>();
+}
 
 // TODO key/button/axis enum
 class OutputStateApi {
@@ -19,16 +35,41 @@ class OutputStateApi {
     clientRect: new DOMRect(),
     context2d: null as (CanvasRenderingContext2D | null),
     element: null as HTMLCanvasElement | null,
-    resolution: new Vec2(),
+    resolution: new Instance(),
   };
   background = {
     context2d: null as (CanvasRenderingContext2D | null),
     element: null as HTMLCanvasElement | null,
-    resolution: new Vec2(),
+    resolution: new Instance(),
   };
-  readonly gradients = new Map<string, ICanvasGradientParams>();
-  readonly paths = new Map<string, Path2D>();
+  scene = new SceneData();
   frameCount = 0;
+  readonly dynamicEntityComponents = [
+    PositionComponent,
+    PreviousPositionComponent,
+    TargetPositionComponent,
+    BodyDimensions,
+    ImageCollectionComponent,
+    PoseComponent,
+  ] as const;
+  readonly staticEntityComponents = [
+    BodyStaticTag,
+    PositionComponent,
+    BodyDimensions,
+    ImageIdComponent,
+  ] as const;
+  readonly dynamicEntities = new EntityPrefabCollection(
+    this.dynamicEntityComponents,
+  );
+  readonly activeDynamicEntities = new EntityPrefabCollection([
+    Not(SoftDeletedTag),
+    ...this.dynamicEntityComponents,
+  ]);
+  readonly staticEntities = new EntityPrefabCollection(
+    this.staticEntityComponents,
+  );
 }
 
-export const OutputState = new OutputStateApi();
+export const OutputState = isClient
+  ? new OutputStateApi()
+  : null as unknown as OutputStateApi;

@@ -1,4 +1,5 @@
 import "../mod.ts";
+import * as Vec2 from "~/common/Vec2.ts";
 import { InputState } from "~/common/state/Input.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import {
@@ -22,7 +23,6 @@ import { useClient } from "hot_mod/dist/client/mod.js";
 import { IPlayerAdd, IPlayerRemove, MsgType } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import {
-  readMessage,
   readMessagePayload,
   readMessageType,
   readPingId,
@@ -31,12 +31,12 @@ import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { DebugSystem } from "~/client/systems/DebugSystem.ts";
 import { LevelState } from "../../../modules/common/state/LevelState.ts";
-import { Vec2 } from "../../../modules/common/Vec2.ts";
+import { Instance } from "../../../modules/common/Vec2.ts";
 import { initPing, updatePing } from "../../../modules/common/state/Ping.ts";
 import { PingSystem } from "../../../modules/client/systems/Ping.ts";
 import { SCREEN_HEIGHT_PX, SCREEN_WIDTH_PX } from "../mod.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
-import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
+import { addEntity, softDeleteEntity } from "~/common/Entity.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -49,12 +49,8 @@ if (import.meta.hot) {
   });
 }
 
-loadTilemap("/public/assets/level.json").then((map) => {
-  LevelState.map = map;
-});
-
-OutputState.foreground.resolution.set(SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
-OutputState.background.resolution.set(SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
+Vec2.set(OutputState.foreground.resolution, SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
+Vec2.set(OutputState.background.resolution, SCREEN_WIDTH_PX, SCREEN_HEIGHT_PX);
 
 const landscapePoints = [
   [0, 200],
@@ -75,20 +71,20 @@ const landscapePoints = [
 ];
 
 for (const point of landscapePoints) {
-  LevelState.landscape.push(new Vec2(point[0], point[1]));
+  LevelState.landscape.push(new Instance(point[0], point[1]));
 }
 
 LevelState.farClouds[0] = {
-  position: new Vec2(360, 252),
-  size: new Vec2(96, 48),
+  position: new Instance(360, 252),
+  size: new Instance(96, 48),
 };
 
 LevelState.nearClouds[0] = {
-  position: new Vec2(24, 220),
-  size: new Vec2(64, 32),
+  position: new Instance(24, 220),
+  size: new Instance(64, 32),
 };
 
-OutputState.gradients.set("sky", {
+OutputState.scene.gradients.set("sky", {
   x0: 0,
   y0: 0,
   x1: 0,
@@ -99,7 +95,7 @@ OutputState.gradients.set("sky", {
   ],
 });
 
-OutputState.gradients.set("landscape", {
+OutputState.scene.gradients.set("landscape", {
   x0: 0,
   y0: 0,
   x1: 0,
@@ -123,7 +119,7 @@ function createLandscapePath() {
   return landscape;
 }
 
-OutputState.paths.set("landscape", createLandscapePath());
+OutputState.scene.paths.set("landscape", createLandscapePath());
 
 export class DotsClientApp extends ClientApp {
   handleOpen(_server: WebSocket, _event: Event): void {
@@ -171,20 +167,19 @@ function handlePlayerAdded(
   _server: WebSocket,
   { isLocal, nid, position, spriteMapId }: IPlayerAdd,
 ) {
-  // TODO player system
-  const player = PlayerState.createPlayer();
   console.log("player nid:", nid);
-  player.position.copy(position);
-  player.targetPosition.copy(position);
-  player.spriteMapId = spriteMapId;
+  const player = PlayerState.addPlayer(addEntity());
+  Vec2.copy(player.position, position);
+  Vec2.copy(player.targetPosition, position);
+  player.imageCollection = spriteMapId;
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
-  TraitState.add(WasdMoveTrait, player.eid);
-  TraitState.add(NegotiatePhysicsTrait, player.eid);
+  TraitState.add(WasdMoveTrait, player);
+  TraitState.add(NegotiatePhysicsTrait, player);
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
-  // TODO player system
   const eid = ClientNetworkState.getEntityId(playerRemove.nid)!;
-  PlayerState.deletePlayer(eid);
+  softDeleteEntity(eid);
+  // TODO move this stuff to PurgeSystem
   ClientNetworkState.deleteId(playerRemove.nid);
   TraitState.deleteEntity(eid);
 }
