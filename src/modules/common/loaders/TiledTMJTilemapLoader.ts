@@ -134,6 +134,8 @@ async function loadLayer(
   await Promise.all(promises);
 }
 
+const tileCacheKeys: Record<number, number> = {};
+
 async function loadTile(
   bits: number,
   tilesets: ReadonlyArray<ITilesetJson>,
@@ -145,35 +147,53 @@ async function loadTile(
   if (gid === GID_EMPTY) {
     return undefined;
   } else {
-    const flags = bits & TileFlags.ALL_FLIP_FLAGS;
-
-    const tilesetIndex = getTilesetIndexForGid(tilesets, gid);
-    const tileset = tilesets[tilesetIndex];
-    const localId = getTileLocalId(gid, tileset.firstgid);
-    const image = getFromCache(tileset.image);
-    const imageX = (localId % tileset.columns) * tileset.tilewidth;
-    const imageY = Math.floor(localId / tileset.columns) * tileset.tileheight;
-    _imageSourceBox.set(imageX, imageY, tileset.tilewidth, tileset.tileheight);
-
-    _imageOptions.reset();
-    _imageOptions.flipH = isFlagSet(flags, TileFlags.FLIPPED_HORIZONTALLY_FLAG);
-    _imageOptions.flipV = isFlagSet(flags, TileFlags.FLIPPED_VERTICALLY_FLAG);
-    _imageOptions.flipD = isFlagSet(flags, TileFlags.FLIPPED_DIAGONALLY_FLAG);
-    _imageOptions.target = new Image();
-
-    const chunk = await getChunk(image, _imageSourceBox, _imageOptions);
-    const imageId = incrementId("image");
-
-    setCache(imageId, chunk);
-
-    const entity = addComponents(
+    const tileEntity = addComponents(
       TILE_COMPONENTS,
       addEntity(),
     );
+    const tilesetIndex = getTilesetIndexForGid(tilesets, gid);
+    const tileset = tilesets[tilesetIndex];
+    let imageId: number;
 
-    entity.imageId = imageId;
-    set(entity.position, mapX * tileset.tilewidth, mapY * tileset.tileheight);
-    set(entity.bodyDimensions, tileset.tilewidth, tileset.tileheight);
+    if (tileCacheKeys[bits] !== undefined) {
+      imageId = tileCacheKeys[bits];
+    } else {
+      const flags = bits & TileFlags.ALL_FLIP_FLAGS;
+
+      const localId = getTileLocalId(gid, tileset.firstgid);
+      const image = getFromCache(tileset.image);
+      const imageX = (localId % tileset.columns) * tileset.tilewidth;
+      const imageY = Math.floor(localId / tileset.columns) * tileset.tileheight;
+      _imageSourceBox.set(
+        imageX,
+        imageY,
+        tileset.tilewidth,
+        tileset.tileheight,
+      );
+
+      _imageOptions.reset();
+      _imageOptions.flipH = isFlagSet(
+        flags,
+        TileFlags.FLIPPED_HORIZONTALLY_FLAG,
+      );
+      _imageOptions.flipV = isFlagSet(flags, TileFlags.FLIPPED_VERTICALLY_FLAG);
+      _imageOptions.flipD = isFlagSet(flags, TileFlags.FLIPPED_DIAGONALLY_FLAG);
+      _imageOptions.target = new Image();
+
+      imageId = incrementId("image");
+      tileCacheKeys[bits] = imageId;
+      const chunk = await getChunk(image, _imageSourceBox, _imageOptions);
+
+      setCache(imageId, chunk);
+    }
+
+    tileEntity.imageId = imageId;
+    set(
+      tileEntity.position,
+      mapX * tileset.tilewidth,
+      mapY * tileset.tileheight,
+    );
+    set(tileEntity.bodyDimensions, tileset.tilewidth, tileset.tileheight);
   }
 }
 
