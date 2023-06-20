@@ -11,12 +11,14 @@ export const PurgeSystem: SystemLoader<ISystemExecutionContext> = () => {
     for (const entity of entities.query()) {
       const eid = entity.eid;
       if (
-        eid in deletedEntityTimestamps &&
-        elapsedTime - deletedEntityTimestamps[eid] > 500
+        eid in deletedEntityTimestamps
       ) {
-        console.log("Purging entity", eid);
-        deleteEntity(eid);
-        delete deletedEntityTimestamps[eid];
+        if (
+          elapsedTime - deletedEntityTimestamps[eid] > 500
+        ) {
+          deleteEntity(eid);
+          delete deletedEntityTimestamps[eid];
+        }
       } else {
         deletedEntityTimestamps[eid] = elapsedTime;
       }

@@ -103,9 +103,9 @@ class DotsServerApp implements ServerApp {
     console.log("Client disconnected", client.nid);
     ServerNetworkState.removeClient(client.nid);
     for (const nid of client.getNetworkIds()) {
-      const eid = ServerNetworkState.getEntityId(nid);
-      if (hasEntity(eid!)) {
-        softDeleteEntity(eid!);
+      const eid = ServerNetworkState.getEntityId(nid)!;
+      if (hasEntity(eid)) {
+        softDeleteEntity(eid);
         broadcastMessage(PlayerRemove, (p) => {
           p.nid = nid;
           p.sid = MessageState.currentStep;

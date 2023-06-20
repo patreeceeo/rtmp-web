@@ -8,8 +8,10 @@ import {
   PoseComponent,
   PositionComponent,
   PreviousPositionComponent,
+  SoftDeletedTag,
   TargetPositionComponent,
 } from "../../common/components.ts";
+import { Not } from "~/common/Query.ts";
 import { EntityPrefabCollection } from "../../common/Entity.ts";
 import { isClient } from "../../common/env.ts";
 
@@ -59,6 +61,10 @@ class OutputStateApi {
   readonly dynamicEntities = new EntityPrefabCollection(
     this.dynamicEntityComponents,
   );
+  readonly activeDynamicEntities = new EntityPrefabCollection([
+    Not(SoftDeletedTag),
+    ...this.dynamicEntityComponents,
+  ]);
   readonly staticEntities = new EntityPrefabCollection(
     this.staticEntityComponents,
   );

@@ -268,7 +268,7 @@ function drawPlayers() {
     foreground: { context2d },
   } = OutputState;
   const ctx = context2d!;
-  for (const entity of OutputState.dynamicEntities.query()) {
+  for (const entity of OutputState.activeDynamicEntities.query()) {
     const sprite = SpriteState.find(entity.imageCollection, entity.pose)!;
     const { x: w, y: h } = entity.bodyDimensions;
     const w2 = w >> 1;

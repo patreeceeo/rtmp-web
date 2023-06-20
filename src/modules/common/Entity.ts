@@ -5,6 +5,7 @@ import {
   removeEntity,
 } from "bitecs";
 import {
+  addComponent,
   addComponents,
   EntityWithComponents,
   hasComponent,
@@ -69,11 +70,15 @@ export function hasEntity(eid: EntityId, world = defaultWorld): boolean {
   return entityExists(world, eid);
 }
 
+export function getEntity(eid: EntityId): IEntityMinimal | undefined {
+  return pool.get(eid);
+}
+
 export function softDeleteEntity(
   eid: EntityId,
   world = defaultWorld,
 ): void {
-  _addComponent(world, SoftDeletedTag.store, eid);
+  addComponent(SoftDeletedTag, getEntity(eid)!, world);
 }
 
 export function deleteEntity(eid: EntityId, world = defaultWorld): void {
