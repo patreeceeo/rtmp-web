@@ -8,14 +8,18 @@ import {
   PositionComponent,
   SoftDeletedTag,
   TargetPositionComponent,
+  TileTag,
   VelocityComponent,
 } from "../components.ts";
 import { Not } from "../Query.ts";
+import { Matrix2 } from "../math.ts";
 
-export type IPhysicsEntity = ReturnType<typeof PhysicsState.entities.add>;
+export type IPhysicsEntity = ReturnType<
+  typeof PhysicsState.dynamicEntities.add
+>;
 
 class PhysicsStateApi {
-  readonly components = [
+  readonly dynamicEntityComponents = [
     Not(SoftDeletedTag),
     PositionComponent,
     TargetPositionComponent,
@@ -26,7 +30,17 @@ class PhysicsStateApi {
     AccelerationComponent,
     PoseComponent,
   ] as const;
-  readonly entities = new EntityPrefabCollection(this.components);
+  readonly tileComponents = [
+    Not(SoftDeletedTag),
+    PositionComponent,
+    BodyDimensions,
+    TileTag,
+  ] as const;
+  readonly dynamicEntities = new EntityPrefabCollection(
+    this.dynamicEntityComponents,
+  );
+  readonly tileEntities = new EntityPrefabCollection(this.tileComponents);
+  readonly tileMatrix = new Matrix2<boolean>(32, 32, false);
 }
 
 export const PhysicsState = new PhysicsStateApi();

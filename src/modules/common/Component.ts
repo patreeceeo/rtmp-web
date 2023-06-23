@@ -47,6 +47,7 @@ export type EntityWithComponents<
 
 export interface IEntityMaximal extends IEntityMinimal {
   isPlayer: boolean;
+  isTile: boolean;
   bodyIsStatic: boolean;
   bodyDimensions: ECSInstance<typeof Vec2SmallSchema>;
   position: ECSInstance<typeof Vec2LargeSchema>;

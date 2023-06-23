@@ -8,7 +8,7 @@ import { set } from "../Vec2.ts";
 
 class PlayerStateApi {
   readonly components = [
-    ...PhysicsState.components,
+    ...PhysicsState.dynamicEntityComponents,
     ...(isClient ? OutputState.dynamicEntityComponents : []),
   ] as const;
 

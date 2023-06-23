@@ -17,6 +17,10 @@ export const PlayerTag = defineTag({
   propName: "isPlayer",
 });
 
+export const TileTag = defineTag({
+  propName: "isTile",
+});
+
 export const BodyStaticTag = defineTag({
   propName: "bodyIsStatic",
 });

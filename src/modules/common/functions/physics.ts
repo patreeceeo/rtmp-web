@@ -1,4 +1,5 @@
 import { Box, IBox } from "../Box.ts";
+import { Matrix2 } from "../math.ts";
 import { add, clamp, extend, Instance, ReadOnly } from "../Vec2.ts";
 
 export interface ISimulateOptions {
@@ -77,5 +78,76 @@ export function simulateVelocityWithAcceleration(
 
   if (options.maxSpeed) {
     clamp(velocity, options.maxSpeed);
+  }
+}
+
+export const TILE_SIZE_BITLENGTH = 13;
+export const TILE_SIZE = 1 << TILE_SIZE_BITLENGTH;
+
+export function resolveTileCollisions(
+  position: Instance,
+  velocity: Instance,
+  tileMatrix: Matrix2<boolean>,
+  options: ISimulateOptions = defaultOptions,
+) {
+  const hitBox = options.hitBox;
+  const xHalfHitBox = hitBox.x / 2;
+  const yHalfHitBox = hitBox.y / 2;
+  const xMin = position.x - xHalfHitBox;
+  const yMin = position.y - yHalfHitBox;
+  const xMax = position.x + xHalfHitBox;
+  const yMax = position.y + yHalfHitBox;
+  const xMinMatrix = xMin >> TILE_SIZE_BITLENGTH;
+  const yMinMatrix = yMin >> TILE_SIZE_BITLENGTH;
+  const xMaxMatrix = (xMax - 1) >> TILE_SIZE_BITLENGTH;
+  const yMaxMatrix = (yMax - 1) >> TILE_SIZE_BITLENGTH;
+  const xMinTile = (xMinMatrix + 1) << TILE_SIZE_BITLENGTH;
+  const yMinTile = (yMinMatrix + 1) << TILE_SIZE_BITLENGTH;
+  const xMaxTile = xMaxMatrix << TILE_SIZE_BITLENGTH;
+  const yMaxTile = yMaxMatrix << TILE_SIZE_BITLENGTH;
+
+  // TODO restitution
+  // Directions are relative to the dynamic object (e.g. the player)
+  const isTopLeftCollision = tileMatrix.get(xMinMatrix, yMinMatrix);
+  const isTopRightCollision = tileMatrix.get(xMaxMatrix, yMinMatrix);
+  const isBottomRightCollision = tileMatrix.get(xMaxMatrix, yMaxMatrix);
+  const isBottomLeftCollision = tileMatrix.get(xMinMatrix, yMaxMatrix);
+  const isLeftCollision = isTopLeftCollision || isBottomLeftCollision;
+  const isRightCollision = isTopRightCollision || isBottomRightCollision;
+  const isTopCollision = isTopLeftCollision || isTopRightCollision;
+  const isBottomCollision = isBottomLeftCollision || isBottomRightCollision;
+  const isCollisionDetected = isTopLeftCollision ||
+    isTopRightCollision ||
+    isBottomRightCollision ||
+    isBottomLeftCollision;
+
+  if (isCollisionDetected) {
+    const xImpact = isLeftCollision ? xMinTile - xMin : xMax - xMaxTile;
+    const yImpact = isTopCollision ? yMinTile - yMin : yMax - yMaxTile;
+
+    if (isRightCollision && xImpact <= yImpact) {
+      if (velocity.x > 0) {
+        velocity.x = 0;
+      }
+      position.x = xMinTile - xHalfHitBox;
+    }
+    if (isLeftCollision && xImpact <= yImpact) {
+      if (velocity.x < 0) {
+        velocity.x = 0;
+      }
+      position.x = xMaxTile + xHalfHitBox;
+    }
+    if (isBottomCollision && yImpact <= xImpact) {
+      if (velocity.y > 0) {
+        velocity.y = 0;
+      }
+      position.y = yMinTile - yHalfHitBox;
+    }
+    if (isTopCollision && yImpact <= xImpact) {
+      if (velocity.y < 0) {
+        velocity.y = 0;
+      }
+      position.y = yMaxTile + yHalfHitBox;
+    }
   }
 }

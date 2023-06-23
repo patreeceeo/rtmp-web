@@ -32,6 +32,7 @@ import {
 import { initPing, sendPing } from "../../../modules/common/state/Ping.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
 import { addEntity, hasEntity, softDeleteEntity } from "~/common/Entity.ts";
+import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
 
 const idleTimeout = 300;
 
@@ -135,25 +136,29 @@ const handleMessagePipeline = new Pipeline(
   [ConsumeCommandSystem()],
   new DemandDriver(),
 );
-handleMessagePipeline.start();
 
-const fastPipeline = new Pipeline(
-  [
-    PhysicsSystem({ fixedDeltaTime: 9 }),
-    ProduceSnapshotSystem(),
-    NetworkSystem(),
-  ],
-  new FixedIntervalDriver(8),
-);
-fastPipeline.start();
+loadTilemap("/public/assets/level.json", false).then(() => {
+  const fastPipeline = new Pipeline(
+    [
+      PhysicsSystem({ fixedDeltaTime: 9 }),
+      ProduceSnapshotSystem(),
+      NetworkSystem(),
+    ],
+    new FixedIntervalDriver(8),
+  );
 
-const slowPipeline = new Pipeline(
-  [
-    PurgeSystem(),
-    ServerPurgeSystem({ idleTimeout, msgPlayerRemoved: [PlayerRemove, null] }),
-  ],
-  new FixedIntervalDriver(500),
-);
-slowPipeline.start();
-
-startServer(new DotsServerApp());
+  const slowPipeline = new Pipeline(
+    [
+      PurgeSystem(),
+      ServerPurgeSystem({
+        idleTimeout,
+        msgPlayerRemoved: [PlayerRemove, null],
+      }),
+    ],
+    new FixedIntervalDriver(500),
+  );
+  startServer(new DotsServerApp());
+  handleMessagePipeline.start();
+  fastPipeline.start();
+  slowPipeline.start();
+});

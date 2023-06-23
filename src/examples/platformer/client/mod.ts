@@ -37,6 +37,7 @@ import { PingSystem } from "../../../modules/client/systems/Ping.ts";
 import { SCREEN_HEIGHT_PX, SCREEN_WIDTH_PX } from "../mod.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
 import { addEntity, softDeleteEntity } from "~/common/Entity.ts";
+import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -185,38 +186,43 @@ function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
 }
 
 const app = new DotsClientApp();
-
-initPing(MsgType.ping);
-
 const inputPipeline = new Pipeline(
   [InputSystem()],
   new EventQueueDriver(app.inputEvents),
 );
-inputPipeline.start();
 
 const handleMessagePipeline = new Pipeline(
   [ReconcileSystem()],
   new DemandDriver(),
 );
-handleMessagePipeline.start();
 
-const fastPipeline = new Pipeline(
-  [TraitSystem(), ClientNetworkSystem(), PhysicsSystem({ fixedDeltaTime: 8 })],
-  new FixedIntervalDriver(8),
-);
-fastPipeline.start();
+// TODO maybe there should be separate functions for loading the tile visuals and the tile physics. Then the respective systems could do the loading themselves
+loadTilemap("/public/assets/level.json").then(() => {
+  const fastPipeline = new Pipeline(
+    [
+      TraitSystem(),
+      ClientNetworkSystem(),
+      PhysicsSystem({ fixedDeltaTime: 8 }),
+    ],
+    new FixedIntervalDriver(8),
+  );
 
-const framePipeline = new Pipeline([OutputSystem()], new AnimationDriver());
-framePipeline.start();
+  const framePipeline = new Pipeline([OutputSystem()], new AnimationDriver());
 
-startClient(app);
+  const slowPipeline = new Pipeline(
+    [
+      PurgeSystem(),
+      PingSystem({ timeout: 10 * 1000 }),
+      DebugSystem({ pingStatTimeFrame: 5000, fpsStatTimeFrame: 500 }),
+    ],
+    new FixedIntervalDriver(250),
+  );
 
-const slowPipeline = new Pipeline(
-  [
-    PurgeSystem(),
-    PingSystem({ timeout: 10 * 1000 }),
-    DebugSystem({ pingStatTimeFrame: 5000, fpsStatTimeFrame: 500 }),
-  ],
-  new FixedIntervalDriver(250),
-);
-slowPipeline.start();
+  initPing(MsgType.ping);
+  startClient(app);
+  inputPipeline.start();
+  handleMessagePipeline.start();
+  fastPipeline.start();
+  framePipeline.start();
+  slowPipeline.start();
+});

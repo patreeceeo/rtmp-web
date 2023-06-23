@@ -1,7 +1,6 @@
 import * as Vec2 from "~/common/Vec2.ts";
 import { OutputState } from "~/client/state/Output.ts";
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
-import { loadTilemap } from "../../common/loaders/TiledTMJTilemapLoader.ts";
 import { roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
 import { DebugState } from "../state/Debug.ts";
@@ -47,8 +46,6 @@ export const OutputSystem: SystemLoader = async () => {
     32,
     true,
   );
-
-  await loadTilemap("/public/assets/level.json");
 
   const {
     foreground: { resolution },

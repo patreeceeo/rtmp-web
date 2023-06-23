@@ -1,6 +1,7 @@
 import { add, clamp, copy, getLengthSquared, sub } from "~/common/Vec2.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
+  resolveTileCollisions,
   simulatePositionWithVelocity,
   simulateVelocityWithAcceleration,
 } from "../../../modules/common/functions/physics.ts";
@@ -16,39 +17,56 @@ export const PhysicsSystem: SystemLoader<
   ISystemExecutionContext,
   [{ fixedDeltaTime: number }]
 > = ({ fixedDeltaTime }) => {
+  for (const tileEntity of PhysicsState.tileEntities.query()) {
+    const tileX = tileEntity.position.x >> 5;
+    const tileY = tileEntity.position.y >> 5;
+    PhysicsState.tileMatrix.set(tileX, tileY, true);
+  }
+
   function exec() {
-    for (const entity of PhysicsState.entities.query()) {
-      const options = getPhysicsOptions(entity);
+    for (const dynamicEntity of PhysicsState.dynamicEntities.query()) {
+      const options = getPhysicsOptions(dynamicEntity);
       if (!isClient) {
-        copy(entity.targetPosition, entity.position);
+        copy(dynamicEntity.targetPosition, dynamicEntity.position);
       } else {
-        add(entity.targetPosition, entity.velocity, fixedDeltaTime);
+        add(
+          dynamicEntity.targetPosition,
+          dynamicEntity.velocity,
+          fixedDeltaTime,
+        );
 
         // Calculate how far we are from where we should be
-        copy(tempPositionDelta, entity.targetPosition);
-        sub(tempPositionDelta, entity.position);
+        copy(tempPositionDelta, dynamicEntity.targetPosition);
+        sub(tempPositionDelta, dynamicEntity.position);
         if (
           getLengthSquared(tempPositionDelta) > 1
         ) {
-          clamp(tempPositionDelta, entity.maxSpeed * fixedDeltaTime);
-          add(entity.position, tempPositionDelta);
+          clamp(tempPositionDelta, dynamicEntity.maxSpeed * fixedDeltaTime);
+          add(dynamicEntity.position, tempPositionDelta);
         }
       }
-      entity.pose = entity.acceleration.x == 0
-        ? entity.pose
-        : entity.acceleration.x > 0
+      dynamicEntity.pose = dynamicEntity.acceleration.x == 0
+        ? dynamicEntity.pose
+        : dynamicEntity.acceleration.x > 0
         ? PoseType.facingRight
         : PoseType.facingLeft;
       simulateVelocityWithAcceleration(
-        entity.velocity,
-        entity.acceleration,
+        dynamicEntity.velocity,
+        dynamicEntity.acceleration,
         fixedDeltaTime,
         options,
       );
       simulatePositionWithVelocity(
-        entity.position,
-        entity.velocity,
+        dynamicEntity.position,
+        dynamicEntity.velocity,
         fixedDeltaTime,
+        options,
+      );
+      // TODO(perf) space partitioning
+      resolveTileCollisions(
+        dynamicEntity.targetPosition,
+        dynamicEntity.velocity,
+        PhysicsState.tileMatrix,
         options,
       );
     }
