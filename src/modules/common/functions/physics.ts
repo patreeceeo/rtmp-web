@@ -7,6 +7,7 @@ export interface ISimulateOptions {
   maxSpeed: number;
   worldDimensions: IBox;
   hitBox: ReadOnly;
+  gravity: ReadOnly;
 }
 
 export class SimulateOptions implements ISimulateOptions {
@@ -14,6 +15,7 @@ export class SimulateOptions implements ISimulateOptions {
   maxSpeed = Infinity;
   worldDimensions = Box.INFINITY;
   hitBox = new Instance();
+  gravity = new Instance(0, 0.6);
 }
 
 const defaultOptions = new SimulateOptions();
@@ -45,7 +47,7 @@ export function simulatePositionWithVelocity(
     const xMin = dimensions.xMin + hitBox.x / 2;
     const xMax = dimensions.xMax - hitBox.x / 2;
     const yMin = dimensions.yMin + hitBox.y / 2;
-    const yMax = dimensions.yMax - hitBox.y / 2;
+    // const yMax = dimensions.yMax - hitBox.y / 2;
     if (position.x < xMin) {
       velocity.x = 0;
       position.x = xMin;
@@ -61,10 +63,10 @@ export function simulatePositionWithVelocity(
       position.y = yMin;
     }
 
-    if (position.y >= yMax) {
-      velocity.y = 0;
-      position.y = yMax;
-    }
+    // if (position.y >= yMax) {
+    //   velocity.y = 0;
+    //   position.y = yMax;
+    // }
   }
 }
 
@@ -81,8 +83,43 @@ export function simulateVelocityWithAcceleration(
   }
 }
 
+export function simulateGravity(
+  velocity: Instance,
+  deltaTime: number,
+  options: ISimulateOptions = defaultOptions,
+) {
+  const gravity = options.gravity;
+  if (gravity) {
+    accumulate(velocity, deltaTime, gravity);
+  }
+}
+
 export const TILE_SIZE_BITLENGTH = 13;
 export const TILE_SIZE = 1 << TILE_SIZE_BITLENGTH;
+
+// TODO generalize into detectCollision
+export function detectGrounded(
+  position: Instance,
+  tileMatrix: Matrix2<boolean>,
+  options: ISimulateOptions = defaultOptions,
+) {
+  const hitBox = options.hitBox;
+  const xHalfHitBox = hitBox.x / 2;
+  const yHalfHitBox = hitBox.y / 2;
+  const xMin = position.x - xHalfHitBox;
+  const xMax = position.x + xHalfHitBox;
+  const yMax = position.y + yHalfHitBox;
+  const xMinMatrix = xMin >> TILE_SIZE_BITLENGTH;
+  const xMaxMatrix = (xMax - 1) >> TILE_SIZE_BITLENGTH;
+  const yMaxMatrix = (yMax - 1) >> TILE_SIZE_BITLENGTH;
+
+  // TODO restitution
+  // Directions are relative to the dynamic object (e.g. the player)
+  const isBottomRightCollision = tileMatrix.get(xMaxMatrix, yMaxMatrix);
+  const isBottomLeftCollision = tileMatrix.get(xMinMatrix, yMaxMatrix);
+
+  return isBottomRightCollision || isBottomLeftCollision;
+}
 
 export function resolveTileCollisions(
   position: Instance,

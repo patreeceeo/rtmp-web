@@ -51,10 +51,7 @@ class DotsServerApp implements ServerApp {
         LevelState.dimensions.xMin,
         LevelState.dimensions.xMax,
       ),
-      getRandomIntBetween(
-        LevelState.dimensions.yMin,
-        LevelState.dimensions.yMax,
-      ),
+      LevelState.dimensions.yMin,
     );
     addedPlayer.imageCollection = (addedPlayer.eid / 2) % 2;
 

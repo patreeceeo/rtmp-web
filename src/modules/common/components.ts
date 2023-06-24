@@ -21,6 +21,10 @@ export const TileTag = defineTag({
   propName: "isTile",
 });
 
+export const GroundedTag = defineTag({
+  propName: "isGrounded",
+});
+
 export const BodyStaticTag = defineTag({
   propName: "bodyIsStatic",
 });

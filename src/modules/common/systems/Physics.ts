@@ -1,7 +1,9 @@
 import { add, clamp, copy, getLengthSquared, sub } from "~/common/Vec2.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
+  detectGrounded,
   resolveTileCollisions,
+  simulateGravity,
   simulatePositionWithVelocity,
   simulateVelocityWithAcceleration,
 } from "../../../modules/common/functions/physics.ts";
@@ -10,6 +12,8 @@ import { isClient } from "../env.ts";
 import { Instance } from "../Vec2.ts";
 import { PhysicsState } from "../state/Physics.ts";
 import { PoseType } from "../../client/state/Sprite.ts";
+import { addComponent, removeComponent } from "../Component.ts";
+import { GroundedTag } from "../components.ts";
 
 const tempPositionDelta = new Instance();
 
@@ -62,6 +66,21 @@ export const PhysicsSystem: SystemLoader<
         fixedDeltaTime,
         options,
       );
+      const isGrounded = detectGrounded(
+        dynamicEntity.position,
+        PhysicsState.tileMatrix,
+        options,
+      );
+      if (!isGrounded) {
+        removeComponent(GroundedTag, dynamicEntity);
+        simulateGravity(
+          dynamicEntity.velocity,
+          fixedDeltaTime,
+          options,
+        );
+      } else {
+        addComponent(GroundedTag, dynamicEntity);
+      }
       // TODO(perf) space partitioning
       resolveTileCollisions(
         dynamicEntity.targetPosition,
