@@ -14,6 +14,7 @@ import { PhysicsState } from "../state/Physics.ts";
 import { PoseType } from "../../client/state/Sprite.ts";
 import { addComponent, removeComponent } from "../Component.ts";
 import { GroundedTag } from "../components.ts";
+import { NetworkState } from "../state/Network.ts";
 
 const tempPositionDelta = new Instance();
 
@@ -30,6 +31,7 @@ export const PhysicsSystem: SystemLoader<
   function exec() {
     for (const dynamicEntity of PhysicsState.dynamicEntities.query()) {
       const options = getPhysicsOptions(dynamicEntity);
+      const nid = NetworkState.getId(dynamicEntity.eid)!;
       if (!isClient) {
         copy(dynamicEntity.targetPosition, dynamicEntity.position);
       } else {
@@ -71,7 +73,7 @@ export const PhysicsSystem: SystemLoader<
         PhysicsState.tileMatrix,
         options,
       );
-      if (!isGrounded) {
+      if (!isGrounded && (NetworkState.isLocal(nid) || !isClient)) {
         removeComponent(GroundedTag, dynamicEntity);
         simulateGravity(
           dynamicEntity.velocity,

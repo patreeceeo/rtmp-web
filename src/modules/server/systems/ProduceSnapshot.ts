@@ -84,6 +84,8 @@ function exec(context: ISystemExecutionContext) {
             const playerIsAtTarget = almostEquals(
               player.targetPosition,
               player.position,
+              // in 256ths of a pixel
+              256,
             );
             const speedSquared = getLengthSquared(player.velocity);
             const intermediateUpdateInterval = speedSquared / 160;
@@ -96,7 +98,7 @@ function exec(context: ISystemExecutionContext) {
               const payload = MessageState.addSnapshot(type, write);
               trait.applySnapshot(payload, context);
               lastUpdatedTime.set(nid, context.elapsedTime);
-              if (playerIsAtTarget) {
+              if (player.isGrounded) {
                 activeCommandForTraitPerClient
                   .get(Trait.commandType)!
                   .delete(nid);
