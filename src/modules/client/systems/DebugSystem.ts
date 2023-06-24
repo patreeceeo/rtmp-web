@@ -16,58 +16,76 @@ interface IConfig {
 
 let lastPingExecuteTime = 0;
 let lastFpsExecuteTime = 0;
+let lastMpsExecuteTime = 0;
 let wasEnabled = false;
 
-export const DebugSystem: SystemLoader<ISystemExecutionContext, [IConfig]> = (
-  { pingStatTimeFrame, fpsStatTimeFrame },
-) => {
-  let buttonWasPressed = false;
-  function exec(context: ISystemExecutionContext) {
+export const DebugSystem: SystemLoader<ISystemExecutionContext, [IConfig]> =
+  async (
+    { pingStatTimeFrame, fpsStatTimeFrame },
+  ) => {
+    let buttonWasPressed = false;
+
+    await new Promise<void>((resolve) => {
+      document.addEventListener("DOMContentLoaded", () => resolve());
+      setTimeout(() => resolve(), 1000);
+    });
     const statsEl = document.getElementById("perf-stats")!;
     const fpsEl = statsEl.querySelector(".perf-stats-fps")!;
     const pingEl = statsEl.querySelector(".perf-stats-ping")!;
     const dropsEl = statsEl.querySelector(".perf-stats-drops")!;
-    const buttonIsPressed = InputState.isButtonPressed(Button.KeyH) &&
-      InputState.isButtonPressed(Button.ShiftLeft);
-    if (buttonIsPressed && !buttonWasPressed) {
-      DebugState.enabled = !DebugState.enabled;
-    }
-    if (DebugState.enabled !== wasEnabled) {
-      console.log(
-        DebugState.enabled ? "Debug helpers enabled" : "Debug helpers disabled",
-      );
-      statsEl.style.display = DebugState.enabled ? "block" : "none";
-    }
-    buttonWasPressed = buttonIsPressed;
-    wasEnabled = DebugState.enabled;
+    const mpsEl = statsEl.querySelector(".perf-stats-mps")!;
 
-    if (DebugState.enabled) {
-      const now = performance.now();
-      if (now - lastFpsExecuteTime >= fpsStatTimeFrame / 2) {
-        const averageFrameRate = OutputState.frameCount * 1000 /
-          (now - lastFpsExecuteTime);
-        setTextContent(fpsEl, averageFrameRate.toFixed(2));
-        lastFpsExecuteTime = now;
-        OutputState.frameCount = 0;
+    function exec(context: ISystemExecutionContext) {
+      const buttonIsPressed = InputState.isButtonPressed(Button.KeyH) &&
+        InputState.isButtonPressed(Button.ShiftLeft);
+      if (buttonIsPressed && !buttonWasPressed) {
+        DebugState.enabled = !DebugState.enabled;
       }
-      if (now - lastPingExecuteTime >= pingStatTimeFrame / 2) {
-        const pingTimes = map(
-          PingState.getReceived(now - pingStatTimeFrame, now),
-          (ping) => ping.roundTripTime,
+      if (DebugState.enabled !== wasEnabled) {
+        console.log(
+          DebugState.enabled
+            ? "Debug helpers enabled"
+            : "Debug helpers disabled",
         );
-        const averagePingTime = average(pingTimes, 25);
-        setTextContent(pingEl, averagePingTime.toFixed(2));
-        setTextContent(
-          dropsEl,
-          (PingState.dropCount / (context.elapsedTime / 1000))
-            .toFixed(2),
-        );
-        lastPingExecuteTime = now;
+        statsEl.style.display = DebugState.enabled ? "block" : "none";
+      }
+      buttonWasPressed = buttonIsPressed;
+      wasEnabled = DebugState.enabled;
+
+      if (DebugState.enabled) {
+        const now = performance.now();
+        if (now - lastFpsExecuteTime >= fpsStatTimeFrame / 2) {
+          const averageFrameRate = OutputState.frameCount * 1000 /
+            (now - lastFpsExecuteTime);
+          setTextContent(fpsEl, averageFrameRate.toFixed(2));
+          lastFpsExecuteTime = now;
+          OutputState.frameCount = 0;
+        }
+        if (now - lastPingExecuteTime >= pingStatTimeFrame / 2) {
+          const pingTimes = map(
+            PingState.getReceived(now - pingStatTimeFrame, now),
+            (ping) => ping.roundTripTime,
+          );
+          const averagePingTime = average(pingTimes, 25);
+          setTextContent(pingEl, averagePingTime.toFixed(2));
+          setTextContent(
+            dropsEl,
+            (PingState.dropCount / (context.elapsedTime / 1000))
+              .toFixed(2),
+          );
+          lastPingExecuteTime = now;
+        }
+
+        if (now - lastMpsExecuteTime >= 1000) {
+          setTextContent(mpsEl, DebugState.messageSinceLastFrame.toFixed(2));
+          lastMpsExecuteTime = now;
+          DebugState.messageSinceLastFrame = 0;
+        }
       }
     }
-  }
-  return { exec };
-};
+
+    return { exec };
+  };
 
 function setTextContent(el: Element, text: string) {
   if (el.textContent !== text) {

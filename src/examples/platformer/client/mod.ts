@@ -38,6 +38,7 @@ import { SCREEN_HEIGHT_PX, SCREEN_WIDTH_PX } from "../mod.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
 import { addEntity, softDeleteEntity } from "~/common/Entity.ts";
 import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
+import { DebugState } from "../../../modules/client/state/Debug.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -158,6 +159,7 @@ export class DotsClientApp extends ClientApp {
         MessageState.copySnapshotFrom(view);
         handleMessagePipeline.exec();
     }
+    DebugState.messageSinceLastFrame += 1;
   }
   handleIdle(): void {
     InputState.reset();
