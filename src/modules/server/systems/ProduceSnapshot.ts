@@ -1,4 +1,5 @@
 import { almostEquals, getLengthSquared } from "~/common/Vec2.ts";
+import { IPlayerMove } from "../../../examples/platformer/common/message.ts";
 import { filter, map } from "../../common/Iterable.ts";
 import {
   IMessageDef,
@@ -30,9 +31,17 @@ const setDefault = <K, V>(map: Map<K, V>, key: K, value: V) => {
 /** Ignore commands received more than a certain number of steps ago */
 const COMMAND_WINDOW = 500;
 
+const gravityHackCommand: IPlayerMove = {
+  sid: 0,
+  nid: 0 as NetworkId,
+} as any;
+
 function exec(context: ISystemExecutionContext) {
   for (const nid of NetworkState.getAllIds()) {
     for (const Trait of TraitState.getTypes()) {
+      const eid = NetworkState.getEntityId(nid)!;
+      const trait = TraitState.getTrait(Trait, eid);
+
       setDefault(activeCommandForTraitPerClient, Trait.commandType, new Map());
       const commands = map(
         filter(
@@ -58,6 +67,13 @@ function exec(context: ISystemExecutionContext) {
           lastCommand = command;
         }
       }
+      // TODO need to have two different sources of snapshots: one for commands, another for forces like gravity or collisions.
+      // For now, we can fudge it.
+      if (!lastCommand && !trait!.entity.isGrounded) {
+        gravityHackCommand.nid = nid;
+        gravityHackCommand.sid = MessageState.currentStep;
+        lastCommand = gravityHackCommand;
+      }
 
       if (lastCommand) {
         const snapshots = filter(
@@ -77,8 +93,6 @@ function exec(context: ISystemExecutionContext) {
         ) as Iterable<[IMessageDef<IPayloadAny>, IWritePayload<IPayloadAny>]>;
 
         for (const [type, write] of snapshots) {
-          const eid = NetworkState.getEntityId(nid)!;
-          const trait = TraitState.getTrait(Trait, eid);
           if (trait) {
             const player = trait.entity;
             const playerIsAtTarget = almostEquals(
