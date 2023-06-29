@@ -1,4 +1,5 @@
 import { Box, IBox } from "../Box.ts";
+import { invariant } from "../Error.ts";
 import { Matrix2 } from "../math.ts";
 import { add, clamp, extend, Instance, ReadOnly } from "../Vec2.ts";
 
@@ -49,17 +50,17 @@ export function simulatePositionWithVelocity(
     const yMin = dimensions.yMin + hitBox.y / 2;
     // const yMax = dimensions.yMax - hitBox.y / 2;
     if (position.x < xMin) {
-      velocity.x = 0;
+      velocity.x = Math.max(0, velocity.x);
       position.x = xMin;
     }
 
     if (position.x > xMax) {
-      velocity.x = 0;
+      velocity.x = Math.min(0, velocity.x);
       position.x = xMax;
     }
 
     if (position.y < yMin) {
-      velocity.y = 0;
+      velocity.y = Math.max(0, velocity.y);
       position.y = yMin;
     }
 
@@ -88,103 +89,121 @@ export function simulateGravity(
   deltaTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {
-  const gravity = options.gravity;
-  if (gravity) {
-    accumulate(velocity, deltaTime, gravity);
-  }
+  accumulate(velocity, deltaTime, options.gravity);
 }
 
 export const TILE_SIZE_BITLENGTH = 13;
 export const TILE_SIZE = 1 << TILE_SIZE_BITLENGTH;
 
-// TODO generalize into detectCollision
-export function detectGrounded(
-  position: Instance,
-  tileMatrix: Matrix2<boolean>,
-  options: ISimulateOptions = defaultOptions,
-) {
-  const hitBox = options.hitBox;
-  const xHalfHitBox = hitBox.x / 2;
-  const yHalfHitBox = hitBox.y / 2;
-  const xMin = position.x - xHalfHitBox;
-  const xMax = position.x + xHalfHitBox;
-  const yMax = position.y + yHalfHitBox;
-  const xMinMatrix = xMin >> TILE_SIZE_BITLENGTH;
-  const xMaxMatrix = (xMax - 1) >> TILE_SIZE_BITLENGTH;
-  const yMaxMatrix = (yMax - 1) >> TILE_SIZE_BITLENGTH;
-
-  // TODO restitution
-  // Directions are relative to the dynamic object (e.g. the player)
-  const isBottomRightCollision = tileMatrix.get(xMaxMatrix, yMaxMatrix);
-  const isBottomLeftCollision = tileMatrix.get(xMinMatrix, yMaxMatrix);
-
-  return isBottomRightCollision || isBottomLeftCollision;
+export enum CardinalDirection {
+  xMin,
+  xMax,
+  yMin,
+  yMax,
 }
 
-export function resolveTileCollisions(
-  position: Instance,
-  velocity: Instance,
-  tileMatrix: Matrix2<boolean>,
-  options: ISimulateOptions = defaultOptions,
-) {
-  const hitBox = options.hitBox;
-  const xHalfHitBox = hitBox.x / 2;
-  const yHalfHitBox = hitBox.y / 2;
-  const xMin = position.x - xHalfHitBox;
-  const yMin = position.y - yHalfHitBox;
-  const xMax = position.x + xHalfHitBox;
-  const yMax = position.y + yHalfHitBox;
-  const xMinMatrix = xMin >> TILE_SIZE_BITLENGTH;
-  const yMinMatrix = yMin >> TILE_SIZE_BITLENGTH;
-  const xMaxMatrix = (xMax - 1) >> TILE_SIZE_BITLENGTH;
-  const yMaxMatrix = (yMax - 1) >> TILE_SIZE_BITLENGTH;
-  const xMinTile = (xMinMatrix + 1) << TILE_SIZE_BITLENGTH;
-  const yMinTile = (yMinMatrix + 1) << TILE_SIZE_BITLENGTH;
-  const xMaxTile = xMaxMatrix << TILE_SIZE_BITLENGTH;
-  const yMaxTile = yMaxMatrix << TILE_SIZE_BITLENGTH;
+function isXDirection(direction: CardinalDirection) {
+  return (
+    direction === CardinalDirection.xMin || direction === CardinalDirection.xMax
+  );
+}
 
-  // TODO restitution
-  // Directions are relative to the dynamic object (e.g. the player)
-  const isTopLeftCollision = tileMatrix.get(xMinMatrix, yMinMatrix);
-  const isTopRightCollision = tileMatrix.get(xMaxMatrix, yMinMatrix);
-  const isBottomRightCollision = tileMatrix.get(xMaxMatrix, yMaxMatrix);
-  const isBottomLeftCollision = tileMatrix.get(xMinMatrix, yMaxMatrix);
-  const isLeftCollision = isTopLeftCollision || isBottomLeftCollision;
-  const isRightCollision = isTopRightCollision || isBottomRightCollision;
-  const isTopCollision = isTopLeftCollision || isTopRightCollision;
-  const isBottomCollision = isBottomLeftCollision || isBottomRightCollision;
-  const isCollisionDetected = isTopLeftCollision ||
-    isTopRightCollision ||
-    isBottomRightCollision ||
-    isBottomLeftCollision;
+function isMaxDirection(direction: CardinalDirection) {
+  return (
+    direction === CardinalDirection.xMax || direction === CardinalDirection.yMax
+  );
+}
 
-  if (isCollisionDetected) {
-    const xImpact = isLeftCollision ? xMinTile - xMin : xMax - xMaxTile;
-    const yImpact = isTopCollision ? yMinTile - yMin : yMax - yMaxTile;
-
-    if (isRightCollision && xImpact <= yImpact) {
-      if (velocity.x > 0) {
-        velocity.x = 0;
-      }
-      position.x = xMinTile - xHalfHitBox;
-    }
-    if (isLeftCollision && xImpact <= yImpact) {
-      if (velocity.x < 0) {
-        velocity.x = 0;
-      }
-      position.x = xMaxTile + xHalfHitBox;
-    }
-    if (isBottomCollision && yImpact <= xImpact) {
-      if (velocity.y > 0) {
-        velocity.y = 0;
-      }
-      position.y = yMinTile - yHalfHitBox;
-    }
-    if (isTopCollision && yImpact <= xImpact) {
-      if (velocity.y < 0) {
-        velocity.y = 0;
-      }
-      position.y = yMaxTile + yHalfHitBox;
-    }
+export function getHalfHitBox(hitBox: ReadOnly, direction: CardinalDirection) {
+  switch (direction) {
+    case CardinalDirection.xMin:
+      return hitBox.x / -2;
+    case CardinalDirection.xMax:
+      return hitBox.x / 2;
+    case CardinalDirection.yMin:
+      return hitBox.y / -2;
+    case CardinalDirection.yMax:
+      return hitBox.y / 2;
   }
 }
+
+/** return the amount of overlap with a tile in the given direction, zero if contact without collision, or negative if no contact */
+export function detectTileCollision1d(
+  position: Instance,
+  tileMatrix: Matrix2<boolean>,
+  direction: CardinalDirection,
+  options: ISimulateOptions = defaultOptions,
+) {
+  const hitBox = options.hitBox;
+  const halfHitBox = getHalfHitBox(hitBox, direction);
+  const isX = isXDirection(direction);
+  const isMax = isMaxDirection(direction);
+  const center = isX ? position.x : position.y;
+  const centerInPerpDimension = isX ? position.y : position.x;
+  const edge = center + halfHitBox;
+  const centerTileInPerpDimension = centerInPerpDimension >>
+    TILE_SIZE_BITLENGTH;
+  const edgeTile = (isMax ? edge - 1 : edge) >> TILE_SIZE_BITLENGTH;
+  const nextTile = (isMax ? edge : edge - 1) >> TILE_SIZE_BITLENGTH;
+
+  const tileEdge = (isMax ? edgeTile : edgeTile + 1) << TILE_SIZE_BITLENGTH;
+
+  if (
+    isX
+      ? tileMatrix.get(edgeTile, centerTileInPerpDimension)
+      : tileMatrix.get(centerTileInPerpDimension, edgeTile)
+  ) {
+    return Math.min(
+      Math.abs(halfHitBox),
+      isMax ? edge - tileEdge : tileEdge - edge,
+    );
+  } else if (
+    isX
+      ? tileMatrix.get(nextTile, centerTileInPerpDimension)
+      : tileMatrix.get(centerTileInPerpDimension, nextTile)
+  ) {
+    return 0;
+  } else {
+    return -1;
+  }
+}
+
+export function resolveTileCollision1d(
+  position: Instance,
+  velocity: Instance,
+  direction: CardinalDirection,
+  collision: number,
+) {
+  invariant(collision > 0, "collision must be positive");
+  switch (direction) {
+    case CardinalDirection.xMin:
+      velocity.x = Math.min(0, velocity.x);
+      position.x += collision;
+      break;
+    case CardinalDirection.xMax:
+      velocity.x = Math.max(0, velocity.x);
+      position.x -= collision;
+      break;
+    case CardinalDirection.yMin:
+      velocity.y = Math.max(0, velocity.y);
+      position.y += collision;
+      break;
+    case CardinalDirection.yMax:
+      velocity.y = Math.min(0, velocity.y);
+      position.y -= collision;
+      break;
+  }
+}
+
+// function getCardinalDirectionName(direction: CardinalDirection) {
+//   switch (direction) {
+//     case CardinalDirection.xMin:
+//       return "xMin";
+//     case CardinalDirection.xMax:
+//       return "xMax";
+//     case CardinalDirection.yMin:
+//       return "yMin";
+//     case CardinalDirection.yMax:
+//       return "yMax";
+//   }
+// }
