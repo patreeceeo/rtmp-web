@@ -77,6 +77,18 @@ export const PreviousPositionComponent = defineComponent({
   },
 });
 
+export const PreviousTargetPositionComponent = defineComponent({
+  schema: Vec2LargeSchema,
+  propName: "previousTargetPosition",
+  getValue(
+    _world: IWorld,
+    store: StoreType<typeof Vec2LargeSchema>,
+    eid: EntityId,
+  ) {
+    return new ECSInstance(store, eid);
+  },
+});
+
 export const VelocityComponent = defineComponent({
   schema: Vec2SmallSchema,
   propName: "velocity",
