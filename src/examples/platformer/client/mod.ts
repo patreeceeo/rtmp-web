@@ -159,7 +159,9 @@ export class DotsClientApp extends ClientApp {
         MessageState.copySnapshotFrom(view);
         handleMessagePipeline.exec();
     }
-    DebugState.messageSinceLastFrame += 1;
+    if (type !== MsgType.ping) {
+      DebugState.messageSinceLastFrame += 1;
+    }
   }
   handleIdle(): void {
     InputState.reset();
