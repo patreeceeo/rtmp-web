@@ -1,9 +1,11 @@
 import { add, clamp, copy, getLengthSquared, sub } from "~/common/Vec2.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
-  detectGrounded,
-  resolveTileCollisions,
+  CardinalDirection,
+  detectTileCollision1d,
+  resolveTileCollision1d,
   simulateGravity,
+  SimulateOptions,
   simulatePositionWithVelocity,
   simulateVelocityWithAcceleration,
 } from "../../../modules/common/functions/physics.ts";
@@ -12,9 +14,8 @@ import { isClient } from "../env.ts";
 import { Instance } from "../Vec2.ts";
 import { PhysicsState } from "../state/Physics.ts";
 import { PoseType } from "../../client/state/Sprite.ts";
-import { addComponent, removeComponent } from "../Component.ts";
+import { addComponent, hasComponent, removeComponent } from "../Component.ts";
 import { GroundedTag } from "../components.ts";
-import { NetworkState } from "../state/Network.ts";
 
 const tempPositionDelta = new Instance();
 
@@ -31,7 +32,6 @@ export const PhysicsSystem: SystemLoader<
   function exec() {
     for (const dynamicEntity of PhysicsState.dynamicEntities.query()) {
       const options = getPhysicsOptions(dynamicEntity);
-      const nid = NetworkState.getId(dynamicEntity.eid)!;
       if (!isClient) {
         copy(dynamicEntity.targetPosition, dynamicEntity.position);
       } else {
@@ -44,10 +44,14 @@ export const PhysicsSystem: SystemLoader<
         // Calculate how far we are from where we should be
         copy(tempPositionDelta, dynamicEntity.targetPosition);
         sub(tempPositionDelta, dynamicEntity.position);
-        if (
-          getLengthSquared(tempPositionDelta) > 1
-        ) {
-          clamp(tempPositionDelta, dynamicEntity.maxSpeed * fixedDeltaTime);
+        if (getLengthSquared(tempPositionDelta) > 1) {
+          if (hasComponent(GroundedTag, dynamicEntity)) {
+            clamp(tempPositionDelta, dynamicEntity.maxSpeed * fixedDeltaTime);
+          }
+
+          // if (!isZero(tempPositionDelta)) {
+          //   console.log("add delta", toJSON(tempPositionDelta));
+          // }
           add(dynamicEntity.position, tempPositionDelta);
         }
       }
@@ -62,35 +66,103 @@ export const PhysicsSystem: SystemLoader<
         fixedDeltaTime,
         options,
       );
-      simulatePositionWithVelocity(
+      // console.log("y vel", dynamicEntity.velocity.y);
+      updatePosition(
         dynamicEntity.position,
         dynamicEntity.velocity,
         fixedDeltaTime,
         options,
       );
-      const isGrounded = detectGrounded(
-        dynamicEntity.position,
-        PhysicsState.tileMatrix,
-        options,
-      );
-      if (!isGrounded && (NetworkState.isLocal(nid) || !isClient)) {
-        removeComponent(GroundedTag, dynamicEntity);
-        simulateGravity(
+      if (isClient) {
+        updatePosition(
+          dynamicEntity.targetPosition,
           dynamicEntity.velocity,
           fixedDeltaTime,
           options,
         );
+      }
+      const groundedCollision = detectTileCollision1d(
+        dynamicEntity.targetPosition,
+        PhysicsState.tileMatrix,
+        CardinalDirection.yMax,
+        options,
+      );
+      const isGrounded = groundedCollision >= 0;
+      if (!isGrounded) {
+        // console.log("not grounded", groundedCollision);
+        removeComponent(GroundedTag, dynamicEntity);
+        simulateGravity(dynamicEntity.velocity, fixedDeltaTime, options);
       } else {
         addComponent(GroundedTag, dynamicEntity);
       }
-      // TODO(perf) space partitioning
-      resolveTileCollisions(
-        dynamicEntity.targetPosition,
-        dynamicEntity.velocity,
-        PhysicsState.tileMatrix,
-        options,
-      );
     }
   }
   return { exec };
 };
+
+function updatePosition(
+  position: Instance,
+  velocity: Instance,
+  fixedDeltaTime: number,
+  options: SimulateOptions,
+) {
+  simulatePositionWithVelocity(position, velocity, fixedDeltaTime, options);
+  // TODO(perf) space partitioning
+  const xMinCollision = detectTileCollision1d(
+    position,
+    PhysicsState.tileMatrix,
+    CardinalDirection.xMin,
+    options,
+  );
+  const xMaxCollision = detectTileCollision1d(
+    position,
+    PhysicsState.tileMatrix,
+    CardinalDirection.xMax,
+    options,
+  );
+  const yMinCollision = detectTileCollision1d(
+    position,
+    PhysicsState.tileMatrix,
+    CardinalDirection.yMin,
+    options,
+  );
+  const yMaxCollision = detectTileCollision1d(
+    position,
+    PhysicsState.tileMatrix,
+    CardinalDirection.yMax,
+    options,
+  );
+
+  if (xMinCollision > 0) {
+    resolveTileCollision1d(
+      position,
+      velocity,
+      CardinalDirection.xMin,
+      xMinCollision,
+    );
+  }
+  if (xMaxCollision > 0) {
+    resolveTileCollision1d(
+      position,
+      velocity,
+      CardinalDirection.xMax,
+      xMaxCollision,
+    );
+  }
+  if (yMinCollision > 0) {
+    resolveTileCollision1d(
+      position,
+      velocity,
+      CardinalDirection.yMin,
+      yMinCollision,
+    );
+  }
+  if (yMaxCollision > 0) {
+    resolveTileCollision1d(
+      position,
+      velocity,
+      CardinalDirection.yMax,
+      yMaxCollision,
+    );
+  }
+}
