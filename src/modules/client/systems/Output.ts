@@ -226,10 +226,10 @@ function isRenderDataDirty() {
   let isDirty = false;
   for (const entity of OutputState.dynamicEntities.query()) {
     if (
-      entity.previousPosition.x !==
-        roundTo8thBit(entity.position.x) ||
-      entity.previousPosition.y !==
-        roundTo8thBit(entity.position.y) ||
+      entity.previousTargetPosition.x !==
+        roundTo8thBit(entity.targetPosition.x) ||
+      entity.previousTargetPosition.y !==
+        roundTo8thBit(entity.targetPosition.y) ||
       entity.isSoftDeleted
     ) {
       isDirty = true;
@@ -255,8 +255,16 @@ function eraseDynamicEntities() {
       sprite.width + 4 + w2,
       sprite.height + 4 + h2,
     );
+    ctx.clearRect(
+      entity.previousTargetPosition.x - 2 - w2,
+      entity.previousTargetPosition.y - 2 - h2,
+      sprite.width + 4 + w2,
+      sprite.height + 4 + h2,
+    );
     entity.previousPosition.x = roundTo8thBit(entity.position.x);
     entity.previousPosition.y = roundTo8thBit(entity.position.y);
+    entity.previousTargetPosition.x = roundTo8thBit(entity.targetPosition.x);
+    entity.previousTargetPosition.y = roundTo8thBit(entity.targetPosition.y);
   }
 }
 

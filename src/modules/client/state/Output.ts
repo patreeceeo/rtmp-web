@@ -8,6 +8,7 @@ import {
   PoseComponent,
   PositionComponent,
   PreviousPositionComponent,
+  PreviousTargetPositionComponent,
   SoftDeletedTag,
   TargetPositionComponent,
 } from "../../common/components.ts";
@@ -48,6 +49,7 @@ class OutputStateApi {
     PositionComponent,
     PreviousPositionComponent,
     TargetPositionComponent,
+    PreviousTargetPositionComponent,
     BodyDimensions,
     ImageCollectionComponent,
     PoseComponent,
