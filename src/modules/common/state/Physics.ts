@@ -3,7 +3,6 @@ import {
   AccelerationComponent,
   BodyDimensions,
   FrictionComponent,
-  GroundedTag,
   MaxSpeedComponent,
   PoseComponent,
   PositionComponent,
