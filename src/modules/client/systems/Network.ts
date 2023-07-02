@@ -15,7 +15,7 @@ export const ClientNetworkSystem: SystemLoader = () => {
     ) {
       const dv: DataView = command.meta__dataView;
       sendMessageToServer(dv);
-      DebugState.messageSinceLastFrame += 1;
+      DebugState.messageSentSinceLastFrame += 1;
     }
     lastHandledStep = MessageState.currentStep;
   }

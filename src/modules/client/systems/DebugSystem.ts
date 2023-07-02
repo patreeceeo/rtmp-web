@@ -33,7 +33,8 @@ export const DebugSystem: SystemLoader<ISystemExecutionContext, [IConfig]> =
     const fpsEl = statsEl.querySelector(".perf-stats-fps")!;
     const pingEl = statsEl.querySelector(".perf-stats-ping")!;
     const dropsEl = statsEl.querySelector(".perf-stats-drops")!;
-    const mpsEl = statsEl.querySelector(".perf-stats-mps")!;
+    const mpsSentEl = statsEl.querySelector(".perf-stats-mps-sent")!;
+    const mpsRecvEl = statsEl.querySelector(".perf-stats-mps-recv")!;
 
     function exec(context: ISystemExecutionContext) {
       const buttonIsPressed = InputState.isButtonPressed(Button.KeyH) &&
@@ -77,9 +78,17 @@ export const DebugSystem: SystemLoader<ISystemExecutionContext, [IConfig]> =
         }
 
         if (now - lastMpsExecuteTime >= 1000) {
-          setTextContent(mpsEl, DebugState.messageSinceLastFrame.toFixed(2));
+          setTextContent(
+            mpsSentEl,
+            DebugState.messageSentSinceLastFrame.toFixed(2),
+          );
+          setTextContent(
+            mpsRecvEl,
+            DebugState.messageReceivedSinceLastFrame.toFixed(2),
+          );
           lastMpsExecuteTime = now;
-          DebugState.messageSinceLastFrame = 0;
+          DebugState.messageSentSinceLastFrame = 0;
+          DebugState.messageReceivedSinceLastFrame = 0;
         }
       }
     }

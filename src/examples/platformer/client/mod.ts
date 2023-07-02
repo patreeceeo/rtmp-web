@@ -161,7 +161,7 @@ export class DotsClientApp extends ClientApp {
         handleMessagePipeline.exec();
     }
     if (type !== MsgType.ping) {
-      DebugState.messageSinceLastFrame += 1;
+      DebugState.messageReceivedSinceLastFrame += 1;
     }
   }
   handleIdle(): void {
