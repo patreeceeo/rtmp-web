@@ -39,6 +39,7 @@ import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
 import { addEntity, softDeleteEntity } from "~/common/Entity.ts";
 import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
 import { DebugState } from "../../../modules/client/state/Debug.ts";
+import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -204,6 +205,7 @@ const handleMessagePipeline = new Pipeline(
 loadTilemap("/public/assets/level.json").then(() => {
   const fastPipeline = new Pipeline(
     [
+      PlayerMovementSystem(),
       TraitSystem(),
       ClientNetworkSystem(),
       PhysicsSystem({ fixedDeltaTime: 8 }),

@@ -79,41 +79,6 @@ export class WasdMoveTrait
     return this.constructor as typeof WasdMoveTrait;
   }
   getCommandMaybe() {
-    if (NetworkState.isLocal(this.#nid)) {
-      let ddx = 0,
-        ddy = 0;
-      if (
-        InputState.isButtonPressed(Button.KeyA) ||
-        InputState.isButtonPressed(Button.KeyJ)
-      ) {
-        ddx = -maxAcceleration;
-      }
-      if (
-        InputState.isButtonPressed(Button.KeyW) ||
-        InputState.isButtonPressed(Button.KeyI)
-      ) {
-        ddy = -maxAcceleration;
-      }
-      if (
-        InputState.isButtonPressed(Button.KeyS) ||
-        InputState.isButtonPressed(Button.KeyK)
-      ) {
-        ddy = maxAcceleration;
-      }
-      if (
-        InputState.isButtonPressed(Button.KeyD) ||
-        InputState.isButtonPressed(Button.KeyL)
-      ) {
-        ddx = maxAcceleration;
-      }
-      if (ddx !== this.#lastDdx || ddy !== this.#lastDdy) {
-        set(reAcceleration, ddx, ddy);
-        clamp(reAcceleration, maxAcceleration);
-        this.#lastDdx = ddx;
-        this.#lastDdy = ddy;
-        return this.#justCommand;
-      }
-    }
     return null;
   }
   #writeCommand = (p: IPlayerMove) => {
