@@ -15,14 +15,11 @@ import {
 } from "~/server/mod.ts";
 import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { ConsumeCommandSystem } from "../../../modules/server/systems/ConsumeCommand.ts";
 import { ProduceSnapshotSystem } from "../../../modules/server/systems/ProduceSnapshot.ts";
 import { LevelState } from "../../../modules/common/state/LevelState.ts";
 import { getRandomIntBetween } from "../../../modules/common/random.ts";
 import { MsgType, PlayerAdd, PlayerRemove } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
-import { TraitState } from "../../../modules/common/state/Trait.ts";
-import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { ServerPurgeSystem } from "../../../modules/server/systems/ServerPurgeSystem.ts";
 import {
@@ -33,6 +30,7 @@ import { initPing, sendPing } from "../../../modules/common/state/Ping.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
 import { addEntity, hasEntity, softDeleteEntity } from "~/common/Entity.ts";
 import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
+import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
 
 const idleTimeout = 300;
 
@@ -57,8 +55,6 @@ class DotsServerApp implements ServerApp {
 
     Vec2.copy(addedPlayer.targetPosition, addedPlayer.position);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
-    TraitState.add(WasdMoveTrait, addedPlayer);
-    TraitState.add(NegotiatePhysicsTrait, addedPlayer);
 
     sendMessageToClient(ws, PlayerAdd, (p) => {
       Vec2.copy(p.position, addedPlayer.position);
@@ -130,7 +126,7 @@ class DotsServerApp implements ServerApp {
 }
 
 const handleMessagePipeline = new Pipeline(
-  [ConsumeCommandSystem()],
+  [PlayerMovementSystem()],
   new DemandDriver(),
 );
 
