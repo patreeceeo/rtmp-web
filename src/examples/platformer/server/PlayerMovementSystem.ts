@@ -29,7 +29,7 @@ const MAX_POSITION_DELTA = 2000;
 const MAX_VELOCITY_DELTA = 1500;
 
 /** This system is responsible for moving the player in response to
- * commands from clients. It should verify that the client is allowed to move the player in question (TODO) and that the move is legal.
+ * commands from clients. It should verify that the client is allowed to move the player in question and (TODO) that the move is legal.
  */
 export const PlayerMovementSystem: SystemLoader<
   ISystemExecutionContext
@@ -42,7 +42,16 @@ export const PlayerMovementSystem: SystemLoader<
     for (const [cmdType, cmdPayload] of cmds) {
       lastHandledStepByClient.set(cmdPayload.nid, cmdPayload.sid);
       const playerEid = NetworkState.getEntityId(cmdPayload.nid)!;
-      const player = PlayerState.entities.get(playerEid)!;
+      const player = PlayerState.entities.get(playerEid);
+      if (!player) {
+        console.error(
+          "Player not found, nid",
+          cmdPayload.nid,
+          "eid",
+          playerEid,
+        );
+        continue;
+      }
       switch (cmdType) {
         case PlayerMove.type:
           {
