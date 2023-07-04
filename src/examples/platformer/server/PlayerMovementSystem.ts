@@ -35,13 +35,10 @@ export const PlayerMovementSystem: SystemLoader<
   ISystemExecutionContext
 > = () => {
   function exec() {
-    // const cmds = filter(
     const cmds = MessageState.getCommandsByStepReceived(
       lastHandledStep - 1,
       MessageState.currentStep,
     );
-    // ([cndType]) => cndType === PlayerMove.type
-    // );
     for (const [cmdType, cmdPayload] of cmds) {
       lastHandledStepByClient.set(cmdPayload.nid, cmdPayload.sid);
       const playerEid = NetworkState.getEntityId(cmdPayload.nid)!;

@@ -16,7 +16,7 @@ export class SimulateOptions implements ISimulateOptions {
   maxSpeed = Infinity;
   worldDimensions = Box.INFINITY;
   hitBox = new Instance();
-  gravity = new Instance(0, 0.6);
+  gravity = new Instance(0, .9);
 }
 
 const defaultOptions = new SimulateOptions();
@@ -48,7 +48,6 @@ export function simulatePositionWithVelocity(
     const xMin = dimensions.xMin + hitBox.x / 2;
     const xMax = dimensions.xMax - hitBox.x / 2;
     const yMin = dimensions.yMin + hitBox.y / 2;
-    // const yMax = dimensions.yMax - hitBox.y / 2;
     if (position.x < xMin) {
       velocity.x = Math.max(0, velocity.x);
       position.x = xMin;
@@ -63,11 +62,6 @@ export function simulatePositionWithVelocity(
       velocity.y = Math.max(0, velocity.y);
       position.y = yMin;
     }
-
-    // if (position.y >= yMax) {
-    //   velocity.y = 0;
-    //   position.y = yMax;
-    // }
   }
 }
 
