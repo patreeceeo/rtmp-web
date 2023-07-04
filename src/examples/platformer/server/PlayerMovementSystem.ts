@@ -1,5 +1,4 @@
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
-import { filter } from "../../../modules/common/Iterable.ts";
 import { NetworkId } from "../../../modules/common/NetworkApi.ts";
 import {
   MessageState,
