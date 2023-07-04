@@ -13,11 +13,9 @@ import { ClientApp, startClient } from "~/client/mod.ts";
 import { ClientNetworkState } from "~/client/state/Network.ts";
 import { ClientNetworkSystem } from "~/client/systems/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
-import { TraitSystem } from "~/client/systems/Trait.ts";
 import { OutputState } from "~/client/state/Output.ts";
 import { OutputSystem } from "~/client/systems/Output.ts";
 import { InputSystem } from "../../../modules/client/systems/Input.ts";
-import { TraitState } from "~/common/state/Trait.ts";
 import { ReconcileSystem } from "../../../modules/client/systems/Reconcile.ts";
 import { useClient } from "hot_mod/dist/client/mod.js";
 import { IPlayerAdd, IPlayerRemove, MsgType } from "../common/message.ts";
@@ -27,7 +25,6 @@ import {
   readMessageType,
   readPingId,
 } from "../../../modules/common/Message.ts";
-import { NegotiatePhysicsTrait, WasdMoveTrait } from "../common/traits.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
 import { DebugSystem } from "~/client/systems/DebugSystem.ts";
 import { LevelState } from "../../../modules/common/state/LevelState.ts";
@@ -37,6 +34,11 @@ import { PingSystem } from "../../../modules/client/systems/Ping.ts";
 import { SCREEN_HEIGHT_PX, SCREEN_WIDTH_PX } from "../mod.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
 import { addEntity, softDeleteEntity } from "~/common/Entity.ts";
+import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
+import { DebugState } from "../../../modules/client/state/Debug.ts";
+import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
+import { ReconcileState } from "../../../modules/client/state/Reconcile.ts";
+import { PlayerSnapshotReconciler } from "./reconcilers.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -157,6 +159,9 @@ export class DotsClientApp extends ClientApp {
         MessageState.copySnapshotFrom(view);
         handleMessagePipeline.exec();
     }
+    if (type !== MsgType.ping) {
+      DebugState.messageReceivedSinceLastFrame += 1;
+    }
   }
   handleIdle(): void {
     InputState.reset();
@@ -173,50 +178,54 @@ function handlePlayerAdded(
   Vec2.copy(player.targetPosition, position);
   player.imageCollection = spriteMapId;
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
-  TraitState.add(WasdMoveTrait, player);
-  TraitState.add(NegotiatePhysicsTrait, player);
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
   const eid = ClientNetworkState.getEntityId(playerRemove.nid)!;
   softDeleteEntity(eid);
   // TODO move this stuff to PurgeSystem
   ClientNetworkState.deleteId(playerRemove.nid);
-  TraitState.deleteEntity(eid);
 }
 
 const app = new DotsClientApp();
-
-initPing(MsgType.ping);
-
 const inputPipeline = new Pipeline(
   [InputSystem()],
   new EventQueueDriver(app.inputEvents),
 );
-inputPipeline.start();
 
 const handleMessagePipeline = new Pipeline(
   [ReconcileSystem()],
   new DemandDriver(),
 );
-handleMessagePipeline.start();
 
-const fastPipeline = new Pipeline(
-  [TraitSystem(), ClientNetworkSystem(), PhysicsSystem({ fixedDeltaTime: 8 })],
-  new FixedIntervalDriver(8),
-);
-fastPipeline.start();
+ReconcileState.register(MsgType.playerSnapshot, new PlayerSnapshotReconciler());
 
-const framePipeline = new Pipeline([OutputSystem()], new AnimationDriver());
-framePipeline.start();
+// TODO maybe there should be separate functions for loading the tile visuals and the tile physics. Then the respective systems could do the loading themselves
+loadTilemap("/public/assets/level.json").then(() => {
+  const fastPipeline = new Pipeline(
+    [
+      PlayerMovementSystem(),
+      ClientNetworkSystem(),
+      PhysicsSystem({ fixedDeltaTime: 8 }),
+    ],
+    new FixedIntervalDriver(8),
+  );
 
-startClient(app);
+  const framePipeline = new Pipeline([OutputSystem()], new AnimationDriver());
 
-const slowPipeline = new Pipeline(
-  [
-    PurgeSystem(),
-    PingSystem({ timeout: 10 * 1000 }),
-    DebugSystem({ pingStatTimeFrame: 5000, fpsStatTimeFrame: 500 }),
-  ],
-  new FixedIntervalDriver(250),
-);
-slowPipeline.start();
+  const slowPipeline = new Pipeline(
+    [
+      PurgeSystem(),
+      PingSystem({ timeout: 10 * 1000 }),
+      DebugSystem({ pingStatTimeFrame: 5000, fpsStatTimeFrame: 500 }),
+    ],
+    new FixedIntervalDriver(250),
+  );
+
+  initPing(MsgType.ping);
+  startClient(app);
+  inputPipeline.start();
+  handleMessagePipeline.start();
+  fastPipeline.start();
+  framePipeline.start();
+  slowPipeline.start();
+});

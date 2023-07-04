@@ -1,3 +1,4 @@
+import { invariant } from "./Error.ts";
 import { Instance } from "./Vec2.ts";
 
 export function getDistanceSquared(a: Instance, b: Instance) {
@@ -57,4 +58,27 @@ export function clampLine(
 
 export function roundTo8thBit(value: number) {
   return value & 128 ? (value >> 8) + 1 : value >> 8;
+}
+
+// TODO move to separate file?
+export class Matrix2<Value> {
+  values: Value[] = [];
+  constructor(
+    readonly width: number,
+    readonly height: number,
+    readonly defaultValue: Value,
+  ) {
+    this.values.length = width * height;
+  }
+  get(x: number, y: number): Value {
+    // invariant(x >= 0 && x < this.width, `x out of bounds: ${x}`);
+    // invariant(y >= 0 && y < this.height, `y out of bounds: ${x}`);
+    const key = x + y * this.width;
+    return key in this.values ? this.values[key] : this.defaultValue;
+  }
+  set(x: number, y: number, value: Value): void {
+    // invariant(x >= 0 && x < this.width, `x out of bounds: ${x}`);
+    // invariant(y >= 0 && y < this.height, `y out of bounds: ${x}`);
+    this.values[x + y * this.width] = value;
+  }
 }

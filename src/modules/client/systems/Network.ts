@@ -2,6 +2,7 @@ import { SystemLoader } from "../../common/systems/mod.ts";
 import { MessageState, SID_ORIGIN } from "~/common/state/Message.ts";
 import { ClientNetworkState } from "../state/Network.ts";
 import { sendIfOpen } from "../../common/socket.ts";
+import { DebugState } from "../state/Debug.ts";
 
 let lastHandledStep = SID_ORIGIN;
 export const ClientNetworkSystem: SystemLoader = () => {
@@ -14,6 +15,7 @@ export const ClientNetworkSystem: SystemLoader = () => {
     ) {
       const dv: DataView = command.meta__dataView;
       sendMessageToServer(dv);
+      DebugState.messageSentSinceLastFrame += 1;
     }
     lastHandledStep = MessageState.currentStep;
   }

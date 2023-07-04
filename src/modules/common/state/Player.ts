@@ -3,13 +3,15 @@ import { EntityPrefabCollection, IEntityMinimal } from "../Entity.ts";
 import { isClient } from "../env.ts";
 import { PhysicsState } from "./Physics.ts";
 import { set } from "../Vec2.ts";
+import { PreviousTargetPositionComponent_Network } from "../components.ts";
 
 // TODO delete this file?
 
 class PlayerStateApi {
   readonly components = [
-    ...PhysicsState.components,
+    ...PhysicsState.dynamicEntityComponents,
     ...(isClient ? OutputState.dynamicEntityComponents : []),
+    PreviousTargetPositionComponent_Network,
   ] as const;
 
   readonly entities = new EntityPrefabCollection(this.components);
@@ -18,7 +20,7 @@ class PlayerStateApi {
     const player = this.entities.add(entity);
     player.friction = 80;
     set(player.bodyDimensions, 16, 32);
-    player.maxSpeed = 99;
+    player.maxSpeed = 66;
     return player;
   }
 }

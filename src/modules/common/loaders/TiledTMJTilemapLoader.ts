@@ -7,8 +7,10 @@ import {
   BodyStaticTag,
   ImageIdComponent,
   PositionComponent,
+  TileTag,
 } from "../components.ts";
 import { addEntity } from "../Entity.ts";
+import { isomorphic as isomorphicFetch } from "../functions/fetch.ts";
 import { incrementId } from "../functions/id.ts";
 import {
   getChunk,
@@ -21,14 +23,9 @@ import {
 import { set } from "../Vec2.ts";
 /**
  * @file Loads a JSON string from a Tiled TMJ file into a Tilemap object.
- *
- * Tile Entity:
- * - position
- * - bodyIsStatic
- * - bodyDimensions
- * - image
  */
 const TILE_COMPONENTS = [
+  TileTag,
   ImageIdComponent,
   PositionComponent,
   BodyStaticTag,
@@ -88,14 +85,18 @@ const _loadImageOptions = new LoadOptions();
 
 export async function loadTilemap(
   url: string,
+  loadVisuals = true,
 ): Promise<void> {
-  const json = await fetch(url).then((res) => res.json());
+  const json = await isomorphicFetch(url).then((res) => res.json());
   const promises = [];
-  await cacheImages(json, url);
+
+  if (loadVisuals) {
+    await cacheImages(json, url);
+  }
 
   for (let i = 0; i < json.layers.length; i++) {
     const layerJson = json.layers[i];
-    promises.push(loadLayer(layerJson, json.tilesets));
+    promises.push(loadLayer(layerJson, json.tilesets, loadVisuals));
   }
   await Promise.all(promises);
 }
@@ -114,6 +115,7 @@ async function cacheImages(json: ITilemapJson, tilemapUrl: string) {
 async function loadLayer(
   json: ILayerJson,
   jsonTilesets: ReadonlyArray<ITilesetJson>,
+  loadVisuals = true,
 ): Promise<void> {
   const promises: Array<Promise<void>> = [];
   for (let chunkIndex = 0; chunkIndex < json.chunks.length; chunkIndex++) {
@@ -128,6 +130,7 @@ async function loadLayer(
         jsonTilesets,
         mapX,
         mapY,
+        loadVisuals,
       ));
     }
   }
@@ -141,6 +144,7 @@ async function loadTile(
   tilesets: ReadonlyArray<ITilesetJson>,
   mapX: number,
   mapY: number,
+  loadVisuals = true,
 ): Promise<void> {
   const gid = bits & ~TileFlags.ALL_FLIP_FLAGS;
 
@@ -153,41 +157,53 @@ async function loadTile(
     );
     const tilesetIndex = getTilesetIndexForGid(tilesets, gid);
     const tileset = tilesets[tilesetIndex];
-    let imageId: number;
 
-    if (tileCacheKeys[bits] !== undefined) {
-      imageId = tileCacheKeys[bits];
-    } else {
-      const flags = bits & TileFlags.ALL_FLIP_FLAGS;
+    if (loadVisuals) {
+      let imageId: number;
 
-      const localId = getTileLocalId(gid, tileset.firstgid);
-      const image = getFromCache(tileset.image);
-      const imageX = (localId % tileset.columns) * tileset.tilewidth;
-      const imageY = Math.floor(localId / tileset.columns) * tileset.tileheight;
-      _imageSourceBox.set(
-        imageX,
-        imageY,
-        tileset.tilewidth,
-        tileset.tileheight,
-      );
+      if (tileCacheKeys[bits] !== undefined) {
+        imageId = tileCacheKeys[bits];
+      } else {
+        const flags = bits & TileFlags.ALL_FLIP_FLAGS;
 
-      _imageOptions.reset();
-      _imageOptions.flipH = isFlagSet(
-        flags,
-        TileFlags.FLIPPED_HORIZONTALLY_FLAG,
-      );
-      _imageOptions.flipV = isFlagSet(flags, TileFlags.FLIPPED_VERTICALLY_FLAG);
-      _imageOptions.flipD = isFlagSet(flags, TileFlags.FLIPPED_DIAGONALLY_FLAG);
-      _imageOptions.target = new Image();
+        const localId = getTileLocalId(gid, tileset.firstgid);
+        const image = getFromCache(tileset.image);
+        const imageX = (localId % tileset.columns) * tileset.tilewidth;
+        const imageY = Math.floor(localId / tileset.columns) *
+          tileset.tileheight;
+        _imageSourceBox.set(
+          imageX,
+          imageY,
+          tileset.tilewidth,
+          tileset.tileheight,
+        );
 
-      imageId = incrementId("image");
-      tileCacheKeys[bits] = imageId;
-      const chunk = await getChunk(image, _imageSourceBox, _imageOptions);
+        _imageOptions.reset();
+        _imageOptions.flipH = isFlagSet(
+          flags,
+          TileFlags.FLIPPED_HORIZONTALLY_FLAG,
+        );
+        _imageOptions.flipV = isFlagSet(
+          flags,
+          TileFlags.FLIPPED_VERTICALLY_FLAG,
+        );
+        _imageOptions.flipD = isFlagSet(
+          flags,
+          TileFlags.FLIPPED_DIAGONALLY_FLAG,
+        );
+        _imageOptions.target = new Image();
 
-      setCache(imageId, chunk);
+        imageId = incrementId("image");
+        tileCacheKeys[bits] = imageId;
+        const chunk = await getChunk(image, _imageSourceBox, _imageOptions);
+
+        setCache(imageId, chunk);
+      }
+
+      tileEntity.imageId = imageId;
     }
 
-    tileEntity.imageId = imageId;
+    // TODO tilePosition should be a component
     set(
       tileEntity.position,
       mapX * tileset.tilewidth,

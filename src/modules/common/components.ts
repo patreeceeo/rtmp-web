@@ -17,6 +17,14 @@ export const PlayerTag = defineTag({
   propName: "isPlayer",
 });
 
+export const TileTag = defineTag({
+  propName: "isTile",
+});
+
+export const GroundedTag = defineTag({
+  propName: "isGrounded",
+});
+
 export const BodyStaticTag = defineTag({
   propName: "bodyIsStatic",
 });
@@ -60,6 +68,30 @@ export const TargetPositionComponent = defineComponent({
 export const PreviousPositionComponent = defineComponent({
   schema: Vec2LargeSchema,
   propName: "previousPosition",
+  getValue(
+    _world: IWorld,
+    store: StoreType<typeof Vec2LargeSchema>,
+    eid: EntityId,
+  ) {
+    return new ECSInstance(store, eid);
+  },
+});
+
+export const PreviousTargetPositionComponent_Output = defineComponent({
+  schema: Vec2LargeSchema,
+  propName: "previousTargetPosition_output",
+  getValue(
+    _world: IWorld,
+    store: StoreType<typeof Vec2LargeSchema>,
+    eid: EntityId,
+  ) {
+    return new ECSInstance(store, eid);
+  },
+});
+
+export const PreviousTargetPositionComponent_Network = defineComponent({
+  schema: Vec2LargeSchema,
+  propName: "previousTargetPosition_network",
   getValue(
     _world: IWorld,
     store: StoreType<typeof Vec2LargeSchema>,
