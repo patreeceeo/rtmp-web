@@ -1,4 +1,4 @@
-import { copy } from "~/common/Vec2.ts";
+import { almostEquals, copy } from "~/common/Vec2.ts";
 import {
   IPlayerSnapshot,
   PlayerSnapshot,
@@ -14,13 +14,21 @@ import { SystemLoader } from "../../common/systems/mod.ts";
 function exec() {
   for (const player of PlayerState.entities.query()) {
     const nid = NetworkState.getId(player.eid)!;
-    MessageState.addSnapshot(PlayerSnapshot, (p: IPlayerSnapshot) => {
-      copy(p.position, player.targetPosition);
-      copy(p.velocity, player.velocity);
-      p.pose = player.pose;
-      p.nid = nid;
-      p.sid = MessageState.currentStep;
-    });
+    if (
+      !almostEquals(
+        player.targetPosition,
+        player.previousTargetPosition_network,
+      )
+    ) {
+      MessageState.addSnapshot(PlayerSnapshot, (p: IPlayerSnapshot) => {
+        copy(p.position, player.targetPosition);
+        copy(p.velocity, player.velocity);
+        p.pose = player.pose;
+        p.nid = nid;
+        p.sid = MessageState.currentStep;
+      });
+    }
+    copy(player.previousTargetPosition_network, player.targetPosition);
   }
 }
 
