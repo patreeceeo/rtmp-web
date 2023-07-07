@@ -4,6 +4,7 @@ import { isClient } from "../env.ts";
 import { PhysicsState } from "./Physics.ts";
 import { set } from "../Vec2.ts";
 import { PreviousTargetPositionComponent_Network } from "../components.ts";
+import { Player } from "../../../examples/platformer/common/constants.ts";
 
 // TODO delete this file?
 
@@ -18,9 +19,9 @@ class PlayerStateApi {
 
   addPlayer(entity: IEntityMinimal) {
     const player = this.entities.add(entity);
-    player.friction = 80;
-    set(player.bodyDimensions, 16, 32);
-    player.maxSpeed = 66;
+    player.friction = Player.GROUND_FRICTION;
+    set(player.bodyDimensions, Player.WIDTH, Player.HEIGHT);
+    player.maxSpeed = Player.MAX_GROUND_SPEED;
     return player;
   }
 }

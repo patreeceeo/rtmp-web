@@ -45,6 +45,7 @@ export enum Button {
   "KeyX" = "KeyX",
   "KeyY" = "KeyY",
   "KeyZ" = "KeyZ",
+  "Space" = "Space",
 
   // Function keys
   "F1" = "F1",

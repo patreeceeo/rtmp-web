@@ -13,11 +13,16 @@ import {
   Instance,
   sub,
 } from "../../../modules/common/Vec2.ts";
+import { Player } from "../common/constants.ts";
 import {
   INegotiatePhysics,
+  IPlayerJump,
   IPlayerMove,
+  IPlayerSnapshot,
   NegotiatePhysics,
+  PlayerJump,
   PlayerMove,
+  PlayerSnapshot,
 } from "../common/message.ts";
 
 let lastHandledStep = SID_ORIGIN;
@@ -35,7 +40,7 @@ export const PlayerMovementSystem: SystemLoader<
 > = () => {
   function exec() {
     const cmds = MessageState.getCommandsByStepReceived(
-      lastHandledStep - 1,
+      lastHandledStep,
       MessageState.currentStep,
     );
     for (const [cmdType, cmdPayload] of cmds) {
@@ -61,6 +66,29 @@ export const PlayerMovementSystem: SystemLoader<
               const move = cmdPayload as IPlayerMove;
               copy(player.acceleration, move.acceleration);
             }
+          }
+          break;
+        case PlayerJump.type:
+          {
+            const jump = cmdPayload as IPlayerJump;
+            console.log(
+              "jump received",
+              cmdPayload.sid,
+              "lag",
+              MessageState.currentStep - cmdPayload.sid,
+            );
+            // TODO code duplication
+            player.maxSpeed = Player.MAX_AIR_SPEED;
+            player.velocity.y = -1 * Player.MAX_JUMP_SPEED *
+              (jump.intensity / Player.MAX_JUMP_INTENSITY);
+
+            MessageState.addSnapshot(PlayerSnapshot, (p: IPlayerSnapshot) => {
+              copy(p.position, player.targetPosition);
+              copy(p.velocity, player.velocity);
+              p.pose = player.pose;
+              p.nid = cmdPayload.nid;
+              p.sid = MessageState.currentStep;
+            });
           }
           break;
         case NegotiatePhysics.type: {

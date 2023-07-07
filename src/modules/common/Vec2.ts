@@ -5,7 +5,7 @@ import {
   TypedArray,
 } from "./Component.ts";
 import { EntityId } from "./Entity.ts";
-import { isAlmostZero } from "./math.ts";
+import { getAbsMin, isAlmostZero } from "./math.ts";
 
 export function isZero({ x, y }: ReadOnly) {
   return x === 0 && y === 0;
@@ -123,11 +123,6 @@ export function toJSON({ x, y }: ReadOnly): Instance {
   return { x, y };
 }
 
-function getAbsMin(a: number, b: number) {
-  return Math.min(Math.abs(a), Math.abs(b)) *
-    (a !== 0 ? Math.sign(a) : 1);
-}
-
 function getRatioOfComponent(a: number, b: number) {
   return a / (Math.abs(a) + Math.abs(b));
 }
@@ -165,6 +160,7 @@ export class ECSInstance<Schema extends { x: PrimativeType; y: PrimativeType }>
   }
 
   set x(v) {
+    // TODO this maxLength gaurd should be built in to numeric types?
     (this.store.x as Array<number>)[this.eid] = getAbsMin(v, this.maxLength);
   }
 

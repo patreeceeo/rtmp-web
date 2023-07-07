@@ -102,18 +102,19 @@ export const PreviousTargetPositionComponent_Network = defineComponent({
 });
 
 export const VelocityComponent = defineComponent({
-  schema: Vec2SmallSchema,
+  schema: Vec2LargeSchema,
   propName: "velocity",
   getValue(
     _world: IWorld,
-    store: StoreType<typeof Vec2SmallSchema>,
+    store: StoreType<typeof Vec2LargeSchema>,
     eid: EntityId,
   ) {
     return new ECSInstance(store, eid);
   },
 });
 
-const MaxSpeedSchema = { value: PrimativeTypes.ui8 };
+const MaxSpeedSchema = { value: PrimativeTypes.ui16 };
+const MAX_MAX_SPEED = 2 ** 16 - 1;
 export const MaxSpeedComponent = defineComponent({
   schema: MaxSpeedSchema,
   propName: "maxSpeed",
@@ -131,13 +132,13 @@ export const MaxSpeedComponent = defineComponent({
     eid: EntityId,
     value: number,
   ) {
-    store.value[eid] = value;
+    store.value[eid] = Math.min(value, MAX_MAX_SPEED);
   },
 });
 
 const FrictionSchema = { value: PrimativeTypes.ui8 };
 export const FrictionComponent = defineComponent({
-  schema: MaxSpeedSchema,
+  schema: FrictionSchema,
   propName: "friction",
   getValue(
     _world: IWorld,

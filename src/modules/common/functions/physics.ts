@@ -21,14 +21,6 @@ export class SimulateOptions implements ISimulateOptions {
 
 const defaultOptions = new SimulateOptions();
 
-function accumulate(
-  targetVector: Instance,
-  deltaTime: number,
-  deltaVector: ReadOnly,
-) {
-  add(targetVector, deltaVector, deltaTime);
-}
-
 export function simulatePositionWithVelocity(
   position: Instance,
   velocity: Instance,
@@ -40,7 +32,7 @@ export function simulatePositionWithVelocity(
     extend(velocity, -(options.friction / 256) * deltaTime, velocity);
   }
 
-  accumulate(position, deltaTime, velocity);
+  add(position, velocity, deltaTime);
 
   if (options.worldDimensions) {
     const dimensions = options.worldDimensions;
@@ -71,11 +63,9 @@ export function simulateVelocityWithAcceleration(
   deltaTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {
-  accumulate(velocity, deltaTime, acceleration);
+  add(velocity, acceleration, deltaTime);
 
-  if (options.maxSpeed) {
-    clamp(velocity, options.maxSpeed);
-  }
+  clamp(velocity, options.maxSpeed);
 }
 
 export function simulateGravity(
@@ -83,7 +73,7 @@ export function simulateGravity(
   deltaTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {
-  accumulate(velocity, deltaTime, options.gravity);
+  add(velocity, options.gravity, deltaTime);
 }
 
 export const TILE_SIZE_BITLENGTH = 13;

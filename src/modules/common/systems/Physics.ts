@@ -14,8 +14,9 @@ import { isClient } from "../env.ts";
 import { Instance } from "../Vec2.ts";
 import { PhysicsState } from "../state/Physics.ts";
 import { PoseType } from "../../client/state/Sprite.ts";
-import { addComponent, hasComponent, removeComponent } from "../Component.ts";
+import { addComponent, removeComponent } from "../Component.ts";
 import { GroundedTag } from "../components.ts";
+import { Player } from "../../../examples/platformer/common/constants.ts";
 
 const tempPositionDelta = new Instance();
 
@@ -45,9 +46,7 @@ export const PhysicsSystem: SystemLoader<
         copy(tempPositionDelta, dynamicEntity.targetPosition);
         sub(tempPositionDelta, dynamicEntity.position);
         if (getLengthSquared(tempPositionDelta) > 1) {
-          if (hasComponent(GroundedTag, dynamicEntity)) {
-            clamp(tempPositionDelta, dynamicEntity.maxSpeed * fixedDeltaTime);
-          }
+          clamp(tempPositionDelta, dynamicEntity.maxSpeed * fixedDeltaTime);
 
           // if (!isZero(tempPositionDelta)) {
           //   console.log("add delta", toJSON(tempPositionDelta));
@@ -91,11 +90,19 @@ export const PhysicsSystem: SystemLoader<
       if (!isGrounded) {
         // console.log("not grounded", groundedCollision);
         removeComponent(GroundedTag, dynamicEntity);
+        dynamicEntity.maxSpeed = Player.MAX_AIR_SPEED;
+        // This is kinda a hack to make sure we don't keep accelerating like we're still on the ground
+        // dynamicEntity.acceleration.x = 0;
+        dynamicEntity.friction = Player.AIR_FRICTION;
         simulateGravity(dynamicEntity.velocity, fixedDeltaTime, options);
-      } else {
+      }
+
+      if (isGrounded) {
+        dynamicEntity.maxSpeed = Player.MAX_GROUND_SPEED;
+        dynamicEntity.friction = Player.GROUND_FRICTION;
         addComponent(GroundedTag, dynamicEntity);
       }
-    }
+    } // const dynamicEntity of PhysicsState.dynamicEntities.query()
   }
   return { exec };
 };

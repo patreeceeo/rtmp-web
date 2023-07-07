@@ -60,6 +60,11 @@ export function roundTo8thBit(value: number) {
   return value & 128 ? (value >> 8) + 1 : value >> 8;
 }
 
+export function getAbsMin(a: number, b: number) {
+  return Math.min(Math.abs(a), Math.abs(b)) *
+    (a !== 0 ? Math.sign(a) : 1);
+}
+
 // TODO move to separate file?
 export class Matrix2<Value> {
   values: Value[] = [];

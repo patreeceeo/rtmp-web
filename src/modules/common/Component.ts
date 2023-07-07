@@ -56,7 +56,7 @@ export interface IEntityMaximal extends IEntityMinimal {
   previousPosition: ECSInstance<typeof Vec2LargeSchema>;
   previousTargetPosition_output: ECSInstance<typeof Vec2LargeSchema>;
   previousTargetPosition_network: ECSInstance<typeof Vec2LargeSchema>;
-  velocity: ECSInstance<typeof Vec2SmallSchema>;
+  velocity: ECSInstance<typeof Vec2LargeSchema>;
   maxSpeed: number;
   friction: number;
   acceleration: ECSInstance<typeof Vec2SmallSchema>;
