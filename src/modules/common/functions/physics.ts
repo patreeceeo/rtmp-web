@@ -9,6 +9,7 @@ export interface ISimulateOptions {
   worldDimensions: IBox;
   hitBox: ReadOnly;
   gravity: ReadOnly;
+  debug: boolean;
 }
 
 export class SimulateOptions implements ISimulateOptions {
@@ -16,7 +17,8 @@ export class SimulateOptions implements ISimulateOptions {
   maxSpeed = Infinity;
   worldDimensions = Box.INFINITY;
   hitBox = new Instance();
-  gravity = new Instance(0, .9);
+  gravity = new Instance(0, 0.9);
+  debug = false;
 }
 
 const defaultOptions = new SimulateOptions();
@@ -137,6 +139,12 @@ export function detectTileCollision1d(
       ? tileMatrix.get(edgeTile, centerTileInPerpDimension)
       : tileMatrix.get(centerTileInPerpDimension, edgeTile)
   ) {
+    // if (options.debug) {
+    //   console.log({
+    //     centerTileInPerpDimension,
+    //     edgeTile,
+    //   });
+    // }
     return Math.min(
       Math.abs(halfHitBox),
       isMax ? edge - tileEdge : tileEdge - edge,
