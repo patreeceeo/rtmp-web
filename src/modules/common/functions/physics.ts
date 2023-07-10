@@ -163,19 +163,23 @@ export function resolveTileCollision1d(
   invariant(collision > 0, "collision must be positive");
   switch (direction) {
     case CardinalDirection.xMin:
-      velocity.x = Math.min(0, velocity.x);
+      // console.log("xMin collision", collision);
+      velocity.x /= -2;
       position.x += collision;
       break;
     case CardinalDirection.xMax:
-      velocity.x = Math.max(0, velocity.x);
+      // console.log("xMax collision", collision);
+      velocity.x /= -2;
       position.x -= collision;
       break;
     case CardinalDirection.yMin:
-      velocity.y = Math.max(0, velocity.y);
+      // console.log("yMin collision", collision);
+      velocity.y /= -2;
       position.y += collision;
       break;
     case CardinalDirection.yMax:
-      velocity.y = Math.min(0, velocity.y);
+      // console.log("yMax collision", collision);
+      velocity.y /= -2;
       position.y -= collision;
       break;
   }
