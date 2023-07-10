@@ -19,6 +19,12 @@ export function length(o: ReadOnly) {
   return Math.sqrt(getLengthSquared(o));
 }
 
+export function getDistanceSquared(a: ReadOnly, b: ReadOnly) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return dx * dx + dy * dy;
+}
+
 export function equals(a: ReadOnly, b: ReadOnly) {
   return a.x === b.x && a.y === b.y;
 }

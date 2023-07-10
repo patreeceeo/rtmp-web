@@ -1,4 +1,12 @@
-import { add, clamp, copy, getLengthSquared, set, sub } from "~/common/Vec2.ts";
+import {
+  add,
+  clamp,
+  copy,
+  getLengthSquared,
+  isZero,
+  set,
+  sub,
+} from "~/common/Vec2.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
   CardinalDirection,
@@ -14,8 +22,8 @@ import { isClient } from "../env.ts";
 import { Instance } from "../Vec2.ts";
 import { PhysicsState } from "../state/Physics.ts";
 import { PoseType } from "../../client/state/Sprite.ts";
-import { addComponent, removeComponent } from "../Component.ts";
-import { GroundedTag } from "../components.ts";
+import { addComponent, hasComponent, removeComponent } from "../Component.ts";
+import { GroundedTag, PlayerTag } from "../components.ts";
 import { Player } from "../../../examples/platformer/common/constants.ts";
 
 const tempPositionDelta = new Instance();
@@ -45,7 +53,7 @@ export const PhysicsSystem: SystemLoader<
         // Calculate how far we are from where we should be
         copy(tempPositionDelta, dynamicEntity.targetPosition);
         sub(tempPositionDelta, dynamicEntity.position);
-        if (getLengthSquared(tempPositionDelta) > 1) {
+        if (getLengthSquared(tempPositionDelta) > 0) {
           clamp(tempPositionDelta, dynamicEntity.maxSpeed * fixedDeltaTime);
 
           // if (!isZero(tempPositionDelta)) {
@@ -59,12 +67,7 @@ export const PhysicsSystem: SystemLoader<
         : dynamicEntity.acceleration.x > 0
         ? PoseType.facingRight
         : PoseType.facingLeft;
-      simulateVelocityWithAcceleration(
-        dynamicEntity.velocity,
-        dynamicEntity.acceleration,
-        fixedDeltaTime,
-        options,
-      );
+
       // console.log("y vel", dynamicEntity.velocity.y);
       updatePosition(
         dynamicEntity.position,
@@ -87,14 +90,26 @@ export const PhysicsSystem: SystemLoader<
         options,
       );
       const isGrounded = groundedCollision >= 0;
+      if (
+        hasComponent(PlayerTag, dynamicEntity) && !isGrounded
+          ? Math.abs(dynamicEntity.velocity.x) < Player.MAX_FLY_SPEED
+          : true
+      ) {
+        simulateVelocityWithAcceleration(
+          dynamicEntity.velocity,
+          dynamicEntity.acceleration,
+          fixedDeltaTime,
+          options,
+        );
+      }
       if (!isGrounded) {
         console.log("not grounded", groundedCollision);
+        // if(hasComponent(GroundedTag, dynamicEntity)) {
+        //   set(dynamicEntity.acceleration, 0, 0);
+        // }
         removeComponent(GroundedTag, dynamicEntity);
-        dynamicEntity.maxSpeed = Player.MAX_AIR_SPEED;
-        // This is kinda a hack to make sure we don't keep accelerating like we're still on the ground
-        // dynamicEntity.acceleration.x = 0;
+        dynamicEntity.maxSpeed = Player.MAX_FALL_SPEED;
         dynamicEntity.friction = Player.AIR_FRICTION;
-        set(dynamicEntity.acceleration, 0, 0);
         simulateGravity(dynamicEntity.velocity, fixedDeltaTime, options);
       }
 

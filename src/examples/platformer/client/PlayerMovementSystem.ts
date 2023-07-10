@@ -45,8 +45,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
         const interval = speedSquared / 80;
         const nid = NetworkState.getId(player.eid)!;
         const isGrounded = hasComponent(GroundedTag, player);
-        const running = Math.sign(ddx) !== Math.sign(player.acceleration.x) &&
-          isGrounded;
+        const running = Math.sign(ddx) !== Math.sign(player.acceleration.x);
 
         if (NetworkState.isLocal(nid)) {
           if (running) {
@@ -83,7 +82,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
           if (startJump && isGrounded) {
             console.log("jump!", jumpIntensity);
             // TODO constants
-            player.maxSpeed = Player.MAX_AIR_SPEED;
+            player.maxSpeed = Player.MAX_FALL_SPEED;
             player.velocity.y = -1 * Player.MAX_JUMP_SPEED *
               (jumpIntensity / Player.MAX_JUMP_INTENSITY);
             MessageState.addCommand(PlayerJump, (p) => {

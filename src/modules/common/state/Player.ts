@@ -3,13 +3,17 @@ import { EntityPrefabCollection, IEntityMinimal } from "../Entity.ts";
 import { isClient } from "../env.ts";
 import { PhysicsState } from "./Physics.ts";
 import { set } from "../Vec2.ts";
-import { PreviousTargetPositionComponent_Network } from "../components.ts";
+import {
+  PlayerTag,
+  PreviousTargetPositionComponent_Network,
+} from "../components.ts";
 import { Player } from "../../../examples/platformer/common/constants.ts";
 
 // TODO delete this file?
 
 class PlayerStateApi {
   readonly components = [
+    PlayerTag,
     ...PhysicsState.dynamicEntityComponents,
     ...(isClient ? OutputState.dynamicEntityComponents : []),
     PreviousTargetPositionComponent_Network,

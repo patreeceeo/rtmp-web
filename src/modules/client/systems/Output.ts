@@ -16,7 +16,6 @@ import {
   detectTileCollision1d,
   SimulateOptions,
   TILE_SIZE,
-  TILE_SIZE_BITLENGTH,
 } from "../../common/functions/physics.ts";
 import { PhysicsState } from "../../common/state/Physics.ts";
 
@@ -362,6 +361,10 @@ function isRenderDataDirty() {
         roundTo8thBit(entity.targetPosition.x) ||
       entity.previousTargetPosition_output.y !==
         roundTo8thBit(entity.targetPosition.y) ||
+      entity.previousPosition.x !==
+        roundTo8thBit(entity.position.x) ||
+      entity.previousPosition.y !==
+        roundTo8thBit(entity.position.y) ||
       entity.isSoftDeleted
     ) {
       isDirty = true;

@@ -28,21 +28,25 @@ export class PlayerSnapshotReconciler extends Reconciler<
   IPlayerSnapshot
 > {
   entities = new EntityPrefabCollection(PLAYER_SNAPSHOT_COMPONENTS);
+  #lastReconciledStep = 0;
 
   #shouldReconcile(
     player: EntityWithComponents<typeof PLAYER_SNAPSHOT_COMPONENTS>,
-    { nid: sstNid }: IPlayerSnapshot,
+    { nid: sstNid, sid }: IPlayerSnapshot,
   ): boolean {
     const playerNid = NetworkState.getId(player.eid)!;
     return (
       (isZero(player.acceleration) ||
-        !NetworkState.isLocal(playerNid)) && playerNid === sstNid
+        !NetworkState.isLocal(playerNid)) &&
+      playerNid === sstNid &&
+      sid > this.#lastReconciledStep
     );
   }
 
   *query(sstPayload: IPlayerSnapshot) {
     for (const player of this.entities.query()) {
       if (this.#shouldReconcile(player, sstPayload)) {
+        this.#lastReconciledStep = sstPayload.sid;
         yield player;
       }
     }

@@ -78,7 +78,7 @@ export const PlayerMovementSystem: SystemLoader<
               MessageState.currentStep - cmdPayload.sid,
             );
             // TODO code duplication
-            player.maxSpeed = Player.MAX_AIR_SPEED;
+            player.maxSpeed = Player.MAX_FALL_SPEED;
             player.velocity.y = -1 * Player.MAX_JUMP_SPEED *
               (jump.intensity / Player.MAX_JUMP_INTENSITY);
 

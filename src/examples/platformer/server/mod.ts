@@ -133,7 +133,7 @@ const handleMessagePipeline = new Pipeline(
 loadTilemap("/public/assets/level.json", false).then(() => {
   const fastPipeline = new Pipeline(
     [
-      PhysicsSystem({ fixedDeltaTime: 9 }),
+      PhysicsSystem({ fixedDeltaTime: 8 }),
       ProduceSnapshotSystem(),
       NetworkSystem(),
     ],
