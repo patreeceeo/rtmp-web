@@ -11,7 +11,13 @@ import {
   SpriteState,
 } from "../state/Sprite.ts";
 import { getFromCache } from "../../common/functions/image.ts";
-import { CardinalDirection, detectTileCollision1d, SimulateOptions, TILE_SIZE, TILE_SIZE_BITLENGTH } from "../../common/functions/physics.ts";
+import {
+  CardinalDirection,
+  detectTileCollision1d,
+  SimulateOptions,
+  TILE_SIZE,
+  TILE_SIZE_BITLENGTH,
+} from "../../common/functions/physics.ts";
 import { PhysicsState } from "../../common/state/Physics.ts";
 
 export const OutputSystem: SystemLoader = async () => {
@@ -195,7 +201,7 @@ function drawBackground() {
 
   drawTileLayer(ctx);
 
-  if(DebugState.enabled) {
+  if (DebugState.enabled) {
     drawCollisionDebug();
   }
 }
@@ -204,7 +210,7 @@ function drawCollisionDebug() {
   const {
     background: { context2d: ctx },
   } = OutputState;
-  const pos = new Vec2.Instance();
+  const posPhysics = new Vec2.Instance();
   const options = new SimulateOptions();
   options.debug = true;
 
@@ -212,53 +218,84 @@ function drawCollisionDebug() {
   // Vec2.set(options.hitBox, TILE_SIZE, TILE_SIZE);
   Vec2.set(options.hitBox, 1 << 8, 1 << 8);
 
-  // move left to right, top to bottom one tile at a time
-  // for(let yTile = 0; yTile < OutputState.foreground.resolution.y >> 5; yTile++) {
-  for(let yTile = 0; yTile < OutputState.foreground.resolution.y; yTile++) {
-    for(let xTile = 0; xTile < OutputState.foreground.resolution.x >> 5; xTile++) {
-    for(let xTile = 0; xTile < OutputState.foreground.resolution.x; xTile++) {
-      // Vec2.set(pos, xTile << TILE_SIZE_BITLENGTH, yTile << TILE_SIZE_BITLENGTH);
-      Vec2.set(pos, xTile << 8, yTile << 8);
-      // if(detectTileCollision1d(pos, PhysicsState.tileMatrix, CardinalDirection.xMin, options) >= 0) {
-      //   ctx!.strokeStyle = "green";
-      //   ctx!.beginPath();
-      //   ctx!.moveTo(roundTo8thBit(pos.x), roundTo8thBit(pos.y));
-      //   ctx!.lineTo(roundTo8thBit(pos.x), roundTo8thBit(pos.y + TILE_SIZE));
-      //   ctx!.stroke();
-      //   ctx!.closePath();
-      // }
-      // if(detectTileCollision1d(pos, PhysicsState.tileMatrix, CardinalDirection.yMin, options) <= 0) {
-      //   ctx!.strokeStyle = "yellow";
-      //   ctx!.beginPath();
-      //   ctx!.moveTo(roundTo8thBit(pos.x), roundTo8thBit(pos.y));
-      //   ctx!.lineTo(roundTo8thBit(pos.x + TILE_SIZE), roundTo8thBit(pos.y));
-      //   ctx!.stroke();
-      //   ctx!.closePath();
-      // }
-      // if(detectTileCollision1d(pos, PhysicsState.tileMatrix, CardinalDirection.xMax, options) <= 0) {
-      //   ctx!.strokeStyle = "red";
-      //   ctx!.beginPath();
-      //   ctx!.moveTo(roundTo8thBit(pos.x + TILE_SIZE), roundTo8thBit(pos.y));
-      //   ctx!.lineTo(roundTo8thBit(pos.x + TILE_SIZE), roundTo8thBit(pos.y + TILE_SIZE));
-      //   ctx!.stroke();
-      //   ctx!.closePath();
-      // }
-      if(detectTileCollision1d(pos, PhysicsState.tileMatrix, CardinalDirection.yMax, options) > 0) {
-        ctx!.strokeStyle = "purple";
+  const step = TILE_SIZE >> 10;
+  // move left to right, top to bottom one tile at a time, in px
+  for (let yPx = 0; yPx < OutputState.foreground.resolution.y; yPx += step) {
+    for (let xPx = 0; xPx < OutputState.foreground.resolution.x; xPx += step) {
+      // convert to physics units
+      Vec2.set(posPhysics, xPx << 8, yPx << 8);
+      if (
+        detectTileCollision1d(
+          posPhysics,
+          PhysicsState.tileMatrix,
+          CardinalDirection.xMin,
+          options,
+        ) >= 0
+      ) {
+        ctx!.strokeStyle = "green";
         ctx!.beginPath();
-        ctx!.moveTo(roundTo8thBit(pos.x), roundTo8thBit(pos.y));
-        ctx!.lineTo(roundTo8thBit(pos.x + TILE_SIZE), roundTo8thBit(pos.y));
+        ctx!.moveTo(roundTo8thBit(posPhysics.x), roundTo8thBit(posPhysics.y));
+        ctx!.lineTo(
+          roundTo8thBit(posPhysics.x),
+          roundTo8thBit(posPhysics.y) + step,
+        );
         ctx!.stroke();
         ctx!.closePath();
       }
-      // if(PhysicsState.tileMatrix.get(x >> 5, y >> 5)) {
-      //   ctx!.strokeStyle = "black";
-      //   ctx!.beginPath();
-      //   ctx!.moveTo(x << 5, (y + 1) << 5);
-      //   ctx!.lineTo((x + 1) << 5, (y + 1) << 5);
-      //   ctx!.stroke();
-      //   ctx!.closePath();
-      // }
+      if (
+        detectTileCollision1d(
+          posPhysics,
+          PhysicsState.tileMatrix,
+          CardinalDirection.yMax,
+          options,
+        ) >= 0
+      ) {
+        ctx!.strokeStyle = "yellow";
+        ctx!.beginPath();
+        ctx!.moveTo(roundTo8thBit(posPhysics.x), roundTo8thBit(posPhysics.y));
+        ctx!.lineTo(
+          roundTo8thBit(posPhysics.x) + step,
+          roundTo8thBit(posPhysics.y),
+        );
+        ctx!.stroke();
+        ctx!.closePath();
+      }
+      if (
+        detectTileCollision1d(
+          posPhysics,
+          PhysicsState.tileMatrix,
+          CardinalDirection.xMax,
+          options,
+        ) >= 0
+      ) {
+        ctx!.strokeStyle = "red";
+        ctx!.beginPath();
+        ctx!.moveTo(roundTo8thBit(posPhysics.x), roundTo8thBit(posPhysics.y));
+        ctx!.lineTo(
+          roundTo8thBit(posPhysics.x),
+          roundTo8thBit(posPhysics.y) + step,
+        );
+        ctx!.stroke();
+        ctx!.closePath();
+      }
+      if (
+        detectTileCollision1d(
+          posPhysics,
+          PhysicsState.tileMatrix,
+          CardinalDirection.yMin,
+          options,
+        ) >= 0
+      ) {
+        ctx!.strokeStyle = "purple";
+        ctx!.beginPath();
+        ctx!.moveTo(roundTo8thBit(posPhysics.x), roundTo8thBit(posPhysics.y));
+        ctx!.lineTo(
+          roundTo8thBit(posPhysics.x) + step,
+          roundTo8thBit(posPhysics.y),
+        );
+        ctx!.stroke();
+        ctx!.closePath();
+      }
     }
   }
 }
@@ -286,8 +323,34 @@ function drawTweenHelpers() {
     const { x: w, y: h } = entity.bodyDimensions;
     const w2 = w >> 1;
     const h2 = h >> 1;
+    // ctx.strokeRect(roundTo8thBit(x) - w2, roundTo8thBit(y) - h2, w, h);
+    ctx.beginPath();
+    ctx.strokeStyle = "yellow";
+    ctx.moveTo(roundTo8thBit(x) - w2, roundTo8thBit(y) - h2);
+    ctx.lineTo(roundTo8thBit(x) + w2, roundTo8thBit(y) - h2);
+    ctx.stroke();
+    ctx.closePath();
+
+    ctx.beginPath();
+    ctx.strokeStyle = "green";
+    ctx.moveTo(roundTo8thBit(x) + w2, roundTo8thBit(y) - h2);
+    ctx.lineTo(roundTo8thBit(x) + w2, roundTo8thBit(y) + h2);
+    ctx.stroke();
+    ctx.closePath();
+
+    ctx.beginPath();
+    ctx.strokeStyle = "purple";
+    ctx.moveTo(roundTo8thBit(x) + w2, roundTo8thBit(y) + h2);
+    ctx.lineTo(roundTo8thBit(x) - w2, roundTo8thBit(y) + h2);
+    ctx.stroke();
+    ctx.closePath();
+
+    ctx.beginPath();
     ctx.strokeStyle = "red";
-    ctx.strokeRect(roundTo8thBit(x) - w2, roundTo8thBit(y) - h2, w, h);
+    ctx.moveTo(roundTo8thBit(x) - w2, roundTo8thBit(y) + h2);
+    ctx.lineTo(roundTo8thBit(x) - w2, roundTo8thBit(y) - h2);
+    ctx.stroke();
+    ctx.closePath();
   }
 }
 

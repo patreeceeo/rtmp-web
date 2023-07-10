@@ -139,12 +139,6 @@ export function detectTileCollision1d(
       ? tileMatrix.get(edgeTile, centerTileInPerpDimension)
       : tileMatrix.get(centerTileInPerpDimension, edgeTile)
   ) {
-    // if (options.debug) {
-    //   console.log({
-    //     centerTileInPerpDimension,
-    //     edgeTile,
-    //   });
-    // }
     return Math.min(
       Math.abs(halfHitBox),
       isMax ? edge - tileEdge : tileEdge - edge,
