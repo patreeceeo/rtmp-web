@@ -10,7 +10,6 @@ import {
   almostEquals,
   copy,
   getLengthSquared,
-  set,
 } from "../../../modules/common/Vec2.ts";
 import { Player } from "../common/constants.ts";
 import { NegotiatePhysics, PlayerJump, PlayerMove } from "../common/message.ts";
@@ -22,10 +21,8 @@ import { NegotiatePhysics, PlayerJump, PlayerMove } from "../common/message.ts";
  */
 export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
   () => {
-    let lastDdx = 0;
     let lastSendTime = 0;
     let jumpIntensity = 0;
-    let wasGrounded: null | boolean = null;
 
     function exec(context: ISystemExecutionContext) {
       let ddx = 0;
@@ -42,19 +39,15 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
       ) {
         ddx = 1;
       }
-      const running = ddx !== lastDdx;
-      lastDdx = ddx;
 
       for (const player of PlayerState.entities.query()) {
         const speedSquared = getLengthSquared(player.velocity);
         const interval = speedSquared / 80;
         const nid = NetworkState.getId(player.eid)!;
         const isGrounded = hasComponent(GroundedTag, player);
+        const running = Math.sign(ddx) !== Math.sign(player.acceleration.x) &&
+          isGrounded;
 
-        // TODO(0) there's a bug in the collision detection
-        // if(isGrounded !== wasGrounded) {
-        //   console.log("isGrounded", isGrounded, "wasGrounded", wasGrounded);
-        // }
         if (NetworkState.isLocal(nid)) {
           if (running) {
             console.log("run!");
@@ -116,7 +109,6 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
             });
           }
         }
-        wasGrounded = isGrounded;
       }
     }
     return { exec };

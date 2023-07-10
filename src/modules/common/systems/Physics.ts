@@ -1,4 +1,4 @@
-import { add, clamp, copy, getLengthSquared, sub } from "~/common/Vec2.ts";
+import { add, clamp, copy, getLengthSquared, set, sub } from "~/common/Vec2.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
   CardinalDirection,
@@ -88,12 +88,13 @@ export const PhysicsSystem: SystemLoader<
       );
       const isGrounded = groundedCollision >= 0;
       if (!isGrounded) {
-        // console.log("not grounded", groundedCollision);
+        console.log("not grounded", groundedCollision);
         removeComponent(GroundedTag, dynamicEntity);
         dynamicEntity.maxSpeed = Player.MAX_AIR_SPEED;
         // This is kinda a hack to make sure we don't keep accelerating like we're still on the ground
         // dynamicEntity.acceleration.x = 0;
         dynamicEntity.friction = Player.AIR_FRICTION;
+        set(dynamicEntity.acceleration, 0, 0);
         simulateGravity(dynamicEntity.velocity, fixedDeltaTime, options);
       }
 
