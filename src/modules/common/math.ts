@@ -1,6 +1,16 @@
 import { invariant } from "./Error.ts";
 import { Instance } from "./Vec2.ts";
 
+export const PI2 = 2 * Math.PI;
+
+export function rad2deg(radians: number) {
+  const deg = (radians * 180) / Math.PI;
+  if (deg < 0) {
+    return deg + 360;
+  }
+  return deg;
+}
+
 export function getDistanceSquared(a: Instance, b: Instance) {
   return Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2);
 }

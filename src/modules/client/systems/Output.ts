@@ -1,7 +1,7 @@
 import * as Vec2 from "~/common/Vec2.ts";
 import { OutputState } from "~/client/state/Output.ts";
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
-import { roundTo8thBit } from "../../common/math.ts";
+import { PI2, roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
 import { DebugState } from "../state/Debug.ts";
 import {
@@ -144,8 +144,6 @@ function getOrCreateLinearGradient(key: string, ctx: CanvasRenderingContext2D) {
   }
   return gradient;
 }
-
-const PI2 = 2 * Math.PI;
 
 function drawCloud(
   cloud: ICloud,

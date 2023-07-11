@@ -1,16 +1,11 @@
-import {
-  add,
-  clamp,
-  copy,
-  getLengthSquared,
-  isZero,
-  set,
-  sub,
-} from "~/common/Vec2.ts";
+import { add, clamp, copy, getLengthSquared, sub } from "~/common/Vec2.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
   CardinalDirection,
   detectTileCollision1d,
+  getCollisionAngle,
+  getCollisionDistance,
+  resolveCollision,
   resolveTileCollision1d,
   simulateGravity,
   SimulateOptions,
@@ -118,10 +113,57 @@ export const PhysicsSystem: SystemLoader<
         dynamicEntity.friction = Player.GROUND_FRICTION;
         addComponent(GroundedTag, dynamicEntity);
       }
+
+      for (const dynamicEntityB of PhysicsState.dynamicEntities.query()) {
+        if (dynamicEntityB === dynamicEntity) continue;
+        handleDynamicEntityCollisions(
+          dynamicEntity.position,
+          dynamicEntity.velocity,
+          dynamicEntityB.position,
+          dynamicEntityB.velocity,
+          options,
+        );
+        handleDynamicEntityCollisions(
+          dynamicEntity.targetPosition,
+          dynamicEntity.velocity,
+          dynamicEntityB.targetPosition,
+          dynamicEntityB.velocity,
+          options,
+        );
+      }
     } // const dynamicEntity of PhysicsState.dynamicEntities.query()
   }
   return { exec };
 };
+
+function handleDynamicEntityCollisions(
+  positionA: Instance,
+  velocityA: Instance,
+  positionB: Instance,
+  velocityB: Instance,
+  options: SimulateOptions,
+) {
+  const distance = getCollisionDistance(
+    positionA,
+    positionB,
+    options,
+  );
+  if (distance > 0) {
+    const angle = getCollisionAngle(
+      positionA,
+      positionB,
+      options,
+    );
+    resolveCollision(
+      positionA,
+      velocityA,
+      positionB,
+      velocityB,
+      distance,
+      angle,
+    );
+  }
+}
 
 function updatePosition(
   position: Instance,
