@@ -71,7 +71,6 @@ export const PlayerMovementSystem: SystemLoader<
         case PlayerJump.type:
           {
             const jump = cmdPayload as IPlayerJump;
-            // TODO code duplication
             applyPlayerJump(player, jump.intensity);
             MessageState.addSnapshot(PlayerSnapshot, (p: IPlayerSnapshot) => {
               copy(p.position, player.targetPosition);
