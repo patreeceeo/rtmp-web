@@ -20,7 +20,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
   () => {
     let jumpIntensity = 0;
 
-    function exec(context: ISystemExecutionContext) {
+    function exec() {
       let ddx = 0;
       let startJump = false;
       if (
