@@ -7,11 +7,7 @@ import { InputState } from "../../../modules/common/state/Input.ts";
 import { MessageState } from "../../../modules/common/state/Message.ts";
 import { NetworkState } from "../../../modules/common/state/Network.ts";
 import { PlayerState } from "../../../modules/common/state/Player.ts";
-import {
-  almostEquals,
-  copy,
-  getLengthSquared,
-} from "../../../modules/common/Vec2.ts";
+import { copy, getLengthSquared } from "../../../modules/common/Vec2.ts";
 import { Player } from "../common/constants.ts";
 import { NegotiatePhysics, PlayerJump, PlayerMove } from "../common/message.ts";
 
@@ -22,7 +18,6 @@ import { NegotiatePhysics, PlayerJump, PlayerMove } from "../common/message.ts";
  */
 export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
   () => {
-    let lastSendTime = 0;
     let jumpIntensity = 0;
 
     function exec(context: ISystemExecutionContext) {
@@ -103,7 +98,6 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
             ) > getLengthSquared(player.velocity)
           ) {
             // Send negotiatePhysics command
-            lastSendTime = context.elapsedTime;
             MessageState.addCommand(NegotiatePhysics, (p) => {
               copy(p.velocity, player.velocity);
               copy(p.position, player.position);
