@@ -16,6 +16,7 @@ export enum MsgType {
   ping,
   playerAdded,
   playerMoved,
+  playerJump,
   playerRemoved,
   playerSnapshot,
   negotiatePhysics,
@@ -24,6 +25,7 @@ export enum MsgType {
 export type {
   INegotiatePhysics,
   IPlayerAdd,
+  IPlayerJump,
   IPlayerMove,
   IPlayerRemove,
   IPlayerSnapshot,
@@ -32,6 +34,7 @@ export type {
 export {
   NegotiatePhysics,
   PlayerAdd,
+  PlayerJump,
   PlayerMove,
   PlayerRemove,
   PlayerSnapshot,
@@ -89,7 +92,7 @@ const playerSnapshotStack = stack.fork();
 const PlayerSnapshotSpec: IBufferProxyObjectSpec<IPlayerSnapshot> = {
   props: Object.assign({}, NilPayloadSpec.props, {
     position: playerSnapshotStack.box(Vec2LargeSpec),
-    velocity: playerSnapshotStack.box(Vec2SmallSpec),
+    velocity: playerSnapshotStack.box(Vec2LargeSpec),
     pose: playerSnapshotStack.box(PrimitiveValue.Uint8),
   }),
 };
@@ -128,6 +131,26 @@ const PlayerMove = defMessageType<IPlayerMove>(
   PlayerMoveSpec,
 );
 
+interface IPlayerJump extends INilPayload {
+  intensity: number;
+}
+
+const playerJumpStack = stack.fork();
+const PlayerJumpSpec: IBufferProxyObjectSpec<IPlayerJump> = {
+  props: Object.assign(
+    {},
+    NilPayloadSpec.props,
+    {
+      intensity: playerJumpStack.box(PrimitiveValue.Uint8),
+    },
+  ),
+};
+
+const PlayerJump = defMessageType<IPlayerJump>(
+  MsgType.playerJump,
+  PlayerJumpSpec,
+);
+
 interface INegotiatePhysics extends INilPayload {
   position: Instance;
   velocity: Instance;
@@ -138,7 +161,7 @@ const NegotiatePhysicsSpec: IBufferProxyObjectSpec<INegotiatePhysics> = {
   props: Object
     .assign({}, NilPayloadSpec.props, {
       position: negotiateStack.box(Vec2LargeSpec),
-      velocity: negotiateStack.box(Vec2SmallSpec),
+      velocity: negotiateStack.box(Vec2LargeSpec),
     }),
 };
 

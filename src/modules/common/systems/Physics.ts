@@ -3,6 +3,9 @@ import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
   CardinalDirection,
   detectTileCollision1d,
+  getCollisionAngle,
+  getCollisionDistance,
+  resolveCollision,
   resolveTileCollision1d,
   simulateGravity,
   SimulateOptions,
@@ -15,7 +18,8 @@ import { Instance } from "../Vec2.ts";
 import { PhysicsState } from "../state/Physics.ts";
 import { PoseType } from "../../client/state/Sprite.ts";
 import { addComponent, hasComponent, removeComponent } from "../Component.ts";
-import { GroundedTag } from "../components.ts";
+import { GroundedTag, PlayerTag } from "../components.ts";
+import { Player } from "../../../examples/platformer/common/constants.ts";
 
 const tempPositionDelta = new Instance();
 
@@ -44,10 +48,8 @@ export const PhysicsSystem: SystemLoader<
         // Calculate how far we are from where we should be
         copy(tempPositionDelta, dynamicEntity.targetPosition);
         sub(tempPositionDelta, dynamicEntity.position);
-        if (getLengthSquared(tempPositionDelta) > 1) {
-          if (hasComponent(GroundedTag, dynamicEntity)) {
-            clamp(tempPositionDelta, dynamicEntity.maxSpeed * fixedDeltaTime);
-          }
+        if (getLengthSquared(tempPositionDelta) > 0) {
+          clamp(tempPositionDelta, dynamicEntity.maxSpeed * fixedDeltaTime);
 
           // if (!isZero(tempPositionDelta)) {
           //   console.log("add delta", toJSON(tempPositionDelta));
@@ -60,12 +62,7 @@ export const PhysicsSystem: SystemLoader<
         : dynamicEntity.acceleration.x > 0
         ? PoseType.facingRight
         : PoseType.facingLeft;
-      simulateVelocityWithAcceleration(
-        dynamicEntity.velocity,
-        dynamicEntity.acceleration,
-        fixedDeltaTime,
-        options,
-      );
+
       // console.log("y vel", dynamicEntity.velocity.y);
       updatePosition(
         dynamicEntity.position,
@@ -88,17 +85,85 @@ export const PhysicsSystem: SystemLoader<
         options,
       );
       const isGrounded = groundedCollision >= 0;
+      if (
+        hasComponent(PlayerTag, dynamicEntity) && !isGrounded
+          ? Math.abs(dynamicEntity.velocity.x) < Player.MAX_FLY_SPEED
+          : true
+      ) {
+        simulateVelocityWithAcceleration(
+          dynamicEntity.velocity,
+          dynamicEntity.acceleration,
+          fixedDeltaTime,
+          options,
+        );
+      }
       if (!isGrounded) {
-        // console.log("not grounded", groundedCollision);
+        console.log("not grounded", groundedCollision);
+        // if(hasComponent(GroundedTag, dynamicEntity)) {
+        //   set(dynamicEntity.acceleration, 0, 0);
+        // }
         removeComponent(GroundedTag, dynamicEntity);
+        dynamicEntity.maxSpeed = Player.MAX_FALL_SPEED;
+        dynamicEntity.friction = Player.AIR_FRICTION;
         simulateGravity(dynamicEntity.velocity, fixedDeltaTime, options);
-      } else {
+      }
+
+      if (isGrounded) {
+        dynamicEntity.maxSpeed = Player.MAX_GROUND_SPEED;
+        dynamicEntity.friction = Player.GROUND_FRICTION;
         addComponent(GroundedTag, dynamicEntity);
       }
-    }
+
+      for (const dynamicEntityB of PhysicsState.dynamicEntities.query()) {
+        if (dynamicEntityB === dynamicEntity) continue;
+        handleDynamicEntityCollisions(
+          dynamicEntity.position,
+          dynamicEntity.velocity,
+          dynamicEntityB.position,
+          dynamicEntityB.velocity,
+          options,
+        );
+        handleDynamicEntityCollisions(
+          dynamicEntity.targetPosition,
+          dynamicEntity.velocity,
+          dynamicEntityB.targetPosition,
+          dynamicEntityB.velocity,
+          options,
+        );
+      }
+    } // const dynamicEntity of PhysicsState.dynamicEntities.query()
   }
   return { exec };
 };
+
+function handleDynamicEntityCollisions(
+  positionA: Instance,
+  velocityA: Instance,
+  positionB: Instance,
+  velocityB: Instance,
+  options: SimulateOptions,
+) {
+  const distance = getCollisionDistance(
+    positionA,
+    positionB,
+    options,
+  );
+  if (distance > 0) {
+    const angle = getCollisionAngle(
+      positionA,
+      positionB,
+      options,
+    );
+    resolveCollision(
+      positionA,
+      velocityA,
+      positionB,
+      velocityB,
+      distance,
+      angle,
+    );
+  }
+}
 
 function updatePosition(
   position: Instance,

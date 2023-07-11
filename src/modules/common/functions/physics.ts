@@ -1,7 +1,14 @@
 import { Box, IBox } from "../Box.ts";
 import { invariant } from "../Error.ts";
-import { Matrix2 } from "../math.ts";
-import { add, clamp, extend, Instance, ReadOnly } from "../Vec2.ts";
+import { Matrix2, PI2 } from "../math.ts";
+import {
+  add,
+  clamp,
+  extend,
+  getLengthSquared,
+  Instance,
+  ReadOnly,
+} from "../Vec2.ts";
 
 export interface ISimulateOptions {
   friction: number;
@@ -9,6 +16,7 @@ export interface ISimulateOptions {
   worldDimensions: IBox;
   hitBox: ReadOnly;
   gravity: ReadOnly;
+  debug: boolean;
 }
 
 export class SimulateOptions implements ISimulateOptions {
@@ -16,18 +24,11 @@ export class SimulateOptions implements ISimulateOptions {
   maxSpeed = Infinity;
   worldDimensions = Box.INFINITY;
   hitBox = new Instance();
-  gravity = new Instance(0, .9);
+  gravity = new Instance(0, 0.9);
+  debug = false;
 }
 
 const defaultOptions = new SimulateOptions();
-
-function accumulate(
-  targetVector: Instance,
-  deltaTime: number,
-  deltaVector: ReadOnly,
-) {
-  add(targetVector, deltaVector, deltaTime);
-}
 
 export function simulatePositionWithVelocity(
   position: Instance,
@@ -40,7 +41,7 @@ export function simulatePositionWithVelocity(
     extend(velocity, -(options.friction / 256) * deltaTime, velocity);
   }
 
-  accumulate(position, deltaTime, velocity);
+  add(position, velocity, deltaTime);
 
   if (options.worldDimensions) {
     const dimensions = options.worldDimensions;
@@ -71,11 +72,9 @@ export function simulateVelocityWithAcceleration(
   deltaTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {
-  accumulate(velocity, deltaTime, acceleration);
+  add(velocity, acceleration, deltaTime);
 
-  if (options.maxSpeed) {
-    clamp(velocity, options.maxSpeed);
-  }
+  clamp(velocity, options.maxSpeed);
 }
 
 export function simulateGravity(
@@ -83,7 +82,7 @@ export function simulateGravity(
   deltaTime: number,
   options: ISimulateOptions = defaultOptions,
 ) {
-  accumulate(velocity, deltaTime, options.gravity);
+  add(velocity, options.gravity, deltaTime);
 }
 
 export const TILE_SIZE_BITLENGTH = 13;
@@ -162,6 +161,32 @@ export function detectTileCollision1d(
   }
 }
 
+export function getCollisionDistance(
+  positionA: Instance,
+  positionB: Instance,
+  options: ISimulateOptions = defaultOptions,
+) {
+  const xDistance = Math.abs(positionA.x - positionB.x);
+  const yDistance = Math.abs(positionA.y - positionB.y);
+  if (xDistance < options.hitBox.x && yDistance < options.hitBox.y) {
+    const xCollision = xDistance - options.hitBox.x;
+    const yCollision = yDistance - options.hitBox.y;
+    return Math.sqrt(xCollision * xCollision + yCollision * yCollision);
+  } else {
+    return -1;
+  }
+}
+
+export function getCollisionAngle(
+  positionA: Instance,
+  positionB: Instance,
+  _options: ISimulateOptions = defaultOptions,
+) {
+  const xDistance = positionA.x - positionB.x;
+  const yDistance = positionA.y - positionB.y;
+  return Math.atan2(yDistance, xDistance);
+}
+
 export function resolveTileCollision1d(
   position: Instance,
   velocity: Instance,
@@ -171,22 +196,60 @@ export function resolveTileCollision1d(
   invariant(collision > 0, "collision must be positive");
   switch (direction) {
     case CardinalDirection.xMin:
-      velocity.x = Math.min(0, velocity.x);
+      // console.log("xMin collision", collision);
+      velocity.x /= -2;
       position.x += collision;
       break;
     case CardinalDirection.xMax:
-      velocity.x = Math.max(0, velocity.x);
+      // console.log("xMax collision", collision);
+      velocity.x /= -2;
       position.x -= collision;
       break;
     case CardinalDirection.yMin:
-      velocity.y = Math.max(0, velocity.y);
+      // console.log("yMin collision", collision);
+      velocity.y /= -2;
       position.y += collision;
       break;
     case CardinalDirection.yMax:
-      velocity.y = Math.min(0, velocity.y);
+      // console.log("yMax collision", collision);
+      velocity.y /= -2;
       position.y -= collision;
       break;
   }
+}
+
+export function resolveCollision(
+  positionA: Instance,
+  velocityA: Instance,
+  positionB: Instance,
+  velocityB: Instance,
+  distance: number,
+  angle: number,
+) {
+  invariant(distance > 0, "distance must be positive");
+  invariant(
+    angle >= -PI2 && angle <= PI2,
+    "angle must be between -2PI and 2PI",
+  );
+  const x = Math.cos(angle) * distance;
+  const y = Math.sin(angle) * distance;
+  if (positionA.x > positionB.x) {
+    positionA.x += x / 2;
+    positionB.x -= x / 2;
+    positionA.y += y / 2;
+    positionB.y -= y / 2;
+    reflectVelocity(velocityA, angle);
+    reflectVelocity(velocityB, -angle);
+  }
+}
+
+export function reflectVelocity(velocity: Instance, angle: number) {
+  const velocityAngle = Math.atan2(velocity.y, velocity.x);
+  const velocityMagnitude = Math.sqrt(getLengthSquared(velocity));
+  const newAngle = angle * 2 - velocityAngle;
+  // console.log("angle", rad2deg(angle), "velocityAngle", rad2deg(velocityAngle), "newAngle", rad2deg(newAngle));
+  velocity.x = Math.cos(newAngle) * velocityMagnitude;
+  velocity.y = Math.sin(newAngle) * velocityMagnitude;
 }
 
 // function getCardinalDirectionName(direction: CardinalDirection) {

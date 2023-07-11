@@ -1,4 +1,4 @@
-import { almostEquals, copy } from "~/common/Vec2.ts";
+import { copy, getDistanceSquared, getLengthSquared } from "~/common/Vec2.ts";
 import {
   IPlayerSnapshot,
   PlayerSnapshot,
@@ -15,10 +15,10 @@ function exec() {
   for (const player of PlayerState.entities.query()) {
     const nid = NetworkState.getId(player.eid)!;
     if (
-      !almostEquals(
+      getDistanceSquared(
         player.targetPosition,
         player.previousTargetPosition_network,
-      )
+      ) > getLengthSquared(player.velocity)
     ) {
       MessageState.addSnapshot(PlayerSnapshot, (p: IPlayerSnapshot) => {
         copy(p.position, player.targetPosition);

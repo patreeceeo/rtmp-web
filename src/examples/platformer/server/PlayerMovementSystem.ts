@@ -13,11 +13,16 @@ import {
   Instance,
   sub,
 } from "../../../modules/common/Vec2.ts";
+import { applyPlayerJump } from "../common/functions.ts";
 import {
   INegotiatePhysics,
+  IPlayerJump,
   IPlayerMove,
+  IPlayerSnapshot,
   NegotiatePhysics,
+  PlayerJump,
   PlayerMove,
+  PlayerSnapshot,
 } from "../common/message.ts";
 
 let lastHandledStep = SID_ORIGIN;
@@ -35,7 +40,7 @@ export const PlayerMovementSystem: SystemLoader<
 > = () => {
   function exec() {
     const cmds = MessageState.getCommandsByStepReceived(
-      lastHandledStep - 1,
+      lastHandledStep,
       MessageState.currentStep,
     );
     for (const [cmdType, cmdPayload] of cmds) {
@@ -61,6 +66,19 @@ export const PlayerMovementSystem: SystemLoader<
               const move = cmdPayload as IPlayerMove;
               copy(player.acceleration, move.acceleration);
             }
+          }
+          break;
+        case PlayerJump.type:
+          {
+            const jump = cmdPayload as IPlayerJump;
+            applyPlayerJump(player, jump.intensity);
+            MessageState.addSnapshot(PlayerSnapshot, (p: IPlayerSnapshot) => {
+              copy(p.position, player.targetPosition);
+              copy(p.velocity, player.velocity);
+              p.pose = player.pose;
+              p.nid = cmdPayload.nid;
+              p.sid = MessageState.currentStep;
+            });
           }
           break;
         case NegotiatePhysics.type: {

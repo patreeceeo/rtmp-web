@@ -1,7 +1,7 @@
 import * as Vec2 from "~/common/Vec2.ts";
 import { OutputState } from "~/client/state/Output.ts";
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
-import { roundTo8thBit } from "../../common/math.ts";
+import { PI2, roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
 import { DebugState } from "../state/Debug.ts";
 import {
@@ -11,6 +11,13 @@ import {
   SpriteState,
 } from "../state/Sprite.ts";
 import { getFromCache } from "../../common/functions/image.ts";
+import {
+  CardinalDirection,
+  detectTileCollision1d,
+  SimulateOptions,
+  TILE_SIZE,
+} from "../../common/functions/physics.ts";
+import { PhysicsState } from "../../common/state/Physics.ts";
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
@@ -138,8 +145,6 @@ function getOrCreateLinearGradient(key: string, ctx: CanvasRenderingContext2D) {
   return gradient;
 }
 
-const PI2 = 2 * Math.PI;
-
 function drawCloud(
   cloud: ICloud,
   ctx: CanvasRenderingContext2D,
@@ -192,6 +197,104 @@ function drawBackground() {
   }
 
   drawTileLayer(ctx);
+
+  if (DebugState.enabled) {
+    drawCollisionDebug();
+  }
+}
+
+function drawCollisionDebug() {
+  const {
+    background: { context2d: ctx },
+  } = OutputState;
+  const posPhysics = new Vec2.Instance();
+  const options = new SimulateOptions();
+  options.debug = true;
+
+  // 1 x 1 tile
+  // Vec2.set(options.hitBox, TILE_SIZE, TILE_SIZE);
+  Vec2.set(options.hitBox, 1 << 8, 1 << 8);
+
+  const step = TILE_SIZE >> 10;
+  // move left to right, top to bottom one tile at a time, in px
+  for (let yPx = 0; yPx < OutputState.foreground.resolution.y; yPx += step) {
+    for (let xPx = 0; xPx < OutputState.foreground.resolution.x; xPx += step) {
+      // convert to physics units
+      Vec2.set(posPhysics, xPx << 8, yPx << 8);
+      if (
+        detectTileCollision1d(
+          posPhysics,
+          PhysicsState.tileMatrix,
+          CardinalDirection.xMin,
+          options,
+        ) >= 0
+      ) {
+        ctx!.strokeStyle = "green";
+        ctx!.beginPath();
+        ctx!.moveTo(roundTo8thBit(posPhysics.x), roundTo8thBit(posPhysics.y));
+        ctx!.lineTo(
+          roundTo8thBit(posPhysics.x),
+          roundTo8thBit(posPhysics.y) + step,
+        );
+        ctx!.stroke();
+        ctx!.closePath();
+      }
+      if (
+        detectTileCollision1d(
+          posPhysics,
+          PhysicsState.tileMatrix,
+          CardinalDirection.yMax,
+          options,
+        ) >= 0
+      ) {
+        ctx!.strokeStyle = "yellow";
+        ctx!.beginPath();
+        ctx!.moveTo(roundTo8thBit(posPhysics.x), roundTo8thBit(posPhysics.y));
+        ctx!.lineTo(
+          roundTo8thBit(posPhysics.x) + step,
+          roundTo8thBit(posPhysics.y),
+        );
+        ctx!.stroke();
+        ctx!.closePath();
+      }
+      if (
+        detectTileCollision1d(
+          posPhysics,
+          PhysicsState.tileMatrix,
+          CardinalDirection.xMax,
+          options,
+        ) >= 0
+      ) {
+        ctx!.strokeStyle = "red";
+        ctx!.beginPath();
+        ctx!.moveTo(roundTo8thBit(posPhysics.x), roundTo8thBit(posPhysics.y));
+        ctx!.lineTo(
+          roundTo8thBit(posPhysics.x),
+          roundTo8thBit(posPhysics.y) + step,
+        );
+        ctx!.stroke();
+        ctx!.closePath();
+      }
+      if (
+        detectTileCollision1d(
+          posPhysics,
+          PhysicsState.tileMatrix,
+          CardinalDirection.yMin,
+          options,
+        ) >= 0
+      ) {
+        ctx!.strokeStyle = "purple";
+        ctx!.beginPath();
+        ctx!.moveTo(roundTo8thBit(posPhysics.x), roundTo8thBit(posPhysics.y));
+        ctx!.lineTo(
+          roundTo8thBit(posPhysics.x) + step,
+          roundTo8thBit(posPhysics.y),
+        );
+        ctx!.stroke();
+        ctx!.closePath();
+      }
+    }
+  }
 }
 
 function drawTileLayer(ctx: CanvasRenderingContext2D) {
@@ -217,8 +320,34 @@ function drawTweenHelpers() {
     const { x: w, y: h } = entity.bodyDimensions;
     const w2 = w >> 1;
     const h2 = h >> 1;
+    // ctx.strokeRect(roundTo8thBit(x) - w2, roundTo8thBit(y) - h2, w, h);
+    ctx.beginPath();
+    ctx.strokeStyle = "yellow";
+    ctx.moveTo(roundTo8thBit(x) - w2, roundTo8thBit(y) - h2);
+    ctx.lineTo(roundTo8thBit(x) + w2, roundTo8thBit(y) - h2);
+    ctx.stroke();
+    ctx.closePath();
+
+    ctx.beginPath();
+    ctx.strokeStyle = "green";
+    ctx.moveTo(roundTo8thBit(x) + w2, roundTo8thBit(y) - h2);
+    ctx.lineTo(roundTo8thBit(x) + w2, roundTo8thBit(y) + h2);
+    ctx.stroke();
+    ctx.closePath();
+
+    ctx.beginPath();
+    ctx.strokeStyle = "purple";
+    ctx.moveTo(roundTo8thBit(x) + w2, roundTo8thBit(y) + h2);
+    ctx.lineTo(roundTo8thBit(x) - w2, roundTo8thBit(y) + h2);
+    ctx.stroke();
+    ctx.closePath();
+
+    ctx.beginPath();
     ctx.strokeStyle = "red";
-    ctx.strokeRect(roundTo8thBit(x) - w2, roundTo8thBit(y) - h2, w, h);
+    ctx.moveTo(roundTo8thBit(x) - w2, roundTo8thBit(y) + h2);
+    ctx.lineTo(roundTo8thBit(x) - w2, roundTo8thBit(y) - h2);
+    ctx.stroke();
+    ctx.closePath();
   }
 }
 
@@ -230,6 +359,10 @@ function isRenderDataDirty() {
         roundTo8thBit(entity.targetPosition.x) ||
       entity.previousTargetPosition_output.y !==
         roundTo8thBit(entity.targetPosition.y) ||
+      entity.previousPosition.x !==
+        roundTo8thBit(entity.position.x) ||
+      entity.previousPosition.y !==
+        roundTo8thBit(entity.position.y) ||
       entity.isSoftDeleted
     ) {
       isDirty = true;
