@@ -11,5 +11,5 @@ export const Player = Object.freeze({
   MAX_JUMP_INTENSITY: 2 ** 8 - 1,
   JUMP_INTENSITY_DIMINISHMENT_FACTOR: 12,
   GROUND_FRICTION: 80,
-  AIR_FRICTION: 4,
+  AIR_FRICTION: 0,
 });
