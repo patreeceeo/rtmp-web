@@ -1,9 +1,4 @@
-import {
-  almostEquals,
-  copy,
-  getDistanceSquared,
-  getLengthSquared,
-} from "~/common/Vec2.ts";
+import { copy, getDistanceSquared, getLengthSquared } from "~/common/Vec2.ts";
 import {
   IPlayerSnapshot,
   PlayerSnapshot,
