@@ -4,7 +4,7 @@ export const Player = Object.freeze({
   RUN_ACCELERATION: 2,
   FLY_ACCELERATION: 1,
   MAX_GROUND_SPEED: 66,
-  MAX_JUMP_SPEED: 200,
+  MAX_JUMP_SPEED: 160,
   // http://style.org/unladenswallow/
   MAX_FALL_SPEED: 220,
   MAX_FLY_SPEED: 33,

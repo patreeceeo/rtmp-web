@@ -19,6 +19,8 @@ import { NegotiatePhysics, PlayerJump, PlayerMove } from "../common/message.ts";
 export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
   () => {
     let jumpIntensity = 0;
+    let wasJumpPressed = false;
+    let doubleJump = false;
 
     function exec() {
       let ddx = 0;
@@ -35,6 +37,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
       ) {
         ddx = 1;
       }
+      const isJumpPressed = InputState.isButtonPressed(Button.Space);
 
       for (const player of PlayerState.entities.query()) {
         const nid = NetworkState.getId(player.eid)!;
@@ -55,7 +58,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
             });
           }
 
-          if (InputState.isButtonPressed(Button.Space)) {
+          if (isJumpPressed) {
             jumpIntensity = Math.min(
               Player.MAX_JUMP_INTENSITY,
               jumpIntensity +
@@ -67,7 +70,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
           }
 
           if (
-            jumpIntensity > 0 && !InputState.isButtonPressed(Button.Space) ||
+            jumpIntensity > 0 && !isJumpPressed ||
             jumpIntensity === Player.MAX_JUMP_INTENSITY
           ) {
             startJump = true;
@@ -88,9 +91,26 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
             jumpIntensity = 0;
           }
 
+          if (isGrounded) {
+            doubleJump = true;
+          }
+
           if (!isGrounded) {
+            if (!wasJumpPressed && isJumpPressed && doubleJump) {
+              console.log("double jump!");
+              // TODO constants
+              player.velocity.y = -1 * Player.MAX_JUMP_SPEED;
+              MessageState.addCommand(PlayerJump, (p) => {
+                p.intensity = Player.MAX_JUMP_INTENSITY;
+                p.nid = nid;
+                p.sid = MessageState.currentStep;
+              });
+              startJump = false;
+              doubleJump = false;
+            }
             jumpIntensity = 0;
           }
+
           if (
             getDistanceSquared(
               player.targetPosition,
@@ -106,7 +126,8 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
             });
           }
         }
-      }
+      } // const player of PlayerState.entities.query()
+      wasJumpPressed = isJumpPressed;
     }
     return { exec };
   };
