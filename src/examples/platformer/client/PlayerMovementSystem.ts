@@ -9,6 +9,7 @@ import { NetworkState } from "../../../modules/common/state/Network.ts";
 import { PlayerState } from "../../../modules/common/state/Player.ts";
 import { copy, getLengthSquared } from "../../../modules/common/Vec2.ts";
 import { Player } from "../common/constants.ts";
+import { applyPlayerJump } from "../common/functions.ts";
 import { NegotiatePhysics, PlayerJump, PlayerMove } from "../common/message.ts";
 
 /**
@@ -78,10 +79,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
 
           if (startJump && isGrounded) {
             console.log("jump!", jumpIntensity);
-            // TODO constants
-            player.maxSpeed = Player.MAX_FALL_SPEED;
-            player.velocity.y = -1 * Player.MAX_JUMP_SPEED *
-              (jumpIntensity / Player.MAX_JUMP_INTENSITY);
+            applyPlayerJump(player, jumpIntensity);
             MessageState.addCommand(PlayerJump, (p) => {
               p.intensity = jumpIntensity;
               p.nid = nid;
@@ -98,8 +96,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
           if (!isGrounded) {
             if (!wasJumpPressed && isJumpPressed && doubleJump) {
               console.log("double jump!");
-              // TODO constants
-              player.velocity.y = -1 * Player.MAX_JUMP_SPEED;
+              applyPlayerJump(player, Player.MAX_JUMP_INTENSITY);
               MessageState.addCommand(PlayerJump, (p) => {
                 p.intensity = Player.MAX_JUMP_INTENSITY;
                 p.nid = nid;

@@ -13,7 +13,7 @@ import {
   Instance,
   sub,
 } from "../../../modules/common/Vec2.ts";
-import { Player } from "../common/constants.ts";
+import { applyPlayerJump } from "../common/functions.ts";
 import {
   INegotiatePhysics,
   IPlayerJump,
@@ -71,17 +71,8 @@ export const PlayerMovementSystem: SystemLoader<
         case PlayerJump.type:
           {
             const jump = cmdPayload as IPlayerJump;
-            console.log(
-              "jump received",
-              cmdPayload.sid,
-              "lag",
-              MessageState.currentStep - cmdPayload.sid,
-            );
             // TODO code duplication
-            player.maxSpeed = Player.MAX_FALL_SPEED;
-            player.velocity.y = -1 * Player.MAX_JUMP_SPEED *
-              (jump.intensity / Player.MAX_JUMP_INTENSITY);
-
+            applyPlayerJump(player, jump.intensity);
             MessageState.addSnapshot(PlayerSnapshot, (p: IPlayerSnapshot) => {
               copy(p.position, player.targetPosition);
               copy(p.velocity, player.velocity);
