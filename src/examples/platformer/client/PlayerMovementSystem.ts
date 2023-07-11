@@ -2,6 +2,7 @@ import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { Button } from "../../../modules/common/Button.ts";
 import { hasComponent } from "../../../modules/common/Component.ts";
 import { GroundedTag } from "../../../modules/common/components.ts";
+import { getDistanceSquared } from "../../../modules/common/math.ts";
 import { InputState } from "../../../modules/common/state/Input.ts";
 import { MessageState } from "../../../modules/common/state/Message.ts";
 import { NetworkState } from "../../../modules/common/state/Network.ts";
@@ -41,8 +42,6 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
       }
 
       for (const player of PlayerState.entities.query()) {
-        const speedSquared = getLengthSquared(player.velocity);
-        const interval = speedSquared / 80;
         const nid = NetworkState.getId(player.eid)!;
         const isGrounded = hasComponent(GroundedTag, player);
         const running = Math.sign(ddx) !== Math.sign(player.acceleration.x);
@@ -94,9 +93,10 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
             jumpIntensity = 0;
           }
           if (
-            context.elapsedTime - lastSendTime > interval &&
-            !almostEquals(player.targetPosition, player.position) &&
-            speedSquared > 0
+            getDistanceSquared(
+              player.targetPosition,
+              player.previousTargetPosition_network,
+            ) > getLengthSquared(player.velocity)
           ) {
             // Send negotiatePhysics command
             lastSendTime = context.elapsedTime;
