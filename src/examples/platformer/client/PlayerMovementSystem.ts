@@ -92,6 +92,10 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
             startJump = false;
             jumpIntensity = 0;
           }
+
+          if (!isGrounded) {
+            jumpIntensity = 0;
+          }
           if (
             getDistanceSquared(
               player.targetPosition,
