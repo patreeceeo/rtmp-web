@@ -50,6 +50,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
             console.log("run!");
             // Send move command
             // TODO local tag
+            // TODO(authoritative server) send a direction and "intensity" not actual physical acceleration
             player.acceleration.x = ddx *
               (isGrounded ? Player.RUN_ACCELERATION : Player.FLY_ACCELERATION);
             MessageState.addCommand(PlayerMove, (p) => {
