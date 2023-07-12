@@ -231,10 +231,10 @@ export function resolveCollision(
     angle >= 0 && angle < PI2,
     "angle is out of range",
   );
-  // console.log("angle", angle);
-  const newAngle = angle === Math.PI || angle === 0 || angle === PI2
-    ? angle + ((Math.random() - 0.5) * Math.PI / 16)
+  const newAngle = angle === Math.PI / 2
+    ? angle + ((Math.random() - 0.5) * Math.PI / 4)
     : angle;
+  console.log("angle", angle, "newAngle", newAngle);
   const x = Math.cos(newAngle) * distance;
   const y = Math.sin(newAngle) * distance;
   positionA.x += x / 2;
