@@ -10,6 +10,12 @@ import { NetworkId } from "./state/Network.ts";
 import { OpaqueType } from "./util.ts";
 import { Instance as Vec2Instance } from "./Vec2.ts";
 
+// TODO replace with something based on OO-ECS? Each message can be an entity
+// with a MessageType Component. The MessageType Component would be used to
+// decide which other components/fields to look for on the entity/message.
+// Then there would need to be "pack" and "unpack" functions for
+// transferring to/from the socket's arraybuffer.
+
 export interface IBufferPrimativeValue<Type, BoxType = Type> {
   isPrimative: true;
   byteLength: number;
@@ -216,26 +222,26 @@ export type IBufferProxyObjectSpec<
   props: {
     [K in keyof Iface]: K extends keyof Iface
       // deno-lint-ignore no-explicit-any
-      ? ReturnType<Iface[K]["toJSON"]> extends Record<string, any> ? readonly [
-          number,
-          IBufferValueSpec<ReturnType<Iface[K]["toJSON"]>>,
-        ]
+      ? ReturnType<Iface[K]["toJSON"]> extends Record<string, any>
+        ? readonly [number, IBufferValueSpec<ReturnType<Iface[K]["toJSON"]>>]
       : readonly [number, IBufferValueSpec<Iface[K]>]
       : never | "missing key";
   };
   Klass?: new () => Klass;
 };
 
-export function getByteLength<
-  Iface,
->(spec: IBufferValueSpec<Iface>): number {
+export function getByteLength<Iface>(spec: IBufferValueSpec<Iface>): number {
   let maxByteOffset = 0;
   let lastKey: string;
   if ("isPrimative" in spec) {
     return spec.byteLength;
   } else {
     for (const key in spec.props) {
-      if (spec.props[key][0] >= maxByteOffset) {
+      // deno-lint-ignore no-explicit-any
+      if (
+        (spec as IBufferProxyObjectSpec<Record<string, any>>).props[key][0] >=
+          maxByteOffset
+      ) {
         maxByteOffset = spec.props[key][0] as number;
         lastKey = key;
       }
@@ -268,9 +274,7 @@ export class BufferProxyObject<
     readonly meta__spec: IBufferProxyObjectSpec<Iface>,
     readonly meta__options: Partial<IBufferProxyObjectConstructorOptions> = {},
   ) {
-    const byteLength = getByteLength(
-      meta__spec as IBufferValueSpec<Iface>,
-    );
+    const byteLength = getByteLength(meta__spec as IBufferValueSpec<Iface>);
     const instance = "Klass" in meta__spec ? new meta__spec.Klass!() : this;
 
     const getByteOffset = (o: BufferProxyObject<any, any>): number => {
@@ -284,10 +288,9 @@ export class BufferProxyObject<
 
     function resetBytesRemaining(o: Record<string, number>) {
       for (const fieldName of specPropKeys) {
-        const fieldSpec =
-          (meta__spec.props as IBufferValueSpec<Iface>["props"])[
-            fieldName
-          ];
+        const fieldSpec = (
+          meta__spec.props as IBufferValueSpec<Iface>["props"]
+        )[fieldName];
         if ("isPrimative" in fieldSpec[1]) {
           o[fieldName] = fieldSpec[1].byteLength;
         }
@@ -302,9 +305,7 @@ export class BufferProxyObject<
         ][1];
         if (
           "isPrimative" in
-            (meta__spec.props as IBufferValueSpec<Iface>["props"])[
-              fieldName
-            ][1]
+            (meta__spec.props as IBufferValueSpec<Iface>["props"])[fieldName][1]
         ) {
           bytesRemaining -= (value as IBufferPrimativeValue<Iface>).byteLength -
             o[fieldName];
@@ -395,8 +396,7 @@ export class BufferProxyObject<
           return getDataView(
             dataViewSource.buffer,
             // TODO why is this off by 1???
-            (getByteOffset(this) - 1) %
-              dataViewSource.byteLength,
+            (getByteOffset(this) - 1) % dataViewSource.byteLength,
           );
         },
       },
@@ -410,10 +410,9 @@ export class BufferProxyObject<
             resetBytesRemaining(bytesRemainingByField);
           }
           for (const key of specPropKeys) {
-            const subSpec =
-              (meta__spec.props as IBufferValueSpec<Iface>["props"])[
-                key
-              ][1];
+            const subSpec = (
+              meta__spec.props as IBufferValueSpec<Iface>["props"]
+            )[key][1];
             if (!("isPrimative" in subSpec)) {
               // deno-lint-ignore no-explicit-any
               (this as any)[key].meta__dataViewSource = dataViewSource;
@@ -422,9 +421,7 @@ export class BufferProxyObject<
         },
       },
     };
-    for (
-      const fieldName of specPropKeys
-    ) {
+    for (const fieldName of specPropKeys) {
       const [relativeByteOffset, subSpec] =
         // deno-lint-ignore no-explicit-any
         (meta__spec.props as any)[fieldName];
@@ -471,9 +468,7 @@ export class ValueBoxStacker {
   constructor(byteOffset = 0) {
     this.#byteOffset = byteOffset;
   }
-  box<Iface>(
-    Value: IBufferValueSpec<Iface>,
-  ) {
+  box<Iface>(Value: IBufferValueSpec<Iface>) {
     const byteLength = getByteLength(Value);
     const byteOffset = this.#byteOffset;
     this.#byteOffset += byteLength;

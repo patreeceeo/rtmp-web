@@ -1,5 +1,5 @@
 // src/Constants.js
-/// <reference path="./index.d.ts" />
+/// <reference types="./index.d.ts" />
 var TYPES_ENUM = {
   i8: "i8",
   ui8: "ui8",
