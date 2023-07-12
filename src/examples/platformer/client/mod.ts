@@ -197,6 +197,9 @@ const handleMessagePipeline = new Pipeline(
   new DemandDriver(),
 );
 
+// TODO Move this to PlayerMovementSystem's init
+// in the same vein, there should be a way for systems to
+// register command handlers for specific message types
 ReconcileState.register(MsgType.playerSnapshot, new PlayerSnapshotReconciler());
 
 // TODO maybe there should be separate functions for loading the tile visuals and the tile physics. Then the respective systems could do the loading themselves
@@ -205,7 +208,7 @@ loadTilemap("/public/assets/level.json").then(() => {
     [
       PlayerMovementSystem(),
       ClientNetworkSystem(),
-      PhysicsSystem({ fixedDeltaTime: 8 }),
+      PhysicsSystem({ fixedDeltaTime: 4 }),
     ],
     new FixedIntervalDriver(8),
   );

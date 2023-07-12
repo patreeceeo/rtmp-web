@@ -17,7 +17,6 @@ import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { ProduceSnapshotSystem } from "../../../modules/server/systems/ProduceSnapshot.ts";
 import { LevelState } from "../../../modules/common/state/LevelState.ts";
-import { getRandomIntBetween } from "../../../modules/common/random.ts";
 import { MsgType, PlayerAdd, PlayerRemove } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
@@ -45,10 +44,7 @@ class DotsServerApp implements ServerApp {
 
     Vec2.set(
       addedPlayer.position,
-      getRandomIntBetween(
-        LevelState.dimensions.xMin,
-        LevelState.dimensions.xMax,
-      ),
+      LevelState.dimensions.xMax / 2,
       LevelState.dimensions.yMin,
     );
     addedPlayer.imageCollection = (addedPlayer.eid / 2) % 2;
@@ -133,7 +129,7 @@ const handleMessagePipeline = new Pipeline(
 loadTilemap("/public/assets/level.json", false).then(() => {
   const fastPipeline = new Pipeline(
     [
-      PhysicsSystem({ fixedDeltaTime: 8 }),
+      PhysicsSystem({ fixedDeltaTime: 4 }),
       ProduceSnapshotSystem(),
       NetworkSystem(),
     ],
