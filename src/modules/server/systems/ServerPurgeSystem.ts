@@ -57,7 +57,11 @@ export const ServerPurgeSystem: SystemLoader<
       // Paranoidly forcing closed websockets even if they are being created with an idleTimeout
       // bufferedAmount should be zero by this point
       if (inactiveTime > idleTimeout * 2 * 1000) {
-        client.ws.close();
+        try {
+          client.ws.close();
+        } catch (e) {
+          console.error(e);
+        }
         ServerNetworkState.removeClient(client.nid);
       }
     }
