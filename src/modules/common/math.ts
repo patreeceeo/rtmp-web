@@ -3,12 +3,13 @@ import { Instance } from "./Vec2.ts";
 
 export const PI2 = 2 * Math.PI;
 
+export function normalizeAngle(angle: number) {
+  const newAngle = angle % PI2;
+  return angle < 0 ? newAngle + PI2 : newAngle;
+}
+
 export function rad2deg(radians: number) {
-  const deg = (radians * 180) / Math.PI;
-  if (deg < 0) {
-    return deg + 360;
-  }
-  return deg;
+  return (normalizeAngle(radians) * 180) / Math.PI;
 }
 
 export function getDistanceSquared(a: Instance, b: Instance) {

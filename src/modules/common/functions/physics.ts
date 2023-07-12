@@ -1,6 +1,6 @@
 import { Box, IBox } from "../Box.ts";
 import { invariant } from "../Error.ts";
-import { Matrix2, PI2 } from "../math.ts";
+import { Matrix2, normalizeAngle, PI2, rad2deg } from "../math.ts";
 import {
   add,
   clamp,
@@ -165,7 +165,7 @@ export function getCollisionDistance(
   positionA: Instance,
   positionB: Instance,
   options: ISimulateOptions = defaultOptions,
-) {
+): number {
   const xDistance = Math.abs(positionA.x - positionB.x);
   const yDistance = Math.abs(positionA.y - positionB.y);
   if (xDistance < options.hitBox.x && yDistance < options.hitBox.y) {
@@ -181,10 +181,10 @@ export function getCollisionAngle(
   positionA: Instance,
   positionB: Instance,
   _options: ISimulateOptions = defaultOptions,
-) {
+): number {
   const xDistance = positionA.x - positionB.x;
   const yDistance = positionA.y - positionB.y;
-  return Math.atan2(yDistance, xDistance);
+  return normalizeAngle(Math.atan2(yDistance, xDistance));
 }
 
 export function resolveTileCollision1d(
@@ -228,19 +228,21 @@ export function resolveCollision(
 ) {
   invariant(distance > 0, "distance must be positive");
   invariant(
-    angle >= -PI2 && angle <= PI2,
-    "angle must be between -2PI and 2PI",
+    angle >= 0 && angle < PI2,
+    "angle is out of range",
   );
-  const x = Math.cos(angle) * distance;
-  const y = Math.sin(angle) * distance;
-  if (positionA.x > positionB.x) {
-    positionA.x += x / 2;
-    positionB.x -= x / 2;
-    positionA.y += y / 2;
-    positionB.y -= y / 2;
-    reflectVelocity(velocityA, angle);
-    reflectVelocity(velocityB, -angle);
-  }
+  // console.log("angle", angle);
+  const newAngle = angle === Math.PI || angle === 0 || angle === PI2
+    ? angle + ((Math.random() - 0.5) * Math.PI / 16)
+    : angle;
+  const x = Math.cos(newAngle) * distance;
+  const y = Math.sin(newAngle) * distance;
+  positionA.x += x / 2;
+  positionB.x -= x / 2;
+  positionA.y += y / 2;
+  positionB.y -= y / 2;
+  reflectVelocity(velocityA, newAngle);
+  reflectVelocity(velocityB, -newAngle);
 }
 
 export function reflectVelocity(velocity: Instance, angle: number) {
