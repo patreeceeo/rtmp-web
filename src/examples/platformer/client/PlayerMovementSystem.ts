@@ -72,8 +72,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
           }
 
           if (
-            jumpIntensity > 0 && !isJumpPressed ||
-            jumpIntensity === Player.MAX_JUMP_INTENSITY
+            jumpIntensity > 0 && !isJumpPressed
           ) {
             startJump = true;
           }
