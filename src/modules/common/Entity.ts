@@ -113,7 +113,7 @@ export class EntityPrefabCollection<
     EntityWithComponents<ComponentTypes>
   > {
     const eids = this.#query(defaultWorld);
-    return eids.map((eid) => {
+    return eids.map((eid: number) => {
       return pool.get(eid as EntityId) as EntityWithComponents<ComponentTypes>;
     });
   }
