@@ -231,18 +231,29 @@ export function resolveCollision(
     angle >= 0 && angle < PI2,
     "angle is out of range",
   );
+  // TODO move angle randomization to a separate function?
   const newAngle = angle === Math.PI / 2
     ? angle + ((Math.random() - 0.5) * Math.PI / 4)
     : angle;
-  console.log("angle", angle, "newAngle", newAngle);
+  // console.log("angle", angle, "newAngle", newAngle);
   const x = Math.cos(newAngle) * distance;
   const y = Math.sin(newAngle) * distance;
-  positionA.x += x / 2;
-  positionB.x -= x / 2;
-  positionA.y += y / 2;
-  positionB.y -= y / 2;
+  if (positionA.x > positionB.x) {
+    positionA.x += x / 2;
+    positionB.x -= x / 2;
+  } else {
+    positionA.x -= x / 2;
+    positionB.x += x / 2;
+  }
+  if (positionA.y > positionB.y) {
+    positionA.y += y / 2;
+    positionB.y -= y / 2;
+  } else {
+    positionA.y -= y / 2;
+    positionB.y += y / 2;
+  }
   reflectVelocity(velocityA, newAngle);
-  reflectVelocity(velocityB, -newAngle);
+  reflectVelocity(velocityB, newAngle + Math.PI);
 }
 
 export function reflectVelocity(velocity: Instance, angle: number) {
