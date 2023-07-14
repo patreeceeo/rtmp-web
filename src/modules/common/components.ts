@@ -25,6 +25,10 @@ export const GroundedTag = defineTag({
   propName: "isGrounded",
 });
 
+export const ShoulderedTag = defineTag({
+  propName: "isShouldered",
+});
+
 export const BodyStaticTag = defineTag({
   propName: "bodyIsStatic",
 });

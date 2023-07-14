@@ -1,7 +1,10 @@
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { Button } from "../../../modules/common/Button.ts";
 import { hasComponent } from "../../../modules/common/Component.ts";
-import { GroundedTag } from "../../../modules/common/components.ts";
+import {
+  GroundedTag,
+  ShoulderedTag,
+} from "../../../modules/common/components.ts";
 import { getDistanceSquared } from "../../../modules/common/math.ts";
 import { InputState } from "../../../modules/common/state/Input.ts";
 import { MessageState } from "../../../modules/common/state/Message.ts";
@@ -26,6 +29,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
     function exec() {
       let ddx = 0;
       let startJump = false;
+      // TODO(bug) the player can't run in the opposite direction of movement after hitting the ground until they release and repress the button
       if (
         InputState.isButtonPressed(Button.KeyA) ||
         InputState.isButtonPressed(Button.KeyJ)
@@ -43,6 +47,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
       for (const player of PlayerState.entities.query()) {
         const nid = NetworkState.getId(player.eid)!;
         const isGrounded = hasComponent(GroundedTag, player);
+        const isShouldered = hasComponent(ShoulderedTag, player);
         const running = Math.sign(ddx) !== Math.sign(player.acceleration.x);
 
         if (NetworkState.isLocal(nid)) {
@@ -52,7 +57,9 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
             // TODO local tag
             // TODO(authoritative server) send a direction and "intensity" not actual physical acceleration
             player.acceleration.x = ddx *
-              (isGrounded ? Player.RUN_ACCELERATION : Player.FLY_ACCELERATION);
+              (isGrounded || isShouldered
+                ? Player.RUN_ACCELERATION
+                : Player.FLY_ACCELERATION);
             MessageState.addCommand(PlayerMove, (p) => {
               copy(p.acceleration, player.acceleration);
               p.nid = nid;
@@ -77,7 +84,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
             startJump = true;
           }
 
-          if (startJump && isGrounded) {
+          if (startJump && (isGrounded || isShouldered)) {
             console.log("jump!", jumpIntensity);
             applyPlayerJump(player, jumpIntensity);
             MessageState.addCommand(PlayerJump, (p) => {
@@ -86,14 +93,15 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
               p.sid = MessageState.currentStep;
             });
             startJump = false;
+            // console.log("reset A");
             jumpIntensity = 0;
           }
 
-          if (isGrounded) {
+          if (isGrounded || isShouldered) {
             doubleJump = true;
           }
 
-          if (!isGrounded) {
+          if (!isGrounded && !isShouldered) {
             if (!wasJumpPressed && isJumpPressed && doubleJump) {
               console.log("double jump!");
               applyPlayerJump(player, Player.MAX_JUMP_INTENSITY);

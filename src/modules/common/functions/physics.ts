@@ -1,6 +1,12 @@
 import { Box, IBox } from "../Box.ts";
 import { invariant } from "../Error.ts";
-import { Matrix2, normalizeAngle, PI2, rad2deg } from "../math.ts";
+import {
+  getDistanceBetweenEllipses,
+  Matrix2,
+  normalizeAngle,
+  PI2,
+  rad2deg,
+} from "../math.ts";
 import {
   add,
   clamp,
@@ -169,9 +175,13 @@ export function getCollisionDistance(
   const xDistance = Math.abs(positionA.x - positionB.x);
   const yDistance = Math.abs(positionA.y - positionB.y);
   if (xDistance < options.hitBox.x && yDistance < options.hitBox.y) {
-    const xCollision = xDistance - options.hitBox.x;
-    const yCollision = yDistance - options.hitBox.y;
-    return Math.sqrt(xCollision * xCollision + yCollision * yCollision);
+    return -1 *
+      getDistanceBetweenEllipses(
+        positionA,
+        positionB,
+        options.hitBox.x / 2,
+        options.hitBox.y / 2,
+      );
   } else {
     return -1;
   }
@@ -184,7 +194,7 @@ export function getCollisionAngle(
 ): number {
   const xDistance = positionA.x - positionB.x;
   const yDistance = positionA.y - positionB.y;
-  return normalizeAngle(Math.atan2(yDistance, xDistance));
+  return Math.atan2(yDistance, xDistance);
 }
 
 export function resolveTileCollision1d(
@@ -225,55 +235,41 @@ export function resolveCollision(
   velocityB: Instance,
   distance: number,
   angle: number,
+  options: ISimulateOptions = defaultOptions,
 ) {
   invariant(distance > 0, "distance must be positive");
-  invariant(
-    angle >= 0 && angle < PI2,
-    "angle is out of range",
-  );
-  // TODO move angle randomization to a separate function?
-  const newAngle = angle === Math.PI / 2
-    ? angle + ((Math.random() - 0.5) * Math.PI / 4)
-    : angle;
-  // console.log("angle", angle, "newAngle", newAngle);
-  const x = Math.cos(newAngle) * distance;
-  const y = Math.sin(newAngle) * distance;
-  if (positionA.x > positionB.x) {
-    positionA.x += x / 2;
-    positionB.x -= x / 2;
-  } else {
-    positionA.x -= x / 2;
-    positionB.x += x / 2;
-  }
-  if (positionA.y > positionB.y) {
-    positionA.y += y / 2;
-    positionB.y -= y / 2;
-  } else {
-    positionA.y -= y / 2;
-    positionB.y += y / 2;
-  }
-  reflectVelocity(velocityA, newAngle);
-  reflectVelocity(velocityB, newAngle + Math.PI);
-}
+  const dx = Math.cos(angle) * distance;
+  const dy = Math.sin(angle) * distance;
+  const xRatio = Math.abs(dx) / options.hitBox.x;
+  const yRatio = Math.abs(dy) / options.hitBox.y;
 
-export function reflectVelocity(velocity: Instance, angle: number) {
-  const velocityAngle = Math.atan2(velocity.y, velocity.x);
-  const velocityMagnitude = Math.sqrt(getLengthSquared(velocity));
-  const newAngle = angle * 2 - velocityAngle;
-  // console.log("angle", rad2deg(angle), "velocityAngle", rad2deg(velocityAngle), "newAngle", rad2deg(newAngle));
-  velocity.x = Math.cos(newAngle) * velocityMagnitude;
-  velocity.y = Math.sin(newAngle) * velocityMagnitude;
-}
+  if (xRatio >= yRatio) {
+    const xAv = velocityA.x;
+    const xBv = velocityB.x;
+    const sumV = Math.abs(xAv) + Math.abs(xBv);
 
-// function getCardinalDirectionName(direction: CardinalDirection) {
-//   switch (direction) {
-//     case CardinalDirection.xMin:
-//       return "xMin";
-//     case CardinalDirection.xMax:
-//       return "xMax";
-//     case CardinalDirection.yMin:
-//       return "yMin";
-//     case CardinalDirection.yMax:
-//       return "yMax";
-//   }
-// }
+    if (positionA.x > positionB.x) {
+      positionA.x += dx >> 1 - 1;
+      positionB.x -= dx >> 1;
+      velocityA.x = sumV / 2;
+      velocityB.x = sumV / -2;
+    }
+    if (positionA.x < positionB.x) {
+      positionA.x -= dx >> 1 - 1;
+      positionB.x += dx >> 1;
+      velocityA.x = sumV / 2;
+      velocityB.x = sumV / -2;
+    }
+  }
+  if (yRatio >= xRatio) {
+    console.log("resolving Y collision", dy);
+    if (positionA.y > positionB.y) {
+      positionA.y += dy >> 1 - 1;
+      positionB.y -= dy >> 1;
+    }
+    if (positionA.y < positionB.y) {
+      positionA.y -= dy >> 1 - 1;
+      positionB.y += dy >> 1;
+    }
+  }
+}

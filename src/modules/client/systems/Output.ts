@@ -18,6 +18,8 @@ import {
   TILE_SIZE,
 } from "../../common/functions/physics.ts";
 import { PhysicsState } from "../../common/state/Physics.ts";
+import { hasComponent } from "~/common/Component.ts";
+import { GroundedTag, ShoulderedTag } from "~/common/components.ts";
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
@@ -104,7 +106,7 @@ export const OutputSystem: SystemLoader = async () => {
       if (DebugState.enabled) {
         OutputState.frameCount++;
       }
-      if (isRenderDataDirty()) {
+      if (isRenderDataDirty() || DebugState.enabled) {
         eraseDynamicEntities();
         DebugState.enabled && drawTweenHelpers();
         drawPlayers();
@@ -320,32 +322,12 @@ function drawTweenHelpers() {
     const { x: w, y: h } = entity.bodyDimensions;
     const w2 = w >> 1;
     const h2 = h >> 1;
-    // ctx.strokeRect(roundTo8thBit(x) - w2, roundTo8thBit(y) - h2, w, h);
-    ctx.beginPath();
-    ctx.strokeStyle = "yellow";
-    ctx.moveTo(roundTo8thBit(x) - w2, roundTo8thBit(y) - h2);
-    ctx.lineTo(roundTo8thBit(x) + w2, roundTo8thBit(y) - h2);
-    ctx.stroke();
-    ctx.closePath();
+    const isGrounded = hasComponent(GroundedTag, entity);
+    const isShouldered = hasComponent(ShoulderedTag, entity);
 
     ctx.beginPath();
-    ctx.strokeStyle = "green";
-    ctx.moveTo(roundTo8thBit(x) + w2, roundTo8thBit(y) - h2);
-    ctx.lineTo(roundTo8thBit(x) + w2, roundTo8thBit(y) + h2);
-    ctx.stroke();
-    ctx.closePath();
-
-    ctx.beginPath();
-    ctx.strokeStyle = "purple";
-    ctx.moveTo(roundTo8thBit(x) + w2, roundTo8thBit(y) + h2);
-    ctx.lineTo(roundTo8thBit(x) - w2, roundTo8thBit(y) + h2);
-    ctx.stroke();
-    ctx.closePath();
-
-    ctx.beginPath();
-    ctx.strokeStyle = "red";
-    ctx.moveTo(roundTo8thBit(x) - w2, roundTo8thBit(y) + h2);
-    ctx.lineTo(roundTo8thBit(x) - w2, roundTo8thBit(y) - h2);
+    ctx.strokeStyle = isGrounded ? "red" : isShouldered ? "green" : "blue";
+    ctx.ellipse(roundTo8thBit(x), roundTo8thBit(y), w2, h2, 0, 0, PI2);
     ctx.stroke();
     ctx.closePath();
   }

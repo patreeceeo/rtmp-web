@@ -16,6 +16,22 @@ export function getDistanceSquared(a: Instance, b: Instance) {
   return Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2);
 }
 
+export function getDistanceBetweenEllipses(
+  centerA: Instance,
+  centerB: Instance,
+  radiusX: number,
+  radiusY: number,
+) {
+  const dx = centerB.x - centerA.x;
+  const dy = centerB.y - centerA.y;
+  const angle = Math.atan2(dy, dx);
+  const dxEdge = Math.cos(angle) * radiusX;
+  const dyEdge = Math.sin(angle) * radiusY;
+  const distanceFromEdges = Math.sqrt(dxEdge * dxEdge + dyEdge * dyEdge) * 2;
+  const distanceFromCenters = Math.sqrt(getDistanceSquared(centerA, centerB));
+  return distanceFromCenters - distanceFromEdges;
+}
+
 export function isAlmostZero(n: number, tolerance = Number.EPSILON) {
   return Math.abs(n) <= tolerance;
 }

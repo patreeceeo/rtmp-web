@@ -15,11 +15,12 @@ import {
 import { getPhysicsOptions } from "../functions/physicsHelpers.ts";
 import { isClient } from "../env.ts";
 import { Instance } from "../Vec2.ts";
-import { PhysicsState } from "../state/Physics.ts";
+import { IPhysicsEntity, PhysicsState } from "../state/Physics.ts";
 import { PoseType } from "../../client/state/Sprite.ts";
 import { addComponent, hasComponent, removeComponent } from "../Component.ts";
-import { GroundedTag, PlayerTag } from "../components.ts";
+import { GroundedTag, PlayerTag, ShoulderedTag } from "../components.ts";
 import { Player } from "../../../examples/platformer/common/constants.ts";
+import { IEntityMinimal } from "~/common/Entity.ts";
 
 const tempPositionDelta = new Instance();
 
@@ -85,6 +86,47 @@ export const PhysicsSystem: SystemLoader<
         options,
       );
       const isGrounded = groundedCollision >= 0;
+      if (isGrounded) {
+        addComponent(GroundedTag, dynamicEntity);
+      } else {
+        removeComponent(GroundedTag, dynamicEntity);
+      }
+
+      for (const dynamicEntityB of PhysicsState.dynamicEntities.query()) {
+        if (dynamicEntityB === dynamicEntity) continue;
+        if (
+          isShoulderPosition(
+            dynamicEntity.position,
+            dynamicEntityB.position,
+            options.hitBox.x,
+          ) &&
+          hasComponent(ShoulderedTag, dynamicEntity)
+        ) {
+          continue;
+        }
+        handleDynamicEntityCollisions(
+          dynamicEntity,
+          dynamicEntityB,
+          dynamicEntity.position,
+          dynamicEntityB.position,
+          options,
+        );
+
+        if (isClient) {
+          handleDynamicEntityCollisions(
+            dynamicEntity,
+            dynamicEntityB,
+            dynamicEntity.targetPosition,
+            dynamicEntityB.targetPosition,
+            options,
+          );
+        } else {
+          copy(dynamicEntity.targetPosition, dynamicEntity.position);
+        }
+      }
+
+      const isShouldered = hasComponent(ShoulderedTag, dynamicEntity);
+
       if (
         hasComponent(PlayerTag, dynamicEntity) && !isGrounded
           ? Math.abs(dynamicEntity.velocity.x) < Player.MAX_FLY_SPEED
@@ -97,63 +139,50 @@ export const PhysicsSystem: SystemLoader<
           options,
         );
       }
-      if (!isGrounded) {
-        console.log("not grounded", groundedCollision);
+      if (!isGrounded && !isShouldered) {
+        // console.log("not grounded", groundedCollision);
         // if(hasComponent(GroundedTag, dynamicEntity)) {
         //   set(dynamicEntity.acceleration, 0, 0);
         // }
-        removeComponent(GroundedTag, dynamicEntity);
         dynamicEntity.maxSpeed = Player.MAX_FALL_SPEED;
         dynamicEntity.friction = Player.AIR_FRICTION;
         simulateGravity(dynamicEntity.velocity, fixedDeltaTime, options);
       }
 
-      if (isGrounded) {
+      if (isGrounded || isShouldered) {
+        // console.log("grounded", groundedCollision);
         dynamicEntity.maxSpeed = Player.MAX_GROUND_SPEED;
         dynamicEntity.friction = Player.GROUND_FRICTION;
-        addComponent(GroundedTag, dynamicEntity);
-      }
-
-      for (const dynamicEntityB of PhysicsState.dynamicEntities.query()) {
-        if (dynamicEntityB === dynamicEntity) continue;
-        handleDynamicEntityCollisions(
-          dynamicEntity.position,
-          dynamicEntity.velocity,
-          dynamicEntityB.position,
-          dynamicEntityB.velocity,
-          options,
-        );
-        handleDynamicEntityCollisions(
-          dynamicEntity.targetPosition,
-          dynamicEntity.velocity,
-          dynamicEntityB.targetPosition,
-          dynamicEntityB.velocity,
-          options,
-        );
       }
     } // const dynamicEntity of PhysicsState.dynamicEntities.query()
   }
   return { exec };
 };
 
-function handleDynamicEntityCollisions(
-  positionA: Instance,
-  velocityA: Instance,
-  positionB: Instance,
-  velocityB: Instance,
-  options: SimulateOptions,
+function isShoulderPosition(
+  myPosition: Instance,
+  otherPosition: Instance,
+  otherWidth: number,
 ) {
-  const distance = getCollisionDistance(
-    positionA,
-    positionB,
-    options,
-  );
+  const dX = otherPosition.x - myPosition.x;
+  return Math.abs(dX) < otherWidth / 2 && myPosition.y < otherPosition.y;
+}
+
+function handleDynamicEntityCollisions(
+  entityA: IPhysicsEntity,
+  entityB: IPhysicsEntity,
+  positionA: Instance,
+  positionB: Instance,
+  options: SimulateOptions,
+): number {
+  const velocityA = entityA.velocity;
+  const velocityB = entityB.velocity;
+
+  const xVelAPrecollision = velocityA.x;
+  const xVelBPrecollision = velocityB.x;
+  const distance = getCollisionDistance(positionA, positionB, options);
   if (distance > 0) {
-    const angle = getCollisionAngle(
-      positionA,
-      positionB,
-      options,
-    );
+    const angle = getCollisionAngle(positionA, positionB, options);
     resolveCollision(
       positionA,
       velocityA,
@@ -161,8 +190,57 @@ function handleDynamicEntityCollisions(
       velocityB,
       distance,
       angle,
+      options,
     );
   }
+
+  if (distance >= 0) {
+    const xA = positionA.x;
+    const xB = positionB.x;
+    const dX = xA - xB;
+
+    if (
+      xVelAPrecollision !== 0 &&
+      xVelBPrecollision === 0 &&
+      hasComponent(GroundedTag, entityA)
+    ) {
+      velocityA.y -= 33;
+      velocityA.x *= 1.5;
+    }
+    if (
+      xVelBPrecollision !== 0 &&
+      xVelAPrecollision === 0 &&
+      hasComponent(GroundedTag, entityB)
+    ) {
+      velocityB.y -= 33;
+      velocityB.x *= 1.5;
+    }
+
+    if (
+      isShoulderPosition(positionA, positionB, options.hitBox.x) &&
+      entityA.acceleration.x === 0
+    ) {
+      addComponent(ShoulderedTag, entityA);
+      positionA.x -= dX;
+    } else {
+      removeComponent(ShoulderedTag, entityA);
+    }
+
+    if (
+      isShoulderPosition(positionB, positionA, options.hitBox.x) &&
+      entityB.acceleration.x === 0
+    ) {
+      addComponent(ShoulderedTag, entityB);
+      positionB.x += dX;
+    } else {
+      removeComponent(ShoulderedTag, entityB);
+    }
+  } else {
+    // console.log("no collision", collision);
+    removeComponent(ShoulderedTag, entityA);
+    removeComponent(ShoulderedTag, entityB);
+  }
+  return distance;
 }
 
 function updatePosition(
