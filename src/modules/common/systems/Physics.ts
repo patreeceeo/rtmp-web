@@ -1,4 +1,12 @@
-import { add, clamp, copy, getLengthSquared, sub } from "~/common/Vec2.ts";
+import {
+  add,
+  almostEquals,
+  clamp,
+  copy,
+  equals,
+  getLengthSquared,
+  sub,
+} from "~/common/Vec2.ts";
 import { ISystemExecutionContext, SystemLoader } from "./mod.ts";
 import {
   CardinalDirection,
@@ -18,9 +26,8 @@ import { Instance } from "../Vec2.ts";
 import { IPhysicsEntity, PhysicsState } from "../state/Physics.ts";
 import { PoseType } from "../../client/state/Sprite.ts";
 import { addComponent, hasComponent, removeComponent } from "../Component.ts";
-import { GroundedTag, PlayerTag, ShoulderedTag } from "../components.ts";
+import { GroundedTag, PlayerTag } from "../components.ts";
 import { Player } from "../../../examples/platformer/common/constants.ts";
-import { IEntityMinimal } from "~/common/Entity.ts";
 
 const tempPositionDelta = new Instance();
 
@@ -92,6 +99,7 @@ export const PhysicsSystem: SystemLoader<
         removeComponent(GroundedTag, dynamicEntity);
       }
 
+      dynamicEntity.shoulderCount = 0;
       for (const dynamicEntityB of PhysicsState.dynamicEntities.query()) {
         if (dynamicEntityB === dynamicEntity) continue;
         if (
@@ -100,7 +108,7 @@ export const PhysicsSystem: SystemLoader<
             dynamicEntityB.position,
             options.hitBox.x,
           ) &&
-          hasComponent(ShoulderedTag, dynamicEntity)
+          dynamicEntity.shoulderCount > 0
         ) {
           continue;
         }
@@ -112,20 +120,16 @@ export const PhysicsSystem: SystemLoader<
           options,
         );
 
-        if (isClient) {
-          handleDynamicEntityCollisions(
-            dynamicEntity,
-            dynamicEntityB,
-            dynamicEntity.targetPosition,
-            dynamicEntityB.targetPosition,
-            options,
-          );
-        } else {
-          copy(dynamicEntity.targetPosition, dynamicEntity.position);
-        }
+        handleDynamicEntityCollisions(
+          dynamicEntity,
+          dynamicEntityB,
+          dynamicEntity.targetPosition,
+          dynamicEntityB.targetPosition,
+          options,
+        );
       }
 
-      const isShouldered = hasComponent(ShoulderedTag, dynamicEntity);
+      const isShouldered = dynamicEntity.shoulderCount > 0;
 
       if (
         hasComponent(PlayerTag, dynamicEntity) && !isGrounded
@@ -178,9 +182,26 @@ function handleDynamicEntityCollisions(
   const velocityA = entityA.velocity;
   const velocityB = entityB.velocity;
 
-  const xVelAPrecollision = velocityA.x;
-  const xVelBPrecollision = velocityB.x;
-  const distance = getCollisionDistance(positionA, positionB, options);
+  const distance = getCollisionDistance(
+    positionA,
+    positionB,
+    options,
+    Player.MAX_COLLISION_PLAY_DISTANCE,
+  );
+
+  const prevY = positionA.y;
+
+  if (distance >= 0) {
+    if (
+      hasComponent(GroundedTag, entityA) &&
+      hasComponent(GroundedTag, entityB) &&
+      Math.abs(velocityA.x) >= Player.MIN_KICKBACK_RESTITUTION_SPEED
+    ) {
+      velocityA.y -= Player.KICKBACK_RESTITUTION_Y;
+      velocityA.x *= Player.KICKBACK_RESTITUTION_X_FACTOR;
+    }
+  }
+
   if (distance > 0) {
     const angle = getCollisionAngle(positionA, positionB, options);
     resolveCollision(
@@ -194,51 +215,24 @@ function handleDynamicEntityCollisions(
     );
   }
 
-  if (distance >= 0) {
+  if (distance >= -Player.MAX_COLLISION_PLAY_DISTANCE) {
     const xA = positionA.x;
     const xB = positionB.x;
     const dX = xA - xB;
 
     if (
-      xVelAPrecollision !== 0 &&
-      xVelBPrecollision === 0 &&
-      hasComponent(GroundedTag, entityA)
-    ) {
-      velocityA.y -= 33;
-      velocityA.x *= 1.5;
-    }
-    if (
-      xVelBPrecollision !== 0 &&
-      xVelAPrecollision === 0 &&
-      hasComponent(GroundedTag, entityB)
-    ) {
-      velocityB.y -= 33;
-      velocityB.x *= 1.5;
-    }
-
-    if (
       isShoulderPosition(positionA, positionB, options.hitBox.x) &&
       entityA.acceleration.x === 0
     ) {
-      addComponent(ShoulderedTag, entityA);
-      positionA.x -= dX;
-    } else {
-      removeComponent(ShoulderedTag, entityA);
+      entityA.shoulderCount++;
+      if (almostEquals(entityA.position, entityA.targetPosition, 512)) {
+        positionA.x -= dX;
+      }
     }
+  }
 
-    if (
-      isShoulderPosition(positionB, positionA, options.hitBox.x) &&
-      entityB.acceleration.x === 0
-    ) {
-      addComponent(ShoulderedTag, entityB);
-      positionB.x += dX;
-    } else {
-      removeComponent(ShoulderedTag, entityB);
-    }
-  } else {
-    // console.log("no collision", collision);
-    removeComponent(ShoulderedTag, entityA);
-    removeComponent(ShoulderedTag, entityB);
+  if (hasComponent(GroundedTag, entityA) || entityA.shoulderCount > 0) {
+    positionA.y = prevY;
   }
   return distance;
 }

@@ -171,10 +171,14 @@ export function getCollisionDistance(
   positionA: Instance,
   positionB: Instance,
   options: ISimulateOptions = defaultOptions,
+  tolerance: number,
 ): number {
   const xDistance = Math.abs(positionA.x - positionB.x);
   const yDistance = Math.abs(positionA.y - positionB.y);
-  if (xDistance < options.hitBox.x && yDistance < options.hitBox.y) {
+  if (
+    xDistance < options.hitBox.x + tolerance * 2 &&
+    yDistance < options.hitBox.y + tolerance * 2
+  ) {
     return -1 *
       getDistanceBetweenEllipses(
         positionA,
@@ -183,7 +187,7 @@ export function getCollisionDistance(
         options.hitBox.y / 2,
       );
   } else {
-    return -1;
+    return -1 - tolerance;
   }
 }
 
@@ -262,7 +266,7 @@ export function resolveCollision(
     }
   }
   if (yRatio >= xRatio) {
-    console.log("resolving Y collision", dy);
+    // console.log("resolving Y collision", dy);
     if (positionA.y > positionB.y) {
       positionA.y += dy >> 1 - 1;
       positionB.y -= dy >> 1;

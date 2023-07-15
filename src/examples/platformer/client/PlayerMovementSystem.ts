@@ -1,10 +1,7 @@
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { Button } from "../../../modules/common/Button.ts";
 import { hasComponent } from "../../../modules/common/Component.ts";
-import {
-  GroundedTag,
-  ShoulderedTag,
-} from "../../../modules/common/components.ts";
+import { GroundedTag } from "../../../modules/common/components.ts";
 import { getDistanceSquared } from "../../../modules/common/math.ts";
 import { InputState } from "../../../modules/common/state/Input.ts";
 import { MessageState } from "../../../modules/common/state/Message.ts";
@@ -47,7 +44,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
       for (const player of PlayerState.entities.query()) {
         const nid = NetworkState.getId(player.eid)!;
         const isGrounded = hasComponent(GroundedTag, player);
-        const isShouldered = hasComponent(ShoulderedTag, player);
+        const isShouldered = player.shoulderCount > 0;
         const running = Math.sign(ddx) !== Math.sign(player.acceleration.x);
 
         if (NetworkState.isLocal(nid)) {

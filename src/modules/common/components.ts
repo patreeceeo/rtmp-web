@@ -25,8 +25,27 @@ export const GroundedTag = defineTag({
   propName: "isGrounded",
 });
 
-export const ShoulderedTag = defineTag({
-  propName: "isShouldered",
+const ShoulderCountSchema = { value: PrimativeTypes.ui8 };
+const MAX_SHOULDER_COUNT = 2;
+export const ShoulderCount = defineComponent({
+  schema: ShoulderCountSchema,
+  propName: "shoulderCount",
+  getValue(
+    _world: IWorld,
+    store: StoreType<typeof ShoulderCountSchema>,
+    eid: EntityId,
+  ) {
+    return store.value[eid];
+  },
+
+  setValue(
+    _world: IWorld,
+    store: StoreType<typeof ShoulderCountSchema>,
+    eid: EntityId,
+    value: number,
+  ) {
+    store.value[eid] = Math.min(value, MAX_SHOULDER_COUNT);
+  },
 });
 
 export const BodyStaticTag = defineTag({

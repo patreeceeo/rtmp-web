@@ -6,6 +6,7 @@ import { set } from "../Vec2.ts";
 import {
   PlayerTag,
   PreviousTargetPositionComponent_Network,
+  ShoulderCount,
 } from "../components.ts";
 import { Player } from "../../../examples/platformer/common/constants.ts";
 
@@ -14,6 +15,7 @@ import { Player } from "../../../examples/platformer/common/constants.ts";
 class PlayerStateApi {
   readonly components = [
     PlayerTag,
+    ShoulderCount,
     ...PhysicsState.dynamicEntityComponents,
     ...(isClient ? OutputState.dynamicEntityComponents : []),
     PreviousTargetPositionComponent_Network,

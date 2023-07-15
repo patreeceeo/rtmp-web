@@ -6,6 +6,7 @@ import {
   MaxSpeedComponent,
   PoseComponent,
   PositionComponent,
+  ShoulderCount,
   SoftDeletedTag,
   TargetPositionComponent,
   TileTag,
@@ -22,6 +23,7 @@ class PhysicsStateApi {
   readonly dynamicEntityComponents = [
     Not(SoftDeletedTag),
     PositionComponent,
+    ShoulderCount,
     TargetPositionComponent,
     BodyDimensions,
     VelocityComponent,
