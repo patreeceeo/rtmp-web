@@ -220,12 +220,22 @@ function handleDynamicEntityCollisions(
     const xB = positionB.x;
     const dX = xA - xB;
 
+    // check if entityA is trying to stand on entityB's shoulders
     if (
       isShoulderPosition(positionA, positionB, options.hitBox.x) &&
       entityA.acceleration.x === 0
     ) {
       entityA.shoulderCount++;
-      if (almostEquals(entityA.position, entityA.targetPosition, 512)) {
+      // center entityA on entityB, but first
+      // check that target position hasn't significantly diverged first
+      // otherwise things can get weird
+      if (
+        almostEquals(
+          entityA.position,
+          entityA.targetPosition,
+          Player.POSITION_EPSILON,
+        )
+      ) {
         positionA.x -= dX;
       }
     }

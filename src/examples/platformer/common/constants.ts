@@ -16,4 +16,6 @@ export const Player = Object.freeze({
   KICKBACK_RESTITUTION_Y: 33,
   KICKBACK_RESTITUTION_X_FACTOR: 1.5,
   MAX_COLLISION_PLAY_DISTANCE: 20,
+  /** in 256ths of a pixel */
+  POSITION_EPSILON: 512,
 });
