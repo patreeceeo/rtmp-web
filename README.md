@@ -9,26 +9,17 @@ NOTE: This project is still in its infancy. This README is mostly for my own ben
 
 ## Goals and (Planned) High-Level Features
 
-- Authoritative server with client-side prediction, tweening and rollback (see sequence diagram below)
-- Matchmaking and instance servers that can be spun up on demand
-- Be generic enough to be used in a variety of games as well as non-game applications
+- Authoritative server with client-side prediction, tweening and rollback (sequence diagram below is out of date)
 - Support as many devices as possible
 - Be efficient w/ regard to power, memory, network
   - Use Web Transport (once it's more widely adopted) instead of Web Sockets.
   - ECS
   - Binary wire format
-- Joyful DX:
+- DX:
   - Prod-ready HMR
   - Use standard Web APIs on Client and Server, only deviate when it makes sense to do so
   - Leverage TypeScript's powerful type system to help developers write maintainable, robust code.
-  - Time-travel debugging
 - Keep it free (as in beer and as in speech)
-
-## How it works
-
-### Creating a Project
-
-The eventual goal is to make it available as a set of ES Modules that can be downloaded from a host like <https://deno.land/x> (maybe even NPM) but for now, creating an example project under `src/examples` is currently the only way to build anything with this framework, as it's still very immature. A project essentially consists of two entry points for client and server, and optionally, some static assets. To change which project gets loaded, edit scripts/common.sh and change the `active_project` variable.
 
 ### Developing
 
@@ -41,27 +32,11 @@ The eventual goal is to make it available as a set of ES Modules that can be dow
 
 The way the codebase is built and served in production versus development are essentially the same, and relatively simple thanks to the exclusive use ECMAScript's standard module system AKA ES Modules. There is no bundling phase, the build process simply produces one JavaScript file for each TypeScript source file using ESBuild.
 
-TODO:
-- Minification
-- Source maps
-
-#### (TODO) Production server-side `importmap`
-
-This would simply mean reading the source import_map.json, ensuring that any relative paths are adjusted for any differences between development and production (ideally none), and writing to the dist folder.
-
-#### (TODO) Production client-side import map (in HTML)
-
-There's a smart way and a dumb way to do this. The dumb way would be to assume every module in the source importmap might be used on the client, so the client-side importmap would be the same as the server-side importmap. I can't think of a reason not to do this, unless there are browsers that eagerly fetch all entries in an importmap before they're actually imported (?). The smart way would either rely on the developer to somehow indicate which imports are used client-side, or on a script that uses a parser like ESPrima to determine that automatically.
-
-#### (TODO) Client-side remote TypeScript modules
-
-Here's how I think this will work. If you put a link to a TypeScript module in your import map (i.e. the URL ends in `.ts`), and the module is being used on the client (a Web browser) the build system will download, transpile and cache it, then when generating the client's import map, it will use the URL to the cached JavaScript file in place of the original URL.
-
 ### Authoritative Server
 
 Heavily influenced by [Gabriel Gambetta's writing on Client-Server game architecture.](https://www.gabrielgambetta.com/client-server-game-architecture.html)
 
-#### Sequence Diagram
+#### Sequence Diagram (a bit outdated)
 
 ![Authoritative Server Sequence Diagram](./auth_server_seq_diagram.jpg)
 
