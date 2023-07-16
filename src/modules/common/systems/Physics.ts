@@ -243,6 +243,7 @@ function handleDynamicEntityCollisions(
 
   if (hasComponent(GroundedTag, entityA) || entityA.shoulderCount > 0) {
     positionA.y = prevY;
+    velocityA.y = 0;
   }
   return distance;
 }
