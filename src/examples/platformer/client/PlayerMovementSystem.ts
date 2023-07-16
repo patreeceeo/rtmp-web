@@ -22,36 +22,41 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
     let jumpIntensity = 0;
     let wasJumpPressed = false;
     let doubleJump = false;
+    let wasGrounded = false;
 
     function exec() {
       let ddx = 0;
       let startJump = false;
-      // TODO(bug) the player can't run in the opposite direction of movement after hitting the ground until they release and repress the button
-      if (
-        InputState.isButtonPressed(Button.KeyA) ||
-        InputState.isButtonPressed(Button.KeyJ)
-      ) {
-        ddx = -1;
-      }
-      if (
-        InputState.isButtonPressed(Button.KeyD) ||
-        InputState.isButtonPressed(Button.KeyL)
-      ) {
-        ddx = 1;
-      }
       const isJumpPressed = InputState.isButtonPressed(Button.Space);
 
       for (const player of PlayerState.entities.query()) {
         const nid = NetworkState.getId(player.eid)!;
-        const isGrounded = hasComponent(GroundedTag, player);
-        const isShouldered = player.shoulderCount > 0;
-        const running = Math.sign(ddx) !== Math.sign(player.acceleration.x);
 
+        // TODO(perf) local tag
         if (NetworkState.isLocal(nid)) {
-          if (running) {
+          const isGrounded = hasComponent(GroundedTag, player);
+          const isShouldered = player.shoulderCount > 0;
+
+          if (
+            InputState.isButtonPressed(Button.KeyA) ||
+            InputState.isButtonPressed(Button.KeyJ)
+          ) {
+            ddx = -1;
+          }
+          if (
+            InputState.isButtonPressed(Button.KeyD) ||
+            InputState.isButtonPressed(Button.KeyL)
+          ) {
+            ddx = 1;
+          }
+          const isAccelerating =
+            Math.sign(ddx) !== Math.sign(player.acceleration.x) ||
+            wasGrounded !== isGrounded;
+          wasGrounded = isGrounded;
+
+          if (isAccelerating) {
             console.log("run!");
             // Send move command
-            // TODO local tag
             // TODO(authoritative server) send a direction and "intensity" not actual physical acceleration
             player.acceleration.x = ddx *
               (isGrounded || isShouldered
