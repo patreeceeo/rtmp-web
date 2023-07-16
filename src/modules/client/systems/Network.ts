@@ -3,6 +3,7 @@ import { MessageState, SID_ORIGIN } from "~/common/state/Message.ts";
 import { ClientNetworkState } from "../state/Network.ts";
 import { sendIfOpen } from "../../common/socket.ts";
 import { DebugState } from "../state/Debug.ts";
+import { copy } from "~/common/Vec2.ts";
 
 let lastHandledStep = SID_ORIGIN;
 export const ClientNetworkSystem: SystemLoader = () => {
@@ -18,6 +19,10 @@ export const ClientNetworkSystem: SystemLoader = () => {
       DebugState.messageSentSinceLastFrame += 1;
     }
     lastHandledStep = MessageState.currentStep;
+
+    for (const entity of ClientNetworkState.positionEntities.query()) {
+      copy(entity.previousTargetPosition_network, entity.targetPosition);
+    }
   }
   return { exec };
 };
