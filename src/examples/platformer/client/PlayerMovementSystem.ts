@@ -105,10 +105,11 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
 
           if (!isGrounded && !isShouldered) {
             if (!wasJumpPressed && isJumpPressed && doubleJump) {
+              const intensity = Player.MAX_JUMP_INTENSITY / 2;
               console.log("double jump!");
-              applyPlayerJump(player, Player.MAX_JUMP_INTENSITY);
+              applyPlayerJump(player, intensity);
               MessageState.addCommand(PlayerJump, (p) => {
-                p.intensity = Player.MAX_JUMP_INTENSITY;
+                p.intensity = intensity;
                 p.nid = nid;
                 p.sid = MessageState.currentStep;
               });
