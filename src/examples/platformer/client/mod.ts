@@ -203,7 +203,7 @@ const handleMessagePipeline = new Pipeline(
 ReconcileState.register(MsgType.playerSnapshot, new PlayerSnapshotReconciler());
 
 // TODO maybe there should be separate functions for loading the tile visuals and the tile physics. Then the respective systems could do the loading themselves
-loadTilemap("/public/assets/level.json").then(() => {
+loadTilemap("/public/assets/level.json").then(async () => {
   const fastPipeline = new Pipeline(
     [
       PlayerMovementSystem(),
@@ -225,7 +225,7 @@ loadTilemap("/public/assets/level.json").then(() => {
   );
 
   initPing(MsgType.ping);
-  startClient(app);
+  await startClient(app);
   inputPipeline.start();
   handleMessagePipeline.start();
   fastPipeline.start();
