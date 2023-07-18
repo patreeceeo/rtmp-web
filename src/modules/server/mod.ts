@@ -32,6 +32,7 @@ const allowedFileExtensions = [
   ".ico",
   ".map",
   ".json",
+  ".ttf",
 ];
 
 export abstract class ServerApp {

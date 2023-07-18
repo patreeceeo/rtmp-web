@@ -99,6 +99,13 @@ export const OutputSystem: SystemLoader = async () => {
   let frameDurationMin = 1000 / fpsLimit;
   let lastRender = -frameDurationMin;
 
+  await (new FontFace(
+    "silkscreen",
+    "url(/public/assets/Silkscreen-Regular.ttf)",
+  )).load().then((font) => {
+    document.fonts.add(font);
+  });
+
   drawBackground();
 
   function exec(context: ISystemExecutionContext) {
@@ -108,8 +115,8 @@ export const OutputSystem: SystemLoader = async () => {
       }
       if (isRenderDataDirty() || DebugState.enabled) {
         eraseDynamicEntities();
-        DebugState.enabled && drawTweenHelpers();
         drawPlayers();
+        DebugState.enabled && drawHelpers();
         lastRender = context.elapsedTime;
       }
     }
@@ -310,7 +317,7 @@ function drawTileLayer(ctx: CanvasRenderingContext2D) {
   }
 }
 
-function drawTweenHelpers() {
+function drawHelpers() {
   const {
     foreground: { context2d },
   } = OutputState;
@@ -333,6 +340,13 @@ function drawTweenHelpers() {
     ctx.ellipse(roundTo8thBit(x), roundTo8thBit(y), w2, h2, 0, 0, PI2);
     ctx.stroke();
     ctx.closePath();
+
+    ctx.font = "10px silkscreen";
+    ctx.fillText(
+      entity.eid.toString(),
+      roundTo8thBit(x) - w2,
+      roundTo8thBit(y) - h2 - 3,
+    );
   }
 }
 
@@ -369,7 +383,7 @@ function eraseDynamicEntities() {
     const h2 = h >> 1;
     ctx.clearRect(
       entity.previousPosition.x - 2 - w2,
-      entity.previousPosition.y - 2 - h2,
+      entity.previousPosition.y - 14 - h2,
       sprite.width + 4 + w2,
       sprite.height + 4 + h2,
     );
