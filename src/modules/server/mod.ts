@@ -87,6 +87,9 @@ export function startServer(app: ServerApp) {
     } else if (url.pathname === "/") {
       const indexHtml = await Deno.readFile(`${rootDir}/public/index.html`);
       return new Response(indexHtml);
+    } else if (url.pathname.match(/\/eid\/\d+/)) {
+      const html = await Deno.readFile(`${rootDir}/public/entity.html`);
+      return new Response(html);
     } else if (url.pathname.startsWith("/public")) {
       const ext = getExtension(url.pathname);
       const base = getBaseName(url.pathname, `${ext}`);
