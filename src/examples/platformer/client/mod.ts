@@ -39,12 +39,8 @@ import { DebugState } from "../../../modules/client/state/Debug.ts";
 import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
 import { ReconcileState } from "../../../modules/client/state/Reconcile.ts";
 import { PlayerSnapshotReconciler } from "./reconcilers.ts";
-import {
-  ImageCollectionEnum,
-  PoseType,
-  SpriteRequest,
-} from "~/client/functions/sprite.ts";
-import { SpriteState } from "~/client/state/Sprite.ts";
+import { SyncSystem } from "~/client/systems/SyncSystem.ts";
+import { requestSprites } from "./sprites.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -208,30 +204,6 @@ const handleMessagePipeline = new Pipeline(
 // register command handlers for specific message types
 ReconcileState.register(MsgType.playerSnapshot, new PlayerSnapshotReconciler());
 
-export function requestSprites() {
-  SpriteState.bindRequest(
-    ImageCollectionEnum.penguin,
-    PoseType.facingRight,
-    new SpriteRequest("/public/assets/penguin.png", 16, 32),
-  );
-  SpriteState.bindRequest(
-    ImageCollectionEnum.penguin,
-    PoseType.facingLeft,
-    new SpriteRequest("/public/assets/penguin.png", 16, 32, true),
-  );
-
-  SpriteState.bindRequest(
-    ImageCollectionEnum.penguin2,
-    PoseType.facingRight,
-    new SpriteRequest("/public/assets/penguin2.png", 16, 32),
-  );
-  SpriteState.bindRequest(
-    ImageCollectionEnum.penguin2,
-    PoseType.facingLeft,
-    new SpriteRequest("/public/assets/penguin2.png", 16, 32, true),
-  );
-}
-
 // TODO maybe there should be separate functions for loading the tile visuals and the tile physics. Then the respective systems could do the loading themselves
 loadTilemap("/public/assets/level.json").then(async () => {
   requestSprites();
@@ -252,6 +224,7 @@ loadTilemap("/public/assets/level.json").then(async () => {
       PurgeSystem(),
       PingSystem({ timeout: 10 * 1000 }),
       DebugSystem({ pingStatTimeFrame: 5000, fpsStatTimeFrame: 500 }),
+      SyncSystem(),
     ],
     new FixedIntervalDriver(250),
   );
