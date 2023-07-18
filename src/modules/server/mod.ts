@@ -57,8 +57,7 @@ export function startServer(app: ServerApp) {
     const url = new URL(request.url);
     if (url.pathname === "/start_web_socket") {
       const { socket, response } = Deno.upgradeWebSocket(request, {
-        // TODO fix broken pipe error (OS 32)
-        // idleTimeout: app.idleTimeout,
+        idleTimeout: app.idleTimeout,
       });
       socket.binaryType = "arraybuffer";
 
@@ -73,12 +72,6 @@ export function startServer(app: ServerApp) {
       };
 
       socket.onclose = (socketEvent) => {
-        // TODO fix broken pipe error (OS 32)
-        // try {
-        //   socket.close();
-        // } catch (e) {
-        //   console.error(e);
-        // }
         return app.handleClose(socket, socketEvent);
       };
 
