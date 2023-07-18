@@ -1,7 +1,10 @@
 import { pageLoad } from "~/client/mod.ts";
+import { handleSpriteRequests } from "~/client/functions/sprite.ts";
+import { requestSprites } from "../../examples/platformer/client/mod.ts";
 
 async function loadAssets() {
-  // TODO load assets
+  requestSprites();
+  await handleSpriteRequests();
 }
 
 loadAssets().then(async () => {

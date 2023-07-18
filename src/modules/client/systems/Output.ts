@@ -16,23 +16,12 @@ import {
 import { PhysicsState } from "../../common/state/Physics.ts";
 import { EntityWithComponents, hasComponent } from "~/common/Component.ts";
 import { GroundedTag, ShoulderCount } from "~/common/components.ts";
-import { loadSprite } from "~/client/functions/sprite.ts";
+import { handleSpriteRequests } from "~/client/functions/sprite.ts";
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
 
-  for (const [imageCollectionId, pose, request] of SpriteState.getRequests()) {
-    SpriteState.bind(
-      imageCollectionId,
-      pose,
-      await loadSprite(
-        request.imageSrc,
-        request.width,
-        request.height,
-        request.flipped,
-      ),
-    );
-  }
+  await handleSpriteRequests();
 
   const {
     foreground: { resolution },

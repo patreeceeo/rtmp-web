@@ -208,8 +208,7 @@ const handleMessagePipeline = new Pipeline(
 // register command handlers for specific message types
 ReconcileState.register(MsgType.playerSnapshot, new PlayerSnapshotReconciler());
 
-// TODO maybe there should be separate functions for loading the tile visuals and the tile physics. Then the respective systems could do the loading themselves
-loadTilemap("/public/assets/level.json").then(async () => {
+export function requestSprites() {
   SpriteState.bindRequest(
     ImageCollectionEnum.penguin,
     PoseType.facingRight,
@@ -231,6 +230,11 @@ loadTilemap("/public/assets/level.json").then(async () => {
     PoseType.facingLeft,
     new SpriteRequest("/public/assets/penguin2.png", 16, 32, true),
   );
+}
+
+// TODO maybe there should be separate functions for loading the tile visuals and the tile physics. Then the respective systems could do the loading themselves
+loadTilemap("/public/assets/level.json").then(async () => {
+  requestSprites();
 
   const fastPipeline = new Pipeline(
     [

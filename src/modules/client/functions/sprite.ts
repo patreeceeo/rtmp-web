@@ -6,6 +6,7 @@ import {
   loadFromUrl,
   setCache,
 } from "../../common/functions/image.ts";
+import { SpriteState } from "~/client/state/Sprite.ts";
 
 export enum PoseType {
   facingRight,
@@ -64,4 +65,19 @@ export async function loadSprite(
 
   setCache(imageId, chunk);
   return new Sprite(imageId, width, height);
+}
+
+export async function handleSpriteRequests() {
+  for (const [imageCollectionId, pose, request] of SpriteState.getRequests()) {
+    SpriteState.bind(
+      imageCollectionId,
+      pose,
+      await loadSprite(
+        request.imageSrc,
+        request.width,
+        request.height,
+        request.flipped,
+      ),
+    );
+  }
 }
