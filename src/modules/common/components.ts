@@ -1,4 +1,3 @@
-import { ImageCollectionEnum, PoseType } from "../client/state/Sprite.ts";
 import {
   defineComponent,
   defineTag,
@@ -8,6 +7,7 @@ import {
 import { EntityId } from "./Entity.ts";
 import { ECSInstance, Vec2LargeSchema, Vec2SmallSchema } from "./Vec2.ts";
 import { IWorld } from "./World.ts";
+import { ImageCollectionEnum, PoseType } from "~/client/functions/sprite.ts";
 
 export const SoftDeletedTag = defineTag({
   propName: "isSoftDeleted",

@@ -4,12 +4,8 @@ import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { PI2, roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
 import { DebugState } from "../state/Debug.ts";
-import {
-  ImageCollectionEnum,
-  loadSprite,
-  PoseType,
-  SpriteState,
-} from "../state/Sprite.ts";
+import { SpriteState } from "../state/Sprite.ts";
+
 import { getFromCache } from "../../common/functions/image.ts";
 import {
   CardinalDirection,
@@ -20,40 +16,35 @@ import {
 import { PhysicsState } from "../../common/state/Physics.ts";
 import { EntityWithComponents, hasComponent } from "~/common/Component.ts";
 import { GroundedTag, ShoulderCount } from "~/common/components.ts";
+import {
+  ImageCollectionEnum,
+  loadSprite,
+  PoseType,
+} from "~/client/functions/sprite.ts";
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
 
-  await loadSprite(
-    "/public/assets/penguin.png",
+  SpriteState.bind(
     ImageCollectionEnum.penguin,
     PoseType.facingRight,
-    16,
-    32,
+    await loadSprite("/public/assets/penguin.png", 16, 32),
   );
-  await loadSprite(
-    "/public/assets/penguin.png",
+  SpriteState.bind(
     ImageCollectionEnum.penguin,
     PoseType.facingLeft,
-    16,
-    32,
-    true,
+    await loadSprite("/public/assets/penguin.png", 16, 32, true),
   );
 
-  await loadSprite(
-    "/public/assets/penguin2.png",
+  SpriteState.bind(
     ImageCollectionEnum.penguin2,
     PoseType.facingRight,
-    18,
-    32,
+    await loadSprite("/public/assets/penguin2.png", 16, 32),
   );
-  await loadSprite(
-    "/public/assets/penguin2.png",
+  SpriteState.bind(
     ImageCollectionEnum.penguin2,
     PoseType.facingLeft,
-    18,
-    32,
-    true,
+    await loadSprite("/public/assets/penguin2.png", 16, 32, true),
   );
 
   const {
@@ -99,12 +90,11 @@ export const OutputSystem: SystemLoader = async () => {
   let frameDurationMin = 1000 / fpsLimit;
   let lastRender = -frameDurationMin;
 
-  await (new FontFace(
-    "silkscreen",
-    "url(/public/assets/Silkscreen-Regular.ttf)",
-  )).load().then((font) => {
-    document.fonts.add(font);
-  });
+  await new FontFace("silkscreen", "url(/public/assets/Silkscreen-Regular.ttf)")
+    .load()
+    .then((font) => {
+      document.fonts.add(font);
+    });
 
   drawBackground();
 
@@ -309,11 +299,7 @@ function drawCollisionDebug() {
 function drawTileLayer(ctx: CanvasRenderingContext2D) {
   for (const entity of OutputState.staticEntities.query()) {
     const image = getFromCache(entity.imageId);
-    ctx.drawImage(
-      image,
-      entity.position.x,
-      entity.position.y,
-    );
+    ctx.drawImage(image, entity.position.x, entity.position.y);
   }
 }
 
@@ -358,10 +344,8 @@ function isRenderDataDirty() {
         roundTo8thBit(entity.targetPosition.x) ||
       entity.previousTargetPosition_output.y !==
         roundTo8thBit(entity.targetPosition.y) ||
-      entity.previousPosition.x !==
-        roundTo8thBit(entity.position.x) ||
-      entity.previousPosition.y !==
-        roundTo8thBit(entity.position.y) ||
+      entity.previousPosition.x !== roundTo8thBit(entity.position.x) ||
+      entity.previousPosition.y !== roundTo8thBit(entity.position.y) ||
       entity.isSoftDeleted
     ) {
       isDirty = true;

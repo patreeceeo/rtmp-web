@@ -12,12 +12,12 @@ import {
   TypedArray as _TypedArray,
   Types as _Types,
 } from "bitecs";
-import { ImageCollectionEnum, PoseType } from "../client/state/Sprite.ts";
 import { EntityId, IEntityMinimal } from "./Entity.ts";
 import { invariant } from "./Error.ts";
 import { ModifierFlags } from "./Query.ts";
 import { ECSInstance, Vec2LargeSchema, Vec2SmallSchema } from "./Vec2.ts";
 import { defaultWorld } from "./World.ts";
+import { ImageCollectionEnum, PoseType } from "~/client/functions/sprite.ts";
 
 export type ISchema = _ISchema;
 export type StoreType<T extends ISchema> = _StoreType<T>;
