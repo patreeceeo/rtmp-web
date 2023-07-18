@@ -39,6 +39,12 @@ import { DebugState } from "../../../modules/client/state/Debug.ts";
 import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
 import { ReconcileState } from "../../../modules/client/state/Reconcile.ts";
 import { PlayerSnapshotReconciler } from "./reconcilers.ts";
+import {
+  ImageCollectionEnum,
+  PoseType,
+  SpriteRequest,
+} from "~/client/functions/sprite.ts";
+import { SpriteState } from "~/client/state/Sprite.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -204,6 +210,28 @@ ReconcileState.register(MsgType.playerSnapshot, new PlayerSnapshotReconciler());
 
 // TODO maybe there should be separate functions for loading the tile visuals and the tile physics. Then the respective systems could do the loading themselves
 loadTilemap("/public/assets/level.json").then(async () => {
+  SpriteState.bindRequest(
+    ImageCollectionEnum.penguin,
+    PoseType.facingRight,
+    new SpriteRequest("/public/assets/penguin.png", 16, 32),
+  );
+  SpriteState.bindRequest(
+    ImageCollectionEnum.penguin,
+    PoseType.facingLeft,
+    new SpriteRequest("/public/assets/penguin.png", 16, 32, true),
+  );
+
+  SpriteState.bindRequest(
+    ImageCollectionEnum.penguin2,
+    PoseType.facingRight,
+    new SpriteRequest("/public/assets/penguin2.png", 16, 32),
+  );
+  SpriteState.bindRequest(
+    ImageCollectionEnum.penguin2,
+    PoseType.facingLeft,
+    new SpriteRequest("/public/assets/penguin2.png", 16, 32, true),
+  );
+
   const fastPipeline = new Pipeline(
     [
       PlayerMovementSystem(),

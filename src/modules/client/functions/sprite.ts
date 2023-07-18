@@ -27,6 +27,15 @@ export enum ImageCollectionEnum {
 const _frame = new Box();
 const _chunkOptions = new ImageOptions();
 
+export class SpriteRequest {
+  constructor(
+    public imageSrc: string,
+    public width: number,
+    public height: number,
+    public flipped = false,
+  ) {}
+}
+
 export class Sprite {
   constructor(
     public imageId: number,

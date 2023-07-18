@@ -16,36 +16,23 @@ import {
 import { PhysicsState } from "../../common/state/Physics.ts";
 import { EntityWithComponents, hasComponent } from "~/common/Component.ts";
 import { GroundedTag, ShoulderCount } from "~/common/components.ts";
-import {
-  ImageCollectionEnum,
-  loadSprite,
-  PoseType,
-} from "~/client/functions/sprite.ts";
+import { loadSprite } from "~/client/functions/sprite.ts";
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
 
-  SpriteState.bind(
-    ImageCollectionEnum.penguin,
-    PoseType.facingRight,
-    await loadSprite("/public/assets/penguin.png", 16, 32),
-  );
-  SpriteState.bind(
-    ImageCollectionEnum.penguin,
-    PoseType.facingLeft,
-    await loadSprite("/public/assets/penguin.png", 16, 32, true),
-  );
-
-  SpriteState.bind(
-    ImageCollectionEnum.penguin2,
-    PoseType.facingRight,
-    await loadSprite("/public/assets/penguin2.png", 16, 32),
-  );
-  SpriteState.bind(
-    ImageCollectionEnum.penguin2,
-    PoseType.facingLeft,
-    await loadSprite("/public/assets/penguin2.png", 16, 32, true),
-  );
+  for (const [imageCollectionId, pose, request] of SpriteState.getRequests()) {
+    SpriteState.bind(
+      imageCollectionId,
+      pose,
+      await loadSprite(
+        request.imageSrc,
+        request.width,
+        request.height,
+        request.flipped,
+      ),
+    );
+  }
 
   const {
     foreground: { resolution },
