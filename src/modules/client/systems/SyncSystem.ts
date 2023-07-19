@@ -1,11 +1,11 @@
 import { defineSerializer, getAllEntities } from "bitecs";
 import { SystemLoader } from "~/common/systems/mod.ts";
 import { defaultWorld } from "~/common/World.ts";
-import { PositionComponent } from "~/common/components.ts";
+import { ImageCollectionComponent } from "~/common/components.ts";
 
 export const SyncSystem: SystemLoader = () => {
   const serialize = defineSerializer([
-    PositionComponent.store,
+    ImageCollectionComponent.store,
   ]);
   const channel = new BroadcastChannel("sync");
   function exec() {
