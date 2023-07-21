@@ -6,7 +6,7 @@
 // TODO this file is too large
 import { DataViewMovable } from "./DataView.ts";
 import { invariant } from "./Error.ts";
-import { NetworkId } from "./state/Network.ts";
+import { Uuid } from "./state/Network.ts";
 import { OpaqueType } from "./util.ts";
 import { Instance as Vec2Instance } from "./Vec2.ts";
 
@@ -131,10 +131,10 @@ class StepIdValue {
 class NetworkIdValue {
   static isPrimative = true;
   static byteLength = 2;
-  static read(buf: DataViewMovable, offset: number): NetworkId {
-    return buf.getUint16(offset) as NetworkId;
+  static read(buf: DataViewMovable, offset: number): Uuid {
+    return buf.getUint16(offset) as Uuid;
   }
-  static write(buf: DataViewMovable, offset: number, value: NetworkId): void {
+  static write(buf: DataViewMovable, offset: number, value: Uuid): void {
     buf.setUint16(offset, value);
   }
 }
@@ -169,7 +169,7 @@ export const PrimitiveValue = {
   BigUint64: BigUint64Value as IBufferPrimativeValue<bigint>,
   Float64: Float64Value as IBufferPrimativeValue<number>,
   StepId: StepIdValue as IBufferPrimativeValue<number>,
-  NetworkId: NetworkIdValue as IBufferPrimativeValue<NetworkId>,
+  NetworkId: NetworkIdValue as IBufferPrimativeValue<Uuid>,
 };
 
 export type IBufferValueSpec<Iface> = // deno-lint-ignore no-explicit-any

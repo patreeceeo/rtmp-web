@@ -21,6 +21,7 @@ export abstract class ClientApp {
 
 export async function startClient(app: ClientApp) {
   await pageLoad();
+  OutputState.ready.resolve();
 
   if (!ClientNetworkState.isReady()) {
     const wsProtocol = location.origin.startsWith("https") ? "wss" : "ws";
@@ -47,7 +48,6 @@ export async function startClient(app: ClientApp) {
     };
 
     ClientNetworkState.socket = socket;
-    OutputState.ready.resolve();
   }
 
   const addInputEvent = (e: Event) => {

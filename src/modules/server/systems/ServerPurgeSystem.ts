@@ -3,7 +3,7 @@ import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { broadcastMessage } from "../mod.ts";
 import { ServerNetworkState } from "../state/Network.ts";
-import { NetworkId } from "../../common/NetworkApi.ts";
+import { Uuid } from "../../common/NetworkApi.ts";
 import { softDeleteEntity } from "../../common/Entity.ts";
 
 type MessageTranscoder<P extends IPayloadAny> = [
@@ -15,7 +15,7 @@ interface Options {
   /** amount of time an player can be idle before being removed, in seconds */
   idleTimeout: number;
   msgPlayerRemoved: MessageTranscoder<{
-    nid: NetworkId;
+    nid: Uuid;
     sid: number;
     // deno-lint-ignore no-explicit-any
     [key: string]: any;

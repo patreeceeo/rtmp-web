@@ -7,7 +7,7 @@ import {
 } from "../../common/Message.ts";
 import { map, toArray } from "../Iterable.ts";
 import { PrimitiveValue } from "../BufferValue.ts";
-import { NetworkId } from "../NetworkApi.ts";
+import { Uuid } from "../NetworkApi.ts";
 
 interface ITestPayload {
   sid: number;
@@ -119,7 +119,7 @@ Deno.test("get commands received at different step than when created", () => {
 
   addMessages(state, 2, 2, 4);
 
-  assertEquals(state.getLastReceivedStepId(2 as NetworkId), 2);
+  assertEquals(state.getLastReceivedStepId(2 as Uuid), 2);
 
   assertMessageNidsForServer(state, 0, 0, []);
   assertMessageNidsForServer(state, 1, 1, [3]);

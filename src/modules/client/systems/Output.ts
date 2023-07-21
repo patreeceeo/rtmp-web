@@ -15,8 +15,18 @@ import {
 } from "../../common/functions/physics.ts";
 import { PhysicsState } from "../../common/state/Physics.ts";
 import { EntityWithComponents, hasComponent } from "~/common/Component.ts";
-import { GroundedTag, ShoulderCount } from "~/common/components.ts";
-import { handleSpriteRequests } from "~/client/functions/sprite.ts";
+import {
+  GroundedTag,
+  ShoulderCount,
+  UuidComponent,
+} from "~/common/components.ts";
+import {
+  drawSprite,
+  DrawSpriteOptions,
+  handleSpriteRequests,
+} from "~/client/functions/sprite.ts";
+import { castEntity } from "~/common/Entity.ts";
+import { setupCanvas } from "~/client/canvas.ts";
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
@@ -90,21 +100,6 @@ export const OutputSystem: SystemLoader = async () => {
 
   return { exec };
 };
-
-function setupCanvas(el: HTMLCanvasElement, resolution: Vec2.ReadOnly) {
-  // Get the DPR and size of the canvas
-  const dpr = 2 ** Math.ceil(Math.log2(window.devicePixelRatio));
-
-  el.width = resolution.x * dpr;
-  el.height = resolution.y * dpr;
-
-  const ctx = el.getContext("2d")!;
-  if (ctx) {
-    ctx.imageSmoothingEnabled = false;
-    // Scale the context to ensure correct drawing operations
-    ctx.scale(dpr, dpr);
-  }
-}
 
 const gradients = new Map<string, CanvasGradient>();
 function getOrCreateLinearGradient(key: string, ctx: CanvasRenderingContext2D) {
@@ -304,11 +299,13 @@ function drawHelpers() {
     ctx.closePath();
 
     ctx.font = "10px silkscreen";
-    ctx.fillText(
-      entity.eid.toString(),
-      roundTo8thBit(x) - w2,
-      roundTo8thBit(y) - h2 - 3,
-    );
+    if (hasComponent(UuidComponent, entity)) {
+      ctx.fillText(
+        castEntity(entity, [UuidComponent]).uuid.toString(),
+        roundTo8thBit(x) - w2,
+        roundTo8thBit(y) - h2 - 3,
+      );
+    }
   }
 }
 
@@ -364,6 +361,8 @@ function eraseDynamicEntities() {
   }
 }
 
+const drawSpriteOptions = new DrawSpriteOptions();
+
 function drawPlayers() {
   const {
     foreground: { context2d },
@@ -374,11 +373,8 @@ function drawPlayers() {
     const { x: w, y: h } = entity.bodyDimensions;
     const w2 = w >> 1;
     const h2 = h >> 1;
-    const image = getFromCache(sprite.imageId);
-    ctx.drawImage(
-      image,
-      roundTo8thBit(entity.position.x) - w2,
-      roundTo8thBit(entity.position.y) - h2,
-    );
+    drawSpriteOptions.x = roundTo8thBit(entity.position.x) - w2;
+    drawSpriteOptions.y = roundTo8thBit(entity.position.y) - h2;
+    drawSprite(sprite, ctx, drawSpriteOptions);
   }
 }

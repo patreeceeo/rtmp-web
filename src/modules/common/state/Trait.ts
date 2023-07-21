@@ -1,6 +1,6 @@
 import { IMessageDef, IPayloadAny, IWritePayload } from "../Message.ts";
 import { ISystemExecutionContext } from "../systems/mod.ts";
-import { NetworkId } from "../NetworkApi.ts";
+import { Uuid } from "../NetworkApi.ts";
 import { EntityId, EntityPrefabCollection, IEntityMinimal } from "../Entity.ts";
 import {
   EntityWithComponents,
@@ -49,7 +49,7 @@ export interface ITrait<
   ): MaybeAddMessageParameters<SnapshotPayload>;
   shouldSendSnapshot(
     snapshot: SnapshotPayload,
-    nidReceiver: NetworkId,
+    nidReceiver: Uuid,
   ): boolean;
   shouldApplySnapshot(
     payload: SnapshotPayload,

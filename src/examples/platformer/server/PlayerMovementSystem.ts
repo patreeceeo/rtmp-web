@@ -1,5 +1,5 @@
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
-import { NetworkId } from "../../../modules/common/NetworkApi.ts";
+import { Uuid } from "../../../modules/common/NetworkApi.ts";
 import {
   MessageState,
   SID_ORIGIN,
@@ -26,7 +26,7 @@ import {
 } from "../common/message.ts";
 
 let lastHandledStep = SID_ORIGIN;
-const lastHandledStepByClient = new Map<NetworkId, number>();
+const lastHandledStepByClient = new Map<Uuid, number>();
 const tempPositionDelta = new Instance();
 const tempVelocityDelta = new Instance();
 const MAX_POSITION_DELTA = 2000;

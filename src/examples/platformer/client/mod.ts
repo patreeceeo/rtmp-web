@@ -174,12 +174,13 @@ function handlePlayerAdded(
   _server: WebSocket,
   { isLocal, nid, position, spriteMapId }: IPlayerAdd,
 ) {
-  console.log("player nid:", nid);
+  console.log("player uuid:", nid);
   const player = PlayerState.addPlayer(addEntity());
   Vec2.copy(player.position, position);
   Vec2.copy(player.targetPosition, position);
   player.imageCollection = spriteMapId;
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
+  player.uuid = nid;
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
   const eid = ClientNetworkState.getEntityId(playerRemove.nid)!;

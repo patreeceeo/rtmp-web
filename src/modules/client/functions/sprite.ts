@@ -2,6 +2,7 @@ import { Box } from "../../common/Box.ts";
 import { incrementId } from "../../common/functions/id.ts";
 import {
   getChunk,
+  getFromCache,
   ImageOptions,
   loadFromUrl,
   setCache,
@@ -80,4 +81,26 @@ export async function handleSpriteRequests() {
       ),
     );
   }
+}
+
+export class DrawSpriteOptions {
+  constructor(
+    public x = 0,
+    public y = 0,
+  ) {}
+}
+
+export const drawSpriteOptionsDefault = new DrawSpriteOptions();
+
+export function drawSprite(
+  sprite: Sprite,
+  ctx: CanvasRenderingContext2D,
+  options = drawSpriteOptionsDefault,
+) {
+  const image = getFromCache(sprite.imageId);
+  ctx.drawImage(
+    image,
+    options.x,
+    options.y,
+  );
 }

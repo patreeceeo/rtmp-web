@@ -2,11 +2,11 @@ import { ClientNetworkState } from "../../client/state/Network.ts";
 import { SystemLoader } from "../../common/systems/mod.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { filter, map } from "../../common/Iterable.ts";
-import { NetworkId } from "../../common/NetworkApi.ts";
+import { Uuid } from "../../common/NetworkApi.ts";
 import { NetworkState } from "../../common/state/Network.ts";
 import { ReconcileState } from "../state/Reconcile.ts";
 
-const lastAppliedSnapshotStep = new Map<NetworkId, number>();
+const lastAppliedSnapshotStep = new Map<Uuid, number>();
 function exec() {
   for (const nid of ClientNetworkState.getAllIds()) {
     const lastReceivedSid = MessageState.getLastReceivedStepId(nid);

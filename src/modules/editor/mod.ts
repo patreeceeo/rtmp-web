@@ -1,5 +1,4 @@
 import { pageLoad } from "~/client/mod.ts";
-import { requestSprites } from "../../examples/platformer/client/sprites.ts";
 import { hasComponent } from "~/common/Component.ts";
 import { defineDeserializer } from "~/common/World.ts";
 import { FixedIntervalDriver, Pipeline } from "~/common/systems/mod.ts";
@@ -16,7 +15,6 @@ import { UuidComponent } from "~/common/components.ts";
 
 const deserialize = defineDeserializer(EDITOR_COMPONENTS);
 
-requestSprites();
 const pipeline = new Pipeline(
   [EditorOutputSystem()],
   new FixedIntervalDriver(8),

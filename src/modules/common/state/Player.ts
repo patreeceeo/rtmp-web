@@ -7,6 +7,7 @@ import {
   PlayerTag,
   PreviousTargetPositionComponent_Network,
   ShoulderCount,
+  UuidComponent,
 } from "../components.ts";
 import { Player } from "../../../examples/platformer/common/constants.ts";
 
@@ -16,6 +17,7 @@ class PlayerStateApi {
   readonly components = [
     PlayerTag,
     ShoulderCount,
+    UuidComponent,
     ...PhysicsState.dynamicEntityComponents,
     ...(isClient ? OutputState.dynamicEntityComponents : []),
     PreviousTargetPositionComponent_Network,

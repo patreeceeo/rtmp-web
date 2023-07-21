@@ -1,18 +1,18 @@
 import {
   INetworkState,
-  NetworkId,
   NetworkStateApi,
+  Uuid,
 } from "../../common/NetworkApi.ts";
 
 export class Client {
-  #nids = new Set<NetworkId>();
+  #nids = new Set<Uuid>();
   lastActiveTime = -Infinity;
   isBeingRemoved = false;
-  constructor(readonly nid: NetworkId, readonly ws: WebSocket) {}
-  addNetworkId(nid: NetworkId) {
+  constructor(readonly nid: Uuid, readonly ws: WebSocket) {}
+  addNetworkId(nid: Uuid) {
     this.#nids.add(nid);
   }
-  hasNetworkId(nid: NetworkId) {
+  hasNetworkId(nid: Uuid) {
     return this.#nids.has(nid);
   }
   getNetworkIds() {
@@ -21,9 +21,9 @@ export class Client {
 }
 
 interface IServerNetworkState extends INetworkState {
-  nextNetworkId: NetworkId;
+  nextNetworkId: Uuid;
   // TODO use array?
-  connectedClients: Map<NetworkId, Client>;
+  connectedClients: Map<Uuid, Client>;
   // TODO use weakmap?
   connectedClientsByWs: Map<WebSocket, Client>;
   startTime?: Date;
@@ -32,12 +32,12 @@ interface IServerNetworkState extends INetworkState {
 class ServerNetworkStateApi extends NetworkStateApi {
   #state: IServerNetworkState = {
     ...NetworkStateApi.init(),
-    nextNetworkId: 0 as NetworkId,
+    nextNetworkId: 0 as Uuid,
     connectedClients: new Map(),
     connectedClientsByWs: new Map(),
   };
 
-  createId(): NetworkId {
+  createId(): Uuid {
     const nid = this.#state.nextNetworkId;
     this.#state.nextNetworkId++;
     return nid;
@@ -51,7 +51,7 @@ class ServerNetworkStateApi extends NetworkStateApi {
     this.#state.connectedClientsByWs.set(client.ws, client);
   }
 
-  getClient(nid: NetworkId): Client | undefined {
+  getClient(nid: Uuid): Client | undefined {
     return this.#state.connectedClients.get(nid);
   }
 
@@ -73,7 +73,7 @@ class ServerNetworkStateApi extends NetworkStateApi {
     return this.#state.connectedClientsByWs.get(ws);
   }
 
-  removeClient(nid: NetworkId) {
+  removeClient(nid: Uuid) {
     if (this.#state.connectedClients.has(nid)) {
       const client = this.#state.connectedClients.get(nid)!;
       this.#state.connectedClients.delete(client.nid);

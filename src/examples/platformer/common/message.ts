@@ -7,7 +7,7 @@ import {
   Vec2SmallSpec,
 } from "../../../modules/common/BufferValue.ts";
 import { defMessageType } from "../../../modules/common/Message.ts";
-import { NetworkId } from "../../../modules/common/NetworkApi.ts";
+import { Uuid } from "../../../modules/common/NetworkApi.ts";
 import { Instance } from "../../../modules/common/Vec2.ts";
 import { IPingMsg, PingMsgSpec } from "../../../modules/common/state/Ping.ts";
 
@@ -41,7 +41,7 @@ export {
 };
 
 interface INilPayload {
-  nid: NetworkId;
+  nid: Uuid;
   sid: number;
 }
 

@@ -40,6 +40,7 @@ class DotsServerApp implements ServerApp {
     const playerNid = ServerNetworkState.createId();
     const client = ServerNetworkState.getClientForSocket(ws)!;
     client.addNetworkId(playerNid);
+    addedPlayer.uuid = playerNid;
     console.log("player nid", playerNid);
 
     Vec2.set(

@@ -2,6 +2,7 @@ import {
   addComponent as _addComponent,
   addEntity as _addEntity,
   entityExists,
+  hasComponent as _hasComponent,
   removeEntity,
 } from "bitecs";
 import {
@@ -45,6 +46,13 @@ export class Pool {
   get(eid: EntityId): IEntityMinimal | undefined {
     return this.#items[eid];
   }
+  set(entity: IEntityMinimal) {
+    const wasDefined = entity.eid in this.#items;
+    this.#items[entity.eid] = entity;
+    if (!wasDefined) {
+      this.#size++;
+    }
+  }
   release(eid: EntityId) {
     if (eid in this.#items) {
       delete this.#items[eid];
@@ -58,6 +66,22 @@ function createEntity(world = defaultWorld): IEntityMinimal {
     eid: _addEntity(world) as EntityId,
     isSoftDeleted: false,
   };
+}
+
+export function mapEntity<C extends IAnyComponentType[]>(
+  eid: EntityId,
+  expectedComponents: C,
+  world = defaultWorld,
+): EntityWithComponents<C> {
+  const entity = {
+    eid,
+    isSoftDeleted: _hasComponent(world, SoftDeletedTag.store, eid as number),
+  };
+  for (const component of expectedComponents) {
+    addComponent(component, entity, world);
+  }
+  pool.set(entity);
+  return entity as EntityWithComponents<C>;
 }
 
 const pool = new Pool();
