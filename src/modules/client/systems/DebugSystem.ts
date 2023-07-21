@@ -6,6 +6,7 @@ import {
   ISystemExecutionContext,
   SystemLoader,
 } from "../../common/systems/mod.ts";
+import { pageLoad } from "~/client/mod.ts";
 import { DebugState } from "../state/Debug.ts";
 import { OutputState } from "../state/Output.ts";
 
@@ -25,10 +26,8 @@ export const DebugSystem: SystemLoader<ISystemExecutionContext, [IConfig]> =
   ) => {
     let buttonWasPressed = false;
 
-    await new Promise<void>((resolve) => {
-      document.addEventListener("DOMContentLoaded", () => resolve());
-      setTimeout(() => resolve(), 1000);
-    });
+    await pageLoad();
+
     const statsEl = document.getElementById("perf-stats")!;
     const fpsEl = statsEl.querySelector(".perf-stats-fps")!;
     const pingEl = statsEl.querySelector(".perf-stats-ping")!;
