@@ -30,14 +30,12 @@ channel.onmessage = (e) => {
       ClientNetworkState.setNetworkEntity(uuid, eid as EntityId, false);
     }
   }
-  const routeMatch = routeEditorEntity.match(window.location.pathname);
-  if (routeMatch !== null) {
-    EditorState.selectedEntityId = ClientNetworkState.getEntityId(
-      routeMatch[0],
-    )!;
-  }
 };
 
 pageLoad().then(() => {
   pipeline.start();
+  const routeMatch = routeEditorEntity.match(window.location.pathname);
+  if (routeMatch !== null) {
+    EditorState.selectedUuid = routeMatch[0];
+  }
 });

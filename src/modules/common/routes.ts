@@ -5,6 +5,20 @@ export interface IRoute<Params extends Array<string | number>> {
   format(...params: Params): string;
 }
 
+export const routeEditor: IRoute<[]> = {
+  match(path: string) {
+    const match = path.match(/^\/ggoyl3/);
+    if (match) {
+      return [];
+    } else {
+      return null;
+    }
+  },
+  format() {
+    return `/ggoyl3`;
+  },
+};
+
 export const routeEditorEntity: IRoute<[Uuid]> = {
   match(path: string) {
     const match = path.match(/^\/ggoyl3\/(\d+)$/);

@@ -12,6 +12,7 @@ import {
 } from "~/common/components.ts";
 import { set } from "~/common/Vec2.ts";
 import { requestSprites } from "../../../examples/platformer/client/sprites.ts";
+import { ClientNetworkState } from "~/client/state/Network.ts";
 
 // TODO reduce duplication with /client/systems/Output.ts
 export const EditorOutputSystem: SystemLoader = async () => {
@@ -38,22 +39,25 @@ export const EditorOutputSystem: SystemLoader = async () => {
   }
 
   function exec() {
-    if (EditorState.selectedEntityId !== undefined) {
-      const entity = getEntity(EditorState.selectedEntityId!)!;
-      if (
-        hasComponent(ImageCollectionComponent, entity) &&
-        hasComponent(PoseComponent, entity)
-      ) {
-        const spriteEntity = castEntity(entity, [
-          ImageCollectionComponent,
-          PoseComponent,
-        ]);
-        const sprite = SpriteState.find(
-          spriteEntity.imageCollection,
-          spriteEntity.pose,
-        )!;
-        drawSprite(sprite, ctx);
-      }
+    if (EditorState.selectedUuid === undefined) return;
+    const entity = getEntity(
+      ClientNetworkState.getEntityId(EditorState.selectedUuid)!,
+    );
+    if (entity === undefined) return;
+
+    if (
+      hasComponent(ImageCollectionComponent, entity) &&
+      hasComponent(PoseComponent, entity)
+    ) {
+      const spriteEntity = castEntity(entity, [
+        ImageCollectionComponent,
+        PoseComponent,
+      ]);
+      const sprite = SpriteState.find(
+        spriteEntity.imageCollection,
+        spriteEntity.pose,
+      )!;
+      drawSprite(sprite, ctx);
     }
   }
 

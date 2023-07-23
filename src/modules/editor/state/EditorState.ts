@@ -1,7 +1,7 @@
-import { EntityId } from "~/common/Entity.ts";
+import { Uuid } from "~/common/NetworkApi.ts";
 
 class EditorStateApi {
-  selectedEntityId?: EntityId;
+  selectedUuid?: Uuid;
 }
 
 export const EditorState = new EditorStateApi();

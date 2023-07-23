@@ -13,6 +13,7 @@ import {
   EDITOR_COMPONENTS,
 } from "~/editor/constants.ts";
 import { UuidComponent } from "~/common/components.ts";
+import { routeEditorEntity } from "~/common/routes.ts";
 
 const deserialize = defineDeserializer(EDITOR_COMPONENTS);
 
@@ -32,10 +33,12 @@ channel.onmessage = (e) => {
       ClientNetworkState.setNetworkEntity(uuid, eid as EntityId, false);
     }
   }
-  const selectedUuid = parseInt(location.pathname.split("/").pop()!) as Uuid;
-  EditorState.selectedEntityId = ClientNetworkState.getEntityId(selectedUuid)!;
 };
 
 pageLoad().then(() => {
   pipeline.start();
+  const routeMatch = routeEditorEntity.match(window.location.pathname);
+  if (routeMatch !== null) {
+    EditorState.selectedUuid = routeMatch[0];
+  }
 });
