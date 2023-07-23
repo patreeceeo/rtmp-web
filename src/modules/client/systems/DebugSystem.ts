@@ -90,21 +90,24 @@ export const DebugSystem: SystemLoader<
         DebugState.messageReceivedSinceLastFrame = 0;
       }
 
-      if (InputState.wasButtonPressedSince(Button.Mouse0, lastExecTime)) {
-        for (const entity of DebugState.clickableEntities.query()) {
-          const { position, bodyDimensions } = entity;
-          const xPx = position.x >> 8;
-          const xPy = position.y >> 8;
-          const w2 = bodyDimensions.x >> 1;
-          const h2 = bodyDimensions.y >> 1;
-          if (
-            InputState.mousePositionOnCanvas.x >= xPx - w2 &&
-            InputState.mousePositionOnCanvas.x <= xPx + w2 &&
-            InputState.mousePositionOnCanvas.y >= xPy - h2 &&
-            InputState.mousePositionOnCanvas.y <= xPy + h2
-          ) {
+      for (const entity of DebugState.clickableEntities.query()) {
+        const { position, bodyDimensions } = entity;
+        const xPx = position.x >> 8;
+        const xPy = position.y >> 8;
+        const w2 = bodyDimensions.x >> 1;
+        const h2 = bodyDimensions.y >> 1;
+        if (
+          InputState.mousePositionOnCanvas.x >= xPx - w2 &&
+          InputState.mousePositionOnCanvas.x <= xPx + w2 &&
+          InputState.mousePositionOnCanvas.y >= xPy - h2 &&
+          InputState.mousePositionOnCanvas.y <= xPy + h2
+        ) {
+          document.body.style.cursor = "pointer";
+          if (InputState.wasButtonPressedSince(Button.Mouse0, lastExecTime)) {
             window.open(routeEditorEntity.format(entity.uuid));
           }
+        } else {
+          document.body.style.cursor = "default";
         }
       }
     }
