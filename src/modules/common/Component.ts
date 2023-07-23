@@ -51,6 +51,7 @@ export interface IEntityMaximal extends IEntityMinimal {
   isPlayer: boolean;
   isTile: boolean;
   isGrounded: boolean;
+  isEditorDragging: boolean;
   shoulderCount: number;
   bodyIsStatic: boolean;
   bodyDimensions: ECSInstance<typeof Vec2SmallSchema>;

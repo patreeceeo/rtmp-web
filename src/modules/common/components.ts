@@ -48,6 +48,10 @@ export const GroundedTag = defineTag({
   propName: "isGrounded",
 });
 
+export const EditorDraggingTag = defineTag({
+  propName: "isEditorDragging",
+});
+
 const ShoulderCountSchema = { value: PrimativeTypes.ui8 };
 const MAX_SHOULDER_COUNT = 2;
 export const ShoulderCount = defineComponent({

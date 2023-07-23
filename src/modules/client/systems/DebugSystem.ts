@@ -10,6 +10,17 @@ import { pageLoad } from "~/client/mod.ts";
 import { DebugState } from "../state/Debug.ts";
 import { OutputState } from "../state/Output.ts";
 import { routeEditorEntity } from "~/common/routes.ts";
+import { copy, set } from "~/common/Vec2.ts";
+import { castEntity } from "~/common/Entity.ts";
+import {
+  EditorDraggingTag,
+  TargetPositionComponent,
+} from "~/common/components.ts";
+import {
+  addComponent,
+  hasComponent,
+  removeComponent,
+} from "~/common/Component.ts";
 
 interface IConfig {
   fpsStatTimeFrame: number;
@@ -35,8 +46,6 @@ export const DebugSystem: SystemLoader<
   const dropsEl = statsEl.querySelector(".perf-stats-drops")!;
   const mpsSentEl = statsEl.querySelector(".perf-stats-mps-sent")!;
   const mpsRecvEl = statsEl.querySelector(".perf-stats-mps-recv")!;
-
-  let lastExecTime = 0;
 
   function exec(context: ISystemExecutionContext) {
     const buttonIsPressed = InputState.isButtonPressed(Button.KeyH) &&
@@ -103,16 +112,39 @@ export const DebugSystem: SystemLoader<
           InputState.mousePositionOnCanvas.y <= xPy + h2
         ) {
           document.body.style.cursor = "pointer";
-          if (InputState.wasButtonPressedSince(Button.Mouse0, lastExecTime)) {
+          if (InputState.wasButtonClicked(Button.Mouse0)) {
             window.open(routeEditorEntity.format(entity.uuid));
+          }
+          if (InputState.isButtonPressed(Button.Mouse0)) {
+            addComponent(EditorDraggingTag, entity);
           }
         } else {
           document.body.style.cursor = "default";
         }
       }
-    }
 
-    lastExecTime = context.elapsedTime;
+      if (!InputState.isButtonPressed(Button.Mouse0)) {
+        for (const entity of DebugState.draggingEntities.query()) {
+          removeComponent(EditorDraggingTag, entity);
+          document.body.style.cursor = "default";
+        }
+      } else {
+        for (const entity of DebugState.draggingEntities.query()) {
+          document.body.style.cursor = "grabbing";
+          set(
+            entity.position,
+            InputState.mousePositionOnCanvas.x << 8,
+            InputState.mousePositionOnCanvas.y << 8,
+          );
+          if (hasComponent(TargetPositionComponent, entity)) {
+            copy(
+              castEntity(entity, [TargetPositionComponent]).targetPosition,
+              entity.position,
+            );
+          }
+        }
+      }
+    }
   }
 
   return { exec };

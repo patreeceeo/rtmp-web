@@ -227,7 +227,7 @@ loadTilemap("/public/assets/level.json").then(async () => {
       DebugSystem({ pingStatTimeFrame: 5000, fpsStatTimeFrame: 500 }),
       SyncSystem(),
     ],
-    new FixedIntervalDriver(250),
+    new FixedIntervalDriver(150),
   );
 
   initPing(MsgType.ping);

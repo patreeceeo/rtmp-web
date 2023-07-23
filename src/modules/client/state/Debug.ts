@@ -1,5 +1,5 @@
 import { EntityPrefabCollection } from "~/common/Entity.ts";
-import { UuidComponent } from "~/common/components.ts";
+import { EditorDraggingTag, UuidComponent } from "~/common/components.ts";
 import { PositionComponent } from "~/common/components.ts";
 import { BodyDimensions } from "~/common/components.ts";
 
@@ -13,6 +13,10 @@ class DebugStateApi {
     UuidComponent,
     PositionComponent,
     BodyDimensions,
+  ]);
+  draggingEntities = new EntityPrefabCollection([
+    PositionComponent,
+    EditorDraggingTag,
   ]);
 }
 
