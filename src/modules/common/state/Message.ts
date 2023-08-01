@@ -6,7 +6,7 @@ import {
 } from "../../common/Message.ts";
 import { DataViewMovable } from "../DataView.ts";
 import { isClient } from "../env.ts";
-import { NetworkId } from "../NetworkApi.ts";
+import { Uuid } from "../NetworkApi.ts";
 import { SetRing } from "../SetRing.ts";
 
 // TODO make these values dynamic. The slower the network the bigger they need to be.
@@ -52,24 +52,24 @@ export class MessageStateApi {
     return Math.floor(performance.now() + SID_ORIGIN);
   }
 
-  setLastSentStepId(nid: NetworkId, sid: number) {
+  setLastSentStepId(nid: Uuid, sid: number) {
     this.#lastSentStepId = sid;
     this.#lastSentStepIdMap[nid] = sid;
   }
-  getLastSentStepId(nid: NetworkId) {
+  getLastSentStepId(nid: Uuid) {
     return this.#lastSentStepIdMap[nid];
   }
   get lastSentStepId() {
     return this.#lastSentStepId;
   }
 
-  getLastReceivedStepId(nid: NetworkId) {
+  getLastReceivedStepId(nid: Uuid) {
     return this.#lastReceivedStepIdMap[nid];
   }
-  getLastHandledStepId(nid: NetworkId) {
+  getLastHandledStepId(nid: Uuid) {
     return this.#lastHandledStepIdMap[nid] || SID_ORIGIN;
   }
-  setLastHandledStepId(nid: NetworkId, sid: number) {
+  setLastHandledStepId(nid: Uuid, sid: number) {
     return this.#lastHandledStepIdMap[nid] = sid;
   }
 
@@ -174,7 +174,7 @@ export class MessageStateApi {
     byteLength: number,
     sidCreatedAt: number,
     sidPayload: number,
-    nid: NetworkId,
+    nid: Uuid,
   ) {
     const byteOffset = this.#snapshotBufferByteOffset;
     this.#snapshotBufferByteOffset += byteLength;

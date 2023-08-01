@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- 8/1/2023: This never quite worked, but I'm changing directions for now: Looking at using Ct.js as the editor -->
+<html lang="en">
+  <head>
+    <title>Entity Viewer/Editor</title>
+    <script
+      src="/public/modules/editor/mod.js"
+      type="module"
+    ></script>
+    <link rel="stylesheet" href="/public/modules/editor/style.css" />
+  </head>
+  <body>
+    <h1>Entity Viewer/Editor</h1>
+    <div class="flex-row">
+      <canvas id="foreground"></canvas>
+      <table id="entity-table">
+        <thead>
+          <tr>
+            <th>uuid</th>
+            <th>isPlayer</th>
+            <th>isGrounded</th>
+            <th>isTile</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

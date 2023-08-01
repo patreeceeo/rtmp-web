@@ -4,12 +4,8 @@ import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { PI2, roundTo8thBit } from "../../common/math.ts";
 import { ICloud, LevelState } from "../../common/state/LevelState.ts";
 import { DebugState } from "../state/Debug.ts";
-import {
-  ImageCollectionEnum,
-  loadSprite,
-  PoseType,
-  SpriteState,
-} from "../state/Sprite.ts";
+import { SpriteState } from "../state/Sprite.ts";
+
 import { getFromCache } from "../../common/functions/image.ts";
 import {
   CardinalDirection,
@@ -19,42 +15,23 @@ import {
 } from "../../common/functions/physics.ts";
 import { PhysicsState } from "../../common/state/Physics.ts";
 import { EntityWithComponents, hasComponent } from "~/common/Component.ts";
-import { GroundedTag, ShoulderCount } from "~/common/components.ts";
+import {
+  GroundedTag,
+  ShoulderCount,
+  UuidComponent,
+} from "~/common/components.ts";
+import {
+  drawSprite,
+  DrawSpriteOptions,
+  handleSpriteRequests,
+} from "~/client/functions/sprite.ts";
+import { castEntity } from "~/common/Entity.ts";
+import { setupCanvas } from "~/client/canvas.ts";
 
 export const OutputSystem: SystemLoader = async () => {
   await OutputState.ready;
 
-  await loadSprite(
-    "/public/assets/penguin.png",
-    ImageCollectionEnum.penguin,
-    PoseType.facingRight,
-    16,
-    32,
-  );
-  await loadSprite(
-    "/public/assets/penguin.png",
-    ImageCollectionEnum.penguin,
-    PoseType.facingLeft,
-    16,
-    32,
-    true,
-  );
-
-  await loadSprite(
-    "/public/assets/penguin2.png",
-    ImageCollectionEnum.penguin2,
-    PoseType.facingRight,
-    18,
-    32,
-  );
-  await loadSprite(
-    "/public/assets/penguin2.png",
-    ImageCollectionEnum.penguin2,
-    PoseType.facingLeft,
-    18,
-    32,
-    true,
-  );
+  await handleSpriteRequests();
 
   const {
     foreground: { resolution },
@@ -99,6 +76,12 @@ export const OutputSystem: SystemLoader = async () => {
   let frameDurationMin = 1000 / fpsLimit;
   let lastRender = -frameDurationMin;
 
+  await new FontFace("silkscreen", "url(/public/assets/Silkscreen-Regular.ttf)")
+    .load()
+    .then((font) => {
+      document.fonts.add(font);
+    });
+
   drawBackground();
 
   function exec(context: ISystemExecutionContext) {
@@ -108,8 +91,8 @@ export const OutputSystem: SystemLoader = async () => {
       }
       if (isRenderDataDirty() || DebugState.enabled) {
         eraseDynamicEntities();
-        DebugState.enabled && drawTweenHelpers();
         drawPlayers();
+        DebugState.enabled && drawHelpers();
         lastRender = context.elapsedTime;
       }
     }
@@ -117,21 +100,6 @@ export const OutputSystem: SystemLoader = async () => {
 
   return { exec };
 };
-
-function setupCanvas(el: HTMLCanvasElement, resolution: Vec2.ReadOnly) {
-  // Get the DPR and size of the canvas
-  const dpr = 2 ** Math.ceil(Math.log2(window.devicePixelRatio));
-
-  el.width = resolution.x * dpr;
-  el.height = resolution.y * dpr;
-
-  const ctx = el.getContext("2d")!;
-  if (ctx) {
-    ctx.imageSmoothingEnabled = false;
-    // Scale the context to ensure correct drawing operations
-    ctx.scale(dpr, dpr);
-  }
-}
 
 const gradients = new Map<string, CanvasGradient>();
 function getOrCreateLinearGradient(key: string, ctx: CanvasRenderingContext2D) {
@@ -302,15 +270,11 @@ function drawCollisionDebug() {
 function drawTileLayer(ctx: CanvasRenderingContext2D) {
   for (const entity of OutputState.staticEntities.query()) {
     const image = getFromCache(entity.imageId);
-    ctx.drawImage(
-      image,
-      entity.position.x,
-      entity.position.y,
-    );
+    ctx.drawImage(image, entity.position.x, entity.position.y);
   }
 }
 
-function drawTweenHelpers() {
+function drawHelpers() {
   const {
     foreground: { context2d },
   } = OutputState;
@@ -333,6 +297,15 @@ function drawTweenHelpers() {
     ctx.ellipse(roundTo8thBit(x), roundTo8thBit(y), w2, h2, 0, 0, PI2);
     ctx.stroke();
     ctx.closePath();
+
+    ctx.font = "10px silkscreen";
+    if (hasComponent(UuidComponent, entity)) {
+      ctx.fillText(
+        castEntity(entity, [UuidComponent]).uuid.toString(),
+        roundTo8thBit(x) - w2,
+        roundTo8thBit(y) - h2 - 3,
+      );
+    }
   }
 }
 
@@ -344,10 +317,8 @@ function isRenderDataDirty() {
         roundTo8thBit(entity.targetPosition.x) ||
       entity.previousTargetPosition_output.y !==
         roundTo8thBit(entity.targetPosition.y) ||
-      entity.previousPosition.x !==
-        roundTo8thBit(entity.position.x) ||
-      entity.previousPosition.y !==
-        roundTo8thBit(entity.position.y) ||
+      entity.previousPosition.x !== roundTo8thBit(entity.position.x) ||
+      entity.previousPosition.y !== roundTo8thBit(entity.position.y) ||
       entity.isSoftDeleted
     ) {
       isDirty = true;
@@ -369,7 +340,7 @@ function eraseDynamicEntities() {
     const h2 = h >> 1;
     ctx.clearRect(
       entity.previousPosition.x - 2 - w2,
-      entity.previousPosition.y - 2 - h2,
+      entity.previousPosition.y - 14 - h2,
       sprite.width + 4 + w2,
       sprite.height + 4 + h2,
     );
@@ -390,6 +361,8 @@ function eraseDynamicEntities() {
   }
 }
 
+const drawSpriteOptions = new DrawSpriteOptions();
+
 function drawPlayers() {
   const {
     foreground: { context2d },
@@ -400,11 +373,8 @@ function drawPlayers() {
     const { x: w, y: h } = entity.bodyDimensions;
     const w2 = w >> 1;
     const h2 = h >> 1;
-    const image = getFromCache(sprite.imageId);
-    ctx.drawImage(
-      image,
-      roundTo8thBit(entity.position.x) - w2,
-      roundTo8thBit(entity.position.y) - h2,
-    );
+    drawSpriteOptions.x = roundTo8thBit(entity.position.x) - w2;
+    drawSpriteOptions.y = roundTo8thBit(entity.position.y) - h2;
+    drawSprite(sprite, ctx, drawSpriteOptions);
   }
 }

@@ -24,7 +24,7 @@ import { getPhysicsOptions } from "../functions/physicsHelpers.ts";
 import { isClient } from "../env.ts";
 import { Instance } from "../Vec2.ts";
 import { IPhysicsEntity, PhysicsState } from "../state/Physics.ts";
-import { PoseType } from "../../client/state/Sprite.ts";
+import { PoseType } from "~/client/functions/sprite.ts";
 import { addComponent, hasComponent, removeComponent } from "../Component.ts";
 import { GroundedTag, PlayerTag } from "../components.ts";
 import { Player } from "../../../examples/platformer/common/constants.ts";

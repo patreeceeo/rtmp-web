@@ -1,4 +1,3 @@
-import { ImageCollectionEnum, PoseType } from "../client/state/Sprite.ts";
 import {
   defineComponent,
   defineTag,
@@ -6,11 +5,35 @@ import {
   StoreType,
 } from "./Component.ts";
 import { EntityId } from "./Entity.ts";
+import { Uuid } from "~/common/NetworkApi.ts";
 import { ECSInstance, Vec2LargeSchema, Vec2SmallSchema } from "./Vec2.ts";
 import { IWorld } from "./World.ts";
+import { ImageCollectionEnum, PoseType } from "~/client/functions/sprite.ts";
 
 export const SoftDeletedTag = defineTag({
   propName: "isSoftDeleted",
+});
+
+const UuidSchema = { value: PrimativeTypes.ui32 };
+export const UuidComponent = defineComponent({
+  schema: UuidSchema,
+  propName: "uuid",
+  getValue(
+    _world: IWorld,
+    store: StoreType<typeof UuidSchema>,
+    eid: EntityId,
+  ): Uuid {
+    return store.value[eid] as Uuid;
+  },
+
+  setValue(
+    _world: IWorld,
+    store: StoreType<typeof UuidSchema>,
+    eid: EntityId,
+    value: Uuid,
+  ) {
+    store.value[eid] = value;
+  },
 });
 
 export const PlayerTag = defineTag({
@@ -23,6 +46,10 @@ export const TileTag = defineTag({
 
 export const GroundedTag = defineTag({
   propName: "isGrounded",
+});
+
+export const EditorDraggingTag = defineTag({
+  propName: "isEditorDragging",
 });
 
 const ShoulderCountSchema = { value: PrimativeTypes.ui8 };

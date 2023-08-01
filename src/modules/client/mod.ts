@@ -1,6 +1,15 @@
 import { ClientNetworkState } from "./state/Network.ts";
 import { OutputState } from "./state/Output.ts";
 
+export function pageLoad() {
+  return new Promise<void>((resolve) => {
+    window.onload = () => resolve();
+
+    // In case load event already happened
+    setTimeout(resolve);
+  });
+}
+
 export abstract class ClientApp {
   abstract handleOpen(server: WebSocket, event: Event): void;
   abstract handleClose(server: WebSocket, event: Event): void;
@@ -10,8 +19,11 @@ export abstract class ClientApp {
   inputEvents: Array<Event> = [];
 }
 
-export function startClient(app: ClientApp) {
-  const handleLoad = () => {
+export async function startClient(app: ClientApp) {
+  await pageLoad();
+  OutputState.ready.resolve();
+
+  if (!ClientNetworkState.isReady()) {
     const wsProtocol = location.origin.startsWith("https") ? "wss" : "ws";
 
     const socket = new WebSocket(
@@ -36,17 +48,7 @@ export function startClient(app: ClientApp) {
     };
 
     ClientNetworkState.socket = socket;
-    OutputState.ready.resolve();
-  };
-
-  window.onload = handleLoad;
-
-  // In case load event already happened
-  setTimeout(() => {
-    if (!ClientNetworkState.isReady()) {
-      handleLoad();
-    }
-  });
+  }
 
   const addInputEvent = (e: Event) => {
     app.inputEvents.push(e);

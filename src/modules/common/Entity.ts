@@ -2,12 +2,15 @@ import {
   addComponent as _addComponent,
   addEntity as _addEntity,
   entityExists,
+  getAllEntities as _getAllEntities,
+  hasComponent as _hasComponent,
   removeEntity,
 } from "bitecs";
 import {
   addComponent,
   addComponents,
   EntityWithComponents,
+  hasAllComponents,
   hasComponent,
   IAnyComponentType,
 } from "./Component.ts";
@@ -45,6 +48,13 @@ export class Pool {
   get(eid: EntityId): IEntityMinimal | undefined {
     return this.#items[eid];
   }
+  set(entity: IEntityMinimal) {
+    const wasDefined = entity.eid in this.#items;
+    this.#items[entity.eid] = entity;
+    if (!wasDefined) {
+      this.#size++;
+    }
+  }
   release(eid: EntityId) {
     if (eid in this.#items) {
       delete this.#items[eid];
@@ -58,6 +68,22 @@ function createEntity(world = defaultWorld): IEntityMinimal {
     eid: _addEntity(world) as EntityId,
     isSoftDeleted: false,
   };
+}
+
+export function mapEntity<C extends IAnyComponentType[]>(
+  eid: EntityId,
+  expectedComponents: C,
+  world = defaultWorld,
+): EntityWithComponents<C> {
+  const entity = {
+    eid,
+    isSoftDeleted: _hasComponent(world, SoftDeletedTag.store, eid as number),
+  };
+  for (const component of expectedComponents) {
+    addComponent(component, entity, world);
+  }
+  pool.set(entity);
+  return entity as EntityWithComponents<C>;
 }
 
 const pool = new Pool();
@@ -134,15 +160,28 @@ export function castEntity<
   entity: IEntityMinimal,
   Components: ComponentTypes,
 ): EntityWithComponents<ComponentTypes> {
-  let hasAllComponents = true;
-  for (const Component of Components) {
-    if (!hasComponent(Component, entity)) {
-      hasAllComponents = false;
-      break;
-    }
-  }
-  if (!hasAllComponents) {
+  if (!hasAllComponents(Components, entity)) {
     throw new Error(`Entity ${entity.eid} does not have all components`);
   }
   return entity as EntityWithComponents<ComponentTypes>;
+}
+
+export function matchEntity<
+  ComponentTypes extends ReadonlyArray<IAnyComponentType>,
+  ReturnType,
+>(
+  entity: IEntityMinimal,
+  Components: ComponentTypes,
+  fn: (entity: EntityWithComponents<ComponentTypes>) => ReturnType,
+): ReturnType | undefined {
+  if (hasAllComponents(Components, entity)) {
+    return fn(entity as EntityWithComponents<ComponentTypes>);
+  }
+}
+
+export function getAllEntities(world = defaultWorld): Iterable<IEntityMinimal> {
+  const eids = _getAllEntities(world);
+  return eids.map((eid: number) => {
+    return pool.get(eid as EntityId)!;
+  });
 }

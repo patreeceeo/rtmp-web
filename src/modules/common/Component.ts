@@ -12,12 +12,13 @@ import {
   TypedArray as _TypedArray,
   Types as _Types,
 } from "bitecs";
-import { ImageCollectionEnum, PoseType } from "../client/state/Sprite.ts";
 import { EntityId, IEntityMinimal } from "./Entity.ts";
 import { invariant } from "./Error.ts";
 import { ModifierFlags } from "./Query.ts";
 import { ECSInstance, Vec2LargeSchema, Vec2SmallSchema } from "./Vec2.ts";
 import { defaultWorld } from "./World.ts";
+import { ImageCollectionEnum, PoseType } from "~/client/functions/sprite.ts";
+import { Uuid } from "~/common/NetworkApi.ts";
 
 export type ISchema = _ISchema;
 export type StoreType<T extends ISchema> = _StoreType<T>;
@@ -46,9 +47,11 @@ export type EntityWithComponents<
 >;
 
 export interface IEntityMaximal extends IEntityMinimal {
+  uuid: Uuid;
   isPlayer: boolean;
   isTile: boolean;
   isGrounded: boolean;
+  isEditorDragging: boolean;
   shoulderCount: number;
   bodyIsStatic: boolean;
   bodyDimensions: ECSInstance<typeof Vec2SmallSchema>;
@@ -277,4 +280,17 @@ export function hasComponent<E extends IEntityMinimal>(
 ): boolean {
   return _hasComponent(world, componentType.store, entity.eid) ||
     componentType.modifiers != ModifierFlags.None;
+}
+
+export function hasAllComponents<E extends IEntityMinimal>(
+  componentTypes: ReadonlyArray<IAnyComponentType>,
+  entity: E,
+  world = defaultWorld,
+): boolean {
+  for (const componentType of componentTypes) {
+    if (!hasComponent(componentType, entity, world)) {
+      return false;
+    }
+  }
+  return true;
 }

@@ -4,17 +4,17 @@ import { OpaqueType } from "./util.ts";
 
 // TODO reorganize this code
 
-export type NetworkId = number & OpaqueType<"networkId">;
+export type Uuid = number & OpaqueType<"uuid">;
 
 export function networkId(nid: number) {
-  return nid as NetworkId;
+  return nid as Uuid;
 }
 
 export interface INetworkState {
-  entityMap: Map<NetworkId, EntityId>;
-  reverseMap: Map<EntityId, NetworkId>;
-  localIds: Set<NetworkId>;
-  remoteIds: Set<NetworkId>;
+  entityMap: Map<Uuid, EntityId>;
+  reverseMap: Map<EntityId, Uuid>;
+  localIds: Set<Uuid>;
+  remoteIds: Set<Uuid>;
 }
 
 export class NetworkStateApi {
@@ -29,13 +29,13 @@ export class NetworkStateApi {
 
   #state = NetworkStateApi.init();
 
-  getEntityId(nid: NetworkId): EntityId | undefined {
+  getEntityId(nid: Uuid): EntityId | undefined {
     return this.#state.entityMap.get(nid);
   }
-  getId(eid: EntityId): NetworkId | undefined {
+  getId(eid: EntityId): Uuid | undefined {
     return this.#state.reverseMap.get(eid);
   }
-  deleteId(nid: NetworkId): void {
+  deleteId(nid: Uuid): void {
     const eid = this.#state.entityMap.get(nid)!;
     this.#state.entityMap.delete(nid);
     this.#state.reverseMap.delete(eid);
@@ -43,7 +43,7 @@ export class NetworkStateApi {
     this.#state.remoteIds.delete(nid);
   }
 
-  setNetworkEntity(nid: NetworkId, eid: EntityId, isLocal: boolean) {
+  setNetworkEntity(nid: Uuid, eid: EntityId, isLocal: boolean) {
     this.#state.entityMap.set(nid, eid);
     this.#state.reverseMap.set(eid, nid);
     if (isLocal) {
@@ -65,7 +65,7 @@ export class NetworkStateApi {
     return join(this.#state.localIds.values(), this.#state.remoteIds.values());
   }
 
-  isLocal(nid: NetworkId) {
+  isLocal(nid: Uuid) {
     return this.#state.localIds.has(nid);
   }
 }

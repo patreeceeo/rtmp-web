@@ -8,6 +8,9 @@ function build_client_modules() {
 
 mkdir -p ./public \
   && cp ./src/index.html ./public \
+  && cp ./src/editor.html ./public \
+  && mkdir -p ./public/modules/editor \
+  && cp ./src/modules/editor/style.css ./public/modules/editor/style.css \
   && mkdir -p ./public/assets \
   && cp -a ./src/examples/"$active_project"/assets/* ./public/assets \
   && build_client_modules

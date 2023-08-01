@@ -2,6 +2,7 @@ import { EntityPrefabCollection } from "../Entity.ts";
 import {
   AccelerationComponent,
   BodyDimensions,
+  EditorDraggingTag,
   FrictionComponent,
   MaxSpeedComponent,
   PoseComponent,
@@ -22,6 +23,7 @@ export type IPhysicsEntity = ReturnType<
 class PhysicsStateApi {
   readonly dynamicEntityComponents = [
     Not(SoftDeletedTag),
+    Not(EditorDraggingTag),
     PositionComponent,
     ShoulderCount,
     TargetPositionComponent,

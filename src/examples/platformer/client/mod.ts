@@ -39,6 +39,8 @@ import { DebugState } from "../../../modules/client/state/Debug.ts";
 import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
 import { ReconcileState } from "../../../modules/client/state/Reconcile.ts";
 import { PlayerSnapshotReconciler } from "./reconcilers.ts";
+import { SyncSystem } from "~/client/systems/SyncSystem.ts";
+import { requestSprites } from "./sprites.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -172,12 +174,13 @@ function handlePlayerAdded(
   _server: WebSocket,
   { isLocal, nid, position, spriteMapId }: IPlayerAdd,
 ) {
-  console.log("player nid:", nid);
+  console.log("player uuid:", nid);
   const player = PlayerState.addPlayer(addEntity());
   Vec2.copy(player.position, position);
   Vec2.copy(player.targetPosition, position);
   player.imageCollection = spriteMapId;
   ClientNetworkState.setNetworkEntity(nid, player.eid, isLocal);
+  player.uuid = nid;
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
   const eid = ClientNetworkState.getEntityId(playerRemove.nid)!;
@@ -203,7 +206,9 @@ const handleMessagePipeline = new Pipeline(
 ReconcileState.register(MsgType.playerSnapshot, new PlayerSnapshotReconciler());
 
 // TODO maybe there should be separate functions for loading the tile visuals and the tile physics. Then the respective systems could do the loading themselves
-loadTilemap("/public/assets/level.json").then(() => {
+loadTilemap("/public/assets/level.json").then(async () => {
+  requestSprites();
+
   const fastPipeline = new Pipeline(
     [
       PlayerMovementSystem(),
@@ -220,12 +225,13 @@ loadTilemap("/public/assets/level.json").then(() => {
       PurgeSystem(),
       PingSystem({ timeout: 10 * 1000 }),
       DebugSystem({ pingStatTimeFrame: 5000, fpsStatTimeFrame: 500 }),
+      SyncSystem(),
     ],
-    new FixedIntervalDriver(250),
+    new FixedIntervalDriver(150),
   );
 
   initPing(MsgType.ping);
-  startClient(app);
+  await startClient(app);
   inputPipeline.start();
   handleMessagePipeline.start();
   fastPipeline.start();

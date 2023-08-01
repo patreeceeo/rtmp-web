@@ -51,6 +51,9 @@ assert_ok stat "$server_mod" 1>/dev/null 2>/dev/null
 
 assert_ok mkdir -p public
 assert_ok cp ./src/index.html ./public
+assert_ok cp ./src/editor.html ./public
+assert_ok mkdir -p ./public/modules/editor
+assert_ok cp ./src/modules/editor/style.css ./public/modules/editor/style.css
 
 if [ -d "src/examples/$active_project/assets" ]; then
   assert_ok cp "src/examples/$active_project/assets" ./public/assets -a

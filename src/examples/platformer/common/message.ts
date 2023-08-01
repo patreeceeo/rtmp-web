@@ -1,3 +1,4 @@
+import { PoseType } from "~/client/functions/sprite.ts";
 import {
   IBufferProxyObjectSpec,
   PrimitiveValue,
@@ -6,10 +7,9 @@ import {
   Vec2SmallSpec,
 } from "../../../modules/common/BufferValue.ts";
 import { defMessageType } from "../../../modules/common/Message.ts";
-import { NetworkId } from "../../../modules/common/NetworkApi.ts";
+import { Uuid } from "../../../modules/common/NetworkApi.ts";
 import { Instance } from "../../../modules/common/Vec2.ts";
 import { IPingMsg, PingMsgSpec } from "../../../modules/common/state/Ping.ts";
-import { PoseType } from "../../../modules/client/state/Sprite.ts";
 
 export enum MsgType {
   nil,
@@ -41,7 +41,7 @@ export {
 };
 
 interface INilPayload {
-  nid: NetworkId;
+  nid: Uuid;
   sid: number;
 }
 

@@ -35,6 +35,17 @@ class InputStateApi {
     }
     this.#buttonStateMap.get(button)!.releaseTime = performance.now();
   }
+  wasButtonClicked(button: Button, threshold = 200): boolean {
+    if (!this.#buttonStateMap.has(button)) {
+      this.#initInput(button);
+    }
+    const keyState = this.#buttonStateMap.get(button)!;
+    const downTime = keyState.releaseTime - keyState.pressTime;
+    return (
+      downTime > 0 &&
+      downTime <= threshold
+    );
+  }
   reset() {
     this.#buttonStateMap.clear();
   }
