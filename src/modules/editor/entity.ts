@@ -7,7 +7,6 @@ import { castEntity, EntityId, mapEntity } from "~/common/Entity.ts";
 import { EditorOutputSystem } from "~/editor/systems/EditorOutputSystem.ts";
 import { ClientNetworkState } from "~/client/state/Network.ts";
 import { EditorState } from "~/editor/state/EditorState.ts";
-import { Uuid } from "~/common/NetworkApi.ts";
 import {
   EDITOR_BROADCAST_CHANNEL,
   EDITOR_COMPONENTS,

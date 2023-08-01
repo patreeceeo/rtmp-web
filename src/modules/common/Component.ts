@@ -281,3 +281,16 @@ export function hasComponent<E extends IEntityMinimal>(
   return _hasComponent(world, componentType.store, entity.eid) ||
     componentType.modifiers != ModifierFlags.None;
 }
+
+export function hasAllComponents<E extends IEntityMinimal>(
+  componentTypes: ReadonlyArray<IAnyComponentType>,
+  entity: E,
+  world = defaultWorld,
+): boolean {
+  for (const componentType of componentTypes) {
+    if (!hasComponent(componentType, entity, world)) {
+      return false;
+    }
+  }
+  return true;
+}

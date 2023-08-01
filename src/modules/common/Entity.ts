@@ -2,6 +2,7 @@ import {
   addComponent as _addComponent,
   addEntity as _addEntity,
   entityExists,
+  getAllEntities as _getAllEntities,
   hasComponent as _hasComponent,
   removeEntity,
 } from "bitecs";
@@ -9,6 +10,7 @@ import {
   addComponent,
   addComponents,
   EntityWithComponents,
+  hasAllComponents,
   hasComponent,
   IAnyComponentType,
 } from "./Component.ts";
@@ -158,15 +160,28 @@ export function castEntity<
   entity: IEntityMinimal,
   Components: ComponentTypes,
 ): EntityWithComponents<ComponentTypes> {
-  let hasAllComponents = true;
-  for (const Component of Components) {
-    if (!hasComponent(Component, entity)) {
-      hasAllComponents = false;
-      break;
-    }
-  }
-  if (!hasAllComponents) {
+  if (!hasAllComponents(Components, entity)) {
     throw new Error(`Entity ${entity.eid} does not have all components`);
   }
   return entity as EntityWithComponents<ComponentTypes>;
+}
+
+export function matchEntity<
+  ComponentTypes extends ReadonlyArray<IAnyComponentType>,
+  ReturnType,
+>(
+  entity: IEntityMinimal,
+  Components: ComponentTypes,
+  fn: (entity: EntityWithComponents<ComponentTypes>) => ReturnType,
+): ReturnType | undefined {
+  if (hasAllComponents(Components, entity)) {
+    return fn(entity as EntityWithComponents<ComponentTypes>);
+  }
+}
+
+export function getAllEntities(world = defaultWorld): Iterable<IEntityMinimal> {
+  const eids = _getAllEntities(world);
+  return eids.map((eid: number) => {
+    return pool.get(eid as EntityId)!;
+  });
 }

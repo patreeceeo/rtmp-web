@@ -6,11 +6,24 @@
       src="/public/modules/editor/mod.js"
       type="module"
     ></script>
+    <link rel="stylesheet" href="/public/modules/editor/style.css" />
   </head>
   <body>
     <h1>Entity Viewer/Editor</h1>
-    <div id="app">
+    <div class="flex-row">
       <canvas id="foreground"></canvas>
+      <table id="entity-table">
+        <thead>
+          <tr>
+            <th>uuid</th>
+            <th>isPlayer</th>
+            <th>isGrounded</th>
+            <th>isTile</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
     </div>
   </body>
 </html>

@@ -17,7 +17,7 @@ import {
 } from "../common/Message.ts";
 import { DataViewMovable } from "../common/DataView.ts";
 import { map, toArray } from "../common/Iterable.ts";
-import { routeEditorEntity } from "~/common/routes.ts";
+import { routeEditor, routeEditorEntity } from "~/common/routes.ts";
 
 const rootDir = Deno.cwd();
 
@@ -88,7 +88,9 @@ export function startServer(app: ServerApp) {
     } else if (url.pathname === "/") {
       const indexHtml = await Deno.readFile(`${rootDir}/public/index.html`);
       return new Response(indexHtml);
-    } else if (routeEditorEntity.match(url.pathname)) {
+    } else if (
+      routeEditor.match(url.pathname) || routeEditorEntity.match(url.pathname)
+    ) {
       const html = await Deno.readFile(`${rootDir}/public/editor.html`);
       return new Response(html);
     } else if (url.pathname.startsWith("/public")) {
