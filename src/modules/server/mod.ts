@@ -8,7 +8,7 @@ import {
 } from "path";
 import { BadRequestResponse, NotFoundResponse } from "../common/Response.ts";
 import { broadcast, sendIfOpen } from "../common/socket.ts";
-import { Client, ServerNetworkState } from "./state/Network.ts";
+import { ClientEntity, ServerNetworkState } from "./state/Network.ts";
 import {
   IMessageDef,
   IPayloadAny,
@@ -39,7 +39,9 @@ const allowedFileExtensions = [
 export abstract class ServerApp {
   /** In seconds */
   abstract idleTimeout: number;
+  // TODO replace with handleConnect
   abstract handleOpen(client: WebSocket, event: Event): void;
+  // TODO replace with handleDisconnect
   abstract handleClose(client: WebSocket, event: Event): void;
   abstract handleError(client: WebSocket, event: Event): void;
   abstract handleMessage(client: WebSocket, event: MessageEvent): void;
@@ -64,10 +66,9 @@ export function startServer(app: ServerApp) {
 
       socket.onopen = (socketEvent) => {
         const clientNid = ServerNetworkState.createId();
-        const client = new Client(clientNid, socket);
         console.debug("Client connected", clientNid);
 
-        ServerNetworkState.setClient(client);
+        const client = ServerNetworkState.addClient(socket, clientNid);
         client.lastActiveTime = performance.now();
         app.handleOpen(socket, socketEvent);
       };
@@ -78,6 +79,10 @@ export function startServer(app: ServerApp) {
 
       socket.onmessage = (socketEvent) => {
         const client = ServerNetworkState.getClientForSocket(socket);
+        if (!client) {
+          console.warn("Client not found for socket", socket);
+          return;
+        }
         client!.lastActiveTime = performance.now();
         app.handleMessage(socket, socketEvent);
       };
@@ -122,11 +127,11 @@ export function startServer(app: ServerApp) {
     } else if (url.pathname === "/info.json") {
       const info = {
         clients: toArray(
-          map(ServerNetworkState.getClients(true), (client: Client) => {
+          map(ServerNetworkState.getClients(true), (client: ClientEntity) => {
             return {
-              nid: client.nid,
+              nid: client.uuid,
               lastActiveTime: client.lastActiveTime,
-              isBeingRemoved: client.isBeingRemoved,
+              isBeingRemoved: client.isSoftDeleted,
             };
           }),
         ),

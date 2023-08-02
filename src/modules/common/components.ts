@@ -40,6 +40,10 @@ export const PlayerTag = defineTag({
   propName: "isPlayer",
 });
 
+export const ClientTag = defineTag({
+  propName: "isClient",
+});
+
 export const TileTag = defineTag({
   propName: "isTile",
 });

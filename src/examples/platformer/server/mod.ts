@@ -27,7 +27,7 @@ import {
 } from "../../../modules/common/Message.ts";
 import { initPing, sendPing } from "../../../modules/common/state/Ping.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
-import { addEntity, hasEntity, softDeleteEntity } from "~/common/Entity.ts";
+import { addEntity, softDeleteEntity } from "~/common/Entity.ts";
 import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
 import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
 
@@ -39,7 +39,7 @@ class DotsServerApp implements ServerApp {
     const addedPlayer = PlayerState.addPlayer(addEntity());
     const playerNid = ServerNetworkState.createId();
     const client = ServerNetworkState.getClientForSocket(ws)!;
-    client.addNetworkId(playerNid);
+    ServerNetworkState.addChild(client.uuid, playerNid);
     addedPlayer.uuid = playerNid;
     console.log("player nid", playerNid);
 
@@ -90,18 +90,12 @@ class DotsServerApp implements ServerApp {
   }
 
   handleClose(ws: WebSocket, _: Event) {
-    const client = ServerNetworkState.getClientForSocket(ws)!;
-    console.log("Client disconnected", client.nid);
-    ServerNetworkState.removeClient(client.nid);
-    for (const nid of client.getNetworkIds()) {
-      const eid = ServerNetworkState.getEntityId(nid)!;
-      if (hasEntity(eid)) {
-        softDeleteEntity(eid);
-        broadcastMessage(PlayerRemove, (p) => {
-          p.nid = nid;
-          p.sid = MessageState.currentStep;
-        });
-      }
+    const client = ServerNetworkState.getClientForSocket(ws);
+    if (client) {
+      console.log("Client disconnected", client.uuid);
+      softDeleteEntity(client.eid);
+    } else {
+      console.log("Client purged");
     }
   }
 

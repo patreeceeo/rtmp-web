@@ -49,6 +49,7 @@ export type EntityWithComponents<
 export interface IEntityMaximal extends IEntityMinimal {
   uuid: Uuid;
   isPlayer: boolean;
+  isClient: boolean;
   isTile: boolean;
   isGrounded: boolean;
   isEditorDragging: boolean;

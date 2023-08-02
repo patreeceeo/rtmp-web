@@ -12,9 +12,9 @@ export const NetworkSystem: SystemLoader = () => {
         MessageState.currentStep,
       )
     ) {
-      for (const client of ServerNetworkState.getClients()) {
+      for (const ws of ServerNetworkState.getClientSockets()) {
         sendIfOpen(
-          client.ws,
+          ws,
           snapshot.meta__dataView,
         );
       }

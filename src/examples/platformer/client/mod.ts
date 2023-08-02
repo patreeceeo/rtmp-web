@@ -184,6 +184,7 @@ function handlePlayerAdded(
 }
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
   const eid = ClientNetworkState.getEntityId(playerRemove.nid)!;
+  console.log("player removed:", playerRemove.nid);
   softDeleteEntity(eid);
   // TODO move this stuff to PurgeSystem
   ClientNetworkState.deleteId(playerRemove.nid);
