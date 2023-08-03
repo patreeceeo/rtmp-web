@@ -292,7 +292,7 @@ export const ImageIdComponent = defineComponent({
 });
 
 const LastActiveTimeSchema = {
-  value: PrimativeTypes.ui8,
+  value: PrimativeTypes.ui32,
 };
 export const LastActiveTimeComponent = defineComponent({
   schema: LastActiveTimeSchema,
@@ -306,7 +306,7 @@ export const LastActiveTimeComponent = defineComponent({
   },
   setValue(
     _world: IWorld,
-    store: StoreType<typeof PoseSchema>,
+    store: StoreType<typeof LastActiveTimeSchema>,
     eid: EntityId,
     value: PoseType,
   ) {
