@@ -1,6 +1,6 @@
-import { EntityWithComponents } from "../../../modules/common/Component.ts";
 import { VelocityComponent } from "../../../modules/common/components.ts";
 import { MaxSpeedComponent } from "../../../modules/common/components.ts";
+import { EntityWithComponents } from "~/common/EntityWithComponents.ts";
 import { invariant } from "../../../modules/common/Error.ts";
 import { Player } from "./constants.ts";
 

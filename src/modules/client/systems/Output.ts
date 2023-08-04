@@ -14,7 +14,7 @@ import {
   TILE_SIZE,
 } from "../../common/functions/physics.ts";
 import { PhysicsState } from "../../common/state/Physics.ts";
-import { EntityWithComponents, hasComponent } from "~/common/Component.ts";
+import { hasComponent } from "~/common/Component.ts";
 import {
   GroundedTag,
   ShoulderCount,
@@ -287,10 +287,8 @@ function drawHelpers() {
     const w2 = w >> 1;
     const h2 = h >> 1;
     const isGrounded = hasComponent(GroundedTag, entity);
-    // woof
     const isShouldered = hasComponent(ShoulderCount, entity) &&
-      (entity as unknown as EntityWithComponents<[typeof ShoulderCount]>)
-          .shoulderCount > 0;
+      castEntity(entity, [ShoulderCount]).shoulderCount > 0;
 
     ctx.beginPath();
     ctx.strokeStyle = isGrounded ? "red" : isShouldered ? "green" : "blue";

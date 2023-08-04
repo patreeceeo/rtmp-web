@@ -1,8 +1,8 @@
-import { IEntityMinimal } from "../../common/Entity.ts";
+import { IEntityBase } from "../../common/Entity.ts";
 import { IPayloadAny } from "../../common/Message.ts";
 
 export abstract class Reconciler<
-  E extends IEntityMinimal,
+  E extends IEntityBase,
   P extends IPayloadAny,
 > {
   abstract query(_sstPayload: P): Iterable<E>;
@@ -10,9 +10,9 @@ export abstract class Reconciler<
 }
 
 class ReconcileStateApi {
-  reconcilers: Map<number, Reconciler<IEntityMinimal, IPayloadAny>> = new Map();
+  reconcilers: Map<number, Reconciler<IEntityBase, IPayloadAny>> = new Map();
   register<
-    E extends IEntityMinimal,
+    E extends IEntityBase,
     P extends IPayloadAny,
   >(msgType: number, r: Reconciler<E, P>) {
     this.reconcilers.set(msgType, r);

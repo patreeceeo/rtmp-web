@@ -1,5 +1,4 @@
 import { Reconciler } from "../../../modules/client/state/Reconcile.ts";
-import { EntityWithComponents } from "../../../modules/common/Component.ts";
 import {
   AccelerationComponent,
   PoseComponent,
@@ -13,6 +12,7 @@ import { IPlayerSnapshot } from "../common/message.ts";
 import { copy, isZero } from "../../../modules/common/Vec2.ts";
 import { NetworkState } from "../../../modules/common/state/Network.ts";
 import { EntityPrefabCollection } from "../../../modules/common/Entity.ts";
+import { EntityWithComponents } from "~/common/EntityWithComponents.ts";
 
 const PLAYER_SNAPSHOT_COMPONENTS = [
   Not(SoftDeletedTag),

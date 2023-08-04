@@ -1,5 +1,5 @@
 import { OutputState } from "../../client/state/Output.ts";
-import { EntityPrefabCollection, IEntityMinimal } from "../Entity.ts";
+import { EntityPrefabCollection, IEntityBase } from "../Entity.ts";
 import { isClient } from "../env.ts";
 import { PhysicsState } from "./Physics.ts";
 import { set } from "../Vec2.ts";
@@ -25,7 +25,7 @@ class PlayerStateApi {
 
   readonly entities = new EntityPrefabCollection(this.components);
 
-  addPlayer(entity: IEntityMinimal) {
+  addPlayer(entity: IEntityBase) {
     const player = this.entities.add(entity);
     player.friction = Player.GROUND_FRICTION;
     set(player.bodyDimensions, Player.WIDTH, Player.HEIGHT);

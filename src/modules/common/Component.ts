@@ -12,13 +12,11 @@ import {
   TypedArray as _TypedArray,
   Types as _Types,
 } from "bitecs";
-import { EntityId, IEntityMinimal } from "./Entity.ts";
+import { EntityId, IEntityBase } from "./Entity.ts";
 import { invariant } from "./Error.ts";
 import { ModifierFlags } from "./Query.ts";
-import { ECSInstance, Vec2LargeSchema, Vec2SmallSchema } from "./Vec2.ts";
 import { defaultWorld } from "./World.ts";
-import { ImageCollectionEnum, PoseType } from "~/client/functions/sprite.ts";
-import { Uuid } from "~/common/NetworkApi.ts";
+import { IEntityMaximal } from "~/common/entities.ts";
 
 export type ISchema = _ISchema;
 export type StoreType<T extends ISchema> = _StoreType<T>;
@@ -27,7 +25,6 @@ export type TypedArray = _TypedArray;
 
 export const PrimativeTypes = _Types;
 
-// TODO split this into multiple files?
 // Idea: component types as entities to allow for recursive composition
 
 type ITagSchema = Record<string | number | symbol, never>;
@@ -37,39 +34,6 @@ export type WithPropertyForComponent<T, P extends keyof IEntityMaximal> =
   & {
     [K in P]: IEntityMaximal[K];
   };
-
-// where does this belong??
-export type EntityWithComponents<
-  ComponentTypes extends ReadonlyArray<IAnyComponentType>,
-> = WithPropertyForComponent<
-  IEntityMinimal,
-  ComponentTypes[number]["propName"]
->;
-
-export interface IEntityMaximal extends IEntityMinimal {
-  uuid: Uuid;
-  isPlayer: boolean;
-  isClient: boolean;
-  isTile: boolean;
-  isGrounded: boolean;
-  isEditorDragging: boolean;
-  shoulderCount: number;
-  bodyIsStatic: boolean;
-  bodyDimensions: ECSInstance<typeof Vec2SmallSchema>;
-  position: ECSInstance<typeof Vec2LargeSchema>;
-  targetPosition: ECSInstance<typeof Vec2LargeSchema>;
-  previousPosition: ECSInstance<typeof Vec2LargeSchema>;
-  previousTargetPosition_output: ECSInstance<typeof Vec2LargeSchema>;
-  previousTargetPosition_network: ECSInstance<typeof Vec2LargeSchema>;
-  velocity: ECSInstance<typeof Vec2LargeSchema>;
-  maxSpeed: number;
-  friction: number;
-  acceleration: ECSInstance<typeof Vec2SmallSchema>;
-  imageId: number;
-  imageCollection: ImageCollectionEnum;
-  pose: PoseType;
-  lastActiveTime: number;
-}
 
 export type AnyPropName = keyof IEntityMaximal;
 
@@ -87,8 +51,8 @@ export interface IComponentType<
     store: StoreType<S>,
     eid: EntityId,
   ): IEntityMaximal[PropName];
-  onAdd(target: IEntityMinimal, componentType: this): void;
-  onRemove(target: IEntityMinimal, componentType: this): void;
+  onAdd(target: IEntityBase, componentType: this): void;
+  onRemove(target: IEntityBase, componentType: this): void;
 }
 
 export type IAnyComponentType = IComponentType<ISchema, keyof IEntityMaximal>;
@@ -99,11 +63,11 @@ interface IComponentConfigBase<
 > {
   propName: PropName;
   onAdd?: (
-    target: IEntityMinimal,
+    target: IEntityBase,
     type: IComponentType<S, keyof IEntityMaximal>,
   ) => void;
   onRemove?: (
-    target: IEntityMinimal,
+    target: IEntityBase,
     type: IComponentType<S, keyof IEntityMaximal>,
   ) => void;
 }
@@ -126,7 +90,7 @@ export function defineTag<PropName extends keyof IEntityMaximal>(
     getValue(world: IWorld, store: StoreType<ITagSchema>, eid: EntityId) {
       return _hasComponent(world, store, eid);
     },
-    onAdd(target: IEntityMinimal) {
+    onAdd(target: IEntityBase) {
       Object.defineProperty(target, this.propName, {
         value: true,
         configurable: true,
@@ -135,7 +99,7 @@ export function defineTag<PropName extends keyof IEntityMaximal>(
       });
       config.onAdd?.(target, result);
     },
-    onRemove(target: IEntityMinimal) {
+    onRemove(target: IEntityBase) {
       Object.defineProperty(target, this.propName, {
         value: false,
         configurable: true,
@@ -178,7 +142,7 @@ export function defineComponent<
     store,
     queryable: store,
     modifiers: ModifierFlags.None,
-    onAdd(target: IEntityMinimal, componentType: IComponentType<S, PropName>) {
+    onAdd(target: IEntityBase, componentType: IComponentType<S, PropName>) {
       const base = {
         configurable: true,
         enumerable: true,
@@ -206,7 +170,7 @@ export function defineComponent<
         });
       }
     },
-    onRemove(target: IEntityMinimal) {
+    onRemove(target: IEntityBase) {
       Object.defineProperty(target, this.propName, {
         get: () => {
           throw new Error(
@@ -222,7 +186,7 @@ export function defineComponent<
 
 export function addComponent<
   PropName extends keyof IEntityMaximal,
-  E extends IEntityMinimal,
+  E extends IEntityBase,
 >(
   componentType: IComponentType<ISchema, PropName>,
   entity: E,
@@ -242,7 +206,7 @@ export function addComponent<
 
 export function addComponents<
   PropNames extends keyof IEntityMaximal,
-  E extends IEntityMinimal,
+  E extends IEntityBase,
 >(
   componentTypes: ReadonlyArray<IComponentType<ISchema, PropNames>>,
   entity: E,
@@ -256,7 +220,7 @@ export function addComponents<
 
 export function removeComponent<
   PropName extends keyof IEntityMaximal,
-  E extends IEntityMinimal,
+  E extends IEntityBase,
 >(
   componentType: IComponentType<ISchema, PropName>,
   entity: E,
@@ -274,7 +238,7 @@ export function removeComponent<
   return entity as Omit<E, PropName>;
 }
 
-export function hasComponent<E extends IEntityMinimal>(
+export function hasComponent<E extends IEntityBase>(
   componentType: IAnyComponentType,
   entity: E,
   world = defaultWorld,
@@ -283,7 +247,7 @@ export function hasComponent<E extends IEntityMinimal>(
     componentType.modifiers != ModifierFlags.None;
 }
 
-export function hasAllComponents<E extends IEntityMinimal>(
+export function hasAllComponents<E extends IEntityBase>(
   componentTypes: ReadonlyArray<IAnyComponentType>,
   entity: E,
   world = defaultWorld,

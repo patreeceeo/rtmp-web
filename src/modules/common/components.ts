@@ -56,6 +56,15 @@ export const EditorDraggingTag = defineTag({
   propName: "isEditorDragging",
 });
 
+export const TAGS = [
+  SoftDeletedTag,
+  PlayerTag,
+  ClientTag,
+  TileTag,
+  GroundedTag,
+  EditorDraggingTag,
+];
+
 const ShoulderCountSchema = { value: PrimativeTypes.ui8 };
 const MAX_SHOULDER_COUNT = 2;
 export const ShoulderCount = defineComponent({

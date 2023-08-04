@@ -9,28 +9,26 @@ import {
 import {
   addComponent,
   addComponents,
-  EntityWithComponents,
   hasAllComponents,
-  hasComponent,
   IAnyComponentType,
 } from "./Component.ts";
 import { SoftDeletedTag } from "./components.ts";
 import { defineQuery, IQuery } from "./Query.ts";
 import { OpaqueType } from "./util.ts";
 import { defaultWorld } from "./World.ts";
+import { EntityWithComponents } from "~/common/EntityWithComponents.ts";
 
 export type EntityId = number & OpaqueType<"entityId">;
 
 export interface IEntityProxyConstructor {
-  new (eid: EntityId): IEntityMinimal;
+  new (eid: EntityId): IEntityBase;
 }
-export interface IEntityMinimal {
+export interface IEntityBase {
   readonly eid: EntityId;
-  readonly isSoftDeleted: boolean;
 }
 
 export class Pool {
-  #items: IEntityMinimal[] = [];
+  #items: IEntityBase[] = [];
   #size = 0;
 
   constructor() {
@@ -39,16 +37,16 @@ export class Pool {
   get size() {
     return this.#size;
   }
-  acquire(world = defaultWorld): IEntityMinimal {
+  acquire(world = defaultWorld): EntityWithComponents<[]> {
     const entity = createEntity(world);
     this.#items[entity.eid] = entity;
     this.#size++;
     return entity;
   }
-  get(eid: EntityId): IEntityMinimal | undefined {
+  get(eid: EntityId): IEntityBase | undefined {
     return this.#items[eid];
   }
-  set(entity: IEntityMinimal) {
+  set(entity: IEntityBase) {
     const wasDefined = entity.eid in this.#items;
     this.#items[entity.eid] = entity;
     if (!wasDefined) {
@@ -63,11 +61,10 @@ export class Pool {
   }
 }
 
-function createEntity(world = defaultWorld): IEntityMinimal {
+function createEntity(world = defaultWorld): EntityWithComponents<[]> {
   return {
     eid: _addEntity(world) as EntityId,
-    isSoftDeleted: false,
-  };
+  } as EntityWithComponents<[]>;
 }
 
 export function mapEntity<C extends IAnyComponentType[]>(
@@ -77,7 +74,6 @@ export function mapEntity<C extends IAnyComponentType[]>(
 ): EntityWithComponents<C> {
   const entity = {
     eid,
-    isSoftDeleted: _hasComponent(world, SoftDeletedTag.store, eid as number),
   };
   for (const component of expectedComponents) {
     addComponent(component, entity, world);
@@ -89,7 +85,7 @@ export function mapEntity<C extends IAnyComponentType[]>(
 const pool = new Pool();
 
 // TODO it would be nice to be able to pass an array of components to add
-export function addEntity(world = defaultWorld): IEntityMinimal {
+export function addEntity(world = defaultWorld): EntityWithComponents<[]> {
   return pool.acquire(world);
 }
 
@@ -97,7 +93,7 @@ export function hasEntity(eid: EntityId, world = defaultWorld): boolean {
   return entityExists(world, eid);
 }
 
-export function getEntity(eid: EntityId): IEntityMinimal | undefined {
+export function getEntity(eid: EntityId): IEntityBase | undefined {
   return pool.get(eid);
 }
 
@@ -128,7 +124,7 @@ export class EntityPrefabCollection<
   constructor(readonly components: ComponentTypes) {
     this.#query = defineQuery(this.components);
   }
-  add<InputEntity extends IEntityMinimal>(entity: InputEntity) {
+  add<InputEntity extends IEntityBase>(entity: InputEntity) {
     const prefab = addComponents<
       ComponentTypes[number]["propName"],
       InputEntity
@@ -157,7 +153,7 @@ export class EntityPrefabCollection<
 export function castEntity<
   ComponentTypes extends ReadonlyArray<IAnyComponentType>,
 >(
-  entity: IEntityMinimal,
+  entity: IEntityBase,
   Components: ComponentTypes,
 ): EntityWithComponents<ComponentTypes> {
   if (!hasAllComponents(Components, entity)) {
@@ -170,7 +166,7 @@ export function matchEntity<
   ComponentTypes extends ReadonlyArray<IAnyComponentType>,
   ReturnType,
 >(
-  entity: IEntityMinimal,
+  entity: IEntityBase,
   Components: ComponentTypes,
   fn: (entity: EntityWithComponents<ComponentTypes>) => ReturnType,
 ): ReturnType | undefined {
@@ -179,7 +175,7 @@ export function matchEntity<
   }
 }
 
-export function getAllEntities(world = defaultWorld): Iterable<IEntityMinimal> {
+export function getAllEntities(world = defaultWorld): Iterable<IEntityBase> {
   const eids = _getAllEntities(world);
   return eids.map((eid: number) => {
     return pool.get(eid as EntityId)!;

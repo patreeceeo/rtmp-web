@@ -10,8 +10,9 @@ import {
 } from "../../common/NetworkApi.ts";
 import { ClientTag, UuidComponent } from "~/common/components.ts";
 import { LastActiveTimeComponent } from "~/common/components.ts";
-import { EntityWithComponents, removeComponent } from "~/common/Component.ts";
+import { removeComponent } from "~/common/Component.ts";
 import { invariant } from "~/common/Error.ts";
+import { EntityWithComponents } from "~/common/EntityWithComponents.ts";
 
 export type ClientEntity = EntityWithComponents<
   typeof CLIENT_ENTITY_COMPONENTS
