@@ -18,6 +18,7 @@ import {
   SimulateOptions,
   simulatePositionWithVelocity,
   simulateVelocityWithAcceleration,
+  TileCollision1d,
 } from "../../../modules/common/functions/physics.ts";
 import { getPhysicsOptions } from "../functions/physicsHelpers.ts";
 import { isClient } from "../env.ts";
@@ -27,8 +28,24 @@ import { PoseType } from "~/client/functions/sprite.ts";
 import { addComponent, hasComponent, removeComponent } from "../Component.ts";
 import { GroundedTag, PlayerTag } from "../components.ts";
 import { Player } from "../../../examples/platformer/common/constants.ts";
+import { executeEventHandlers, registerEventType } from "~/common/Event.ts";
+import { invertAngle } from "~/common/math.ts";
+import { getEntity, UNDEFINED_ENTITY } from "~/common/Entity.ts";
+import { EntityWithComponents } from "~/common/EntityWithComponents.ts";
 
 const tempPositionDelta = new Instance();
+
+export type CollisionData = {
+  subjectEntity: EntityWithComponents<[]>;
+  objectEntity: EntityWithComponents<[]>;
+  impactDistance: number;
+  impactAngle: number;
+};
+export const EVENT_TYPE_COLLISION = registerEventType();
+const _collisionEvent = {
+  type: EVENT_TYPE_COLLISION,
+  data: {} as CollisionData,
+};
 
 export const PhysicsSystem: SystemLoader<
   ISystemExecutionContext,
@@ -37,7 +54,7 @@ export const PhysicsSystem: SystemLoader<
   for (const tileEntity of PhysicsState.tileEntities.query()) {
     const tileX = tileEntity.position.x >> 5;
     const tileY = tileEntity.position.y >> 5;
-    PhysicsState.tileMatrix.set(tileX, tileY, true);
+    PhysicsState.tileMatrix.set(tileX, tileY, tileEntity.eid);
   }
 
   function exec() {
@@ -71,27 +88,42 @@ export const PhysicsSystem: SystemLoader<
         : PoseType.facingLeft;
 
       // console.log("y vel", dynamicEntity.velocity.y);
-      updatePosition(
+      simulatePositionWithVelocity(
         dynamicEntity.position,
         dynamicEntity.velocity,
         fixedDeltaTime,
         options,
       );
+      // TODO(perf) space partitioning
+      handleTileCollisions(
+        dynamicEntity,
+        dynamicEntity.position,
+        getTileCollisions(dynamicEntity.position, options),
+      );
+
       if (isClient) {
-        updatePosition(
+        simulatePositionWithVelocity(
           dynamicEntity.targetPosition,
           dynamicEntity.velocity,
           fixedDeltaTime,
           options,
         );
+        handleTileCollisions(
+          dynamicEntity,
+          dynamicEntity.targetPosition,
+          getTileCollisions(dynamicEntity.targetPosition, options),
+        );
       }
-      const groundedCollision = detectTileCollision1d(
+
+      detectTileCollision1d(
         dynamicEntity.targetPosition,
         PhysicsState.tileMatrix,
         CardinalDirection.yMax,
+        _tileCollisions.yMax,
         options,
       );
-      const isGrounded = groundedCollision >= 0;
+      const isGrounded = _tileCollisions.yMax.impactDistance >= 0 &&
+        _tileCollisions.yMax.tileEntityId !== UNDEFINED_ENTITY;
       if (isGrounded) {
         addComponent(GroundedTag, dynamicEntity);
       } else {
@@ -162,6 +194,111 @@ export const PhysicsSystem: SystemLoader<
   return { exec };
 };
 
+class TileCollisions {
+  constructor(
+    public xMin = new TileCollision1d(),
+    public xMax = new TileCollision1d(),
+    public yMin = new TileCollision1d(),
+    public yMax = new TileCollision1d(),
+  ) {}
+}
+const _tileCollisions = new TileCollisions();
+
+function getTileCollisions(position: Instance, options: SimulateOptions) {
+  detectTileCollision1d(
+    position,
+    PhysicsState.tileMatrix,
+    CardinalDirection.xMin,
+    _tileCollisions.xMin,
+    options,
+  );
+  detectTileCollision1d(
+    position,
+    PhysicsState.tileMatrix,
+    CardinalDirection.xMax,
+    _tileCollisions.xMax,
+    options,
+  );
+  detectTileCollision1d(
+    position,
+    PhysicsState.tileMatrix,
+    CardinalDirection.yMin,
+    _tileCollisions.yMin,
+    options,
+  );
+  detectTileCollision1d(
+    position,
+    PhysicsState.tileMatrix,
+    CardinalDirection.yMax,
+    _tileCollisions.yMax,
+    options,
+  );
+  return _tileCollisions;
+}
+
+function handleTileCollisions(
+  entity: IPhysicsEntity,
+  position: Instance,
+  collisions: TileCollisions,
+) {
+  const { velocity } = entity;
+  const { xMin, xMax, yMin, yMax } = collisions;
+
+  // TODO calculate distance and angle
+  if (xMin.impactDistance > 0) {
+    _collisionEvent.data.impactDistance = NaN;
+    _collisionEvent.data.impactAngle = NaN;
+    _collisionEvent.data.subjectEntity = entity;
+    _collisionEvent.data.objectEntity = getEntity(xMin.tileEntityId)!;
+    executeEventHandlers(_collisionEvent);
+    resolveTileCollision1d(
+      position,
+      velocity,
+      CardinalDirection.xMin,
+      xMin.impactDistance,
+    );
+  }
+  if (xMax.impactDistance > 0) {
+    _collisionEvent.data.impactDistance = NaN;
+    _collisionEvent.data.impactAngle = NaN;
+    _collisionEvent.data.subjectEntity = entity;
+    _collisionEvent.data.objectEntity = getEntity(xMax.tileEntityId)!;
+    executeEventHandlers(_collisionEvent);
+    resolveTileCollision1d(
+      position,
+      velocity,
+      CardinalDirection.xMax,
+      xMax.impactDistance,
+    );
+  }
+  if (yMin.impactDistance > 0) {
+    _collisionEvent.data.impactDistance = NaN;
+    _collisionEvent.data.impactAngle = NaN;
+    _collisionEvent.data.subjectEntity = entity;
+    _collisionEvent.data.objectEntity = getEntity(yMin.tileEntityId)!;
+    executeEventHandlers(_collisionEvent);
+    resolveTileCollision1d(
+      position,
+      velocity,
+      CardinalDirection.yMin,
+      yMin.impactDistance,
+    );
+  }
+  if (yMax.impactDistance > 0) {
+    _collisionEvent.data.impactDistance = NaN;
+    _collisionEvent.data.impactAngle = NaN;
+    _collisionEvent.data.subjectEntity = entity;
+    _collisionEvent.data.objectEntity = getEntity(yMax.tileEntityId)!;
+    executeEventHandlers(_collisionEvent);
+    resolveTileCollision1d(
+      position,
+      velocity,
+      CardinalDirection.yMax,
+      yMax.impactDistance,
+    );
+  }
+}
+
 function isShoulderPosition(
   myPosition: Instance,
   otherPosition: Instance,
@@ -187,6 +324,7 @@ function handleDynamicEntityCollisions(
     options,
     Player.MAX_COLLISION_PLAY_DISTANCE,
   );
+  const angle = getCollisionAngle(positionA, positionB, options);
 
   const prevY = positionA.y;
 
@@ -202,7 +340,6 @@ function handleDynamicEntityCollisions(
   }
 
   if (distance > 0) {
-    const angle = getCollisionAngle(positionA, positionB, options);
     resolveCollision(
       positionA,
       velocityA,
@@ -245,71 +382,4 @@ function handleDynamicEntityCollisions(
     velocityA.y = 0;
   }
   return distance;
-}
-
-function updatePosition(
-  position: Instance,
-  velocity: Instance,
-  fixedDeltaTime: number,
-  options: SimulateOptions,
-) {
-  simulatePositionWithVelocity(position, velocity, fixedDeltaTime, options);
-  // TODO(perf) space partitioning
-  const xMinCollision = detectTileCollision1d(
-    position,
-    PhysicsState.tileMatrix,
-    CardinalDirection.xMin,
-    options,
-  );
-  const xMaxCollision = detectTileCollision1d(
-    position,
-    PhysicsState.tileMatrix,
-    CardinalDirection.xMax,
-    options,
-  );
-  const yMinCollision = detectTileCollision1d(
-    position,
-    PhysicsState.tileMatrix,
-    CardinalDirection.yMin,
-    options,
-  );
-  const yMaxCollision = detectTileCollision1d(
-    position,
-    PhysicsState.tileMatrix,
-    CardinalDirection.yMax,
-    options,
-  );
-
-  if (xMinCollision > 0) {
-    resolveTileCollision1d(
-      position,
-      velocity,
-      CardinalDirection.xMin,
-      xMinCollision,
-    );
-  }
-  if (xMaxCollision > 0) {
-    resolveTileCollision1d(
-      position,
-      velocity,
-      CardinalDirection.xMax,
-      xMaxCollision,
-    );
-  }
-  if (yMinCollision > 0) {
-    resolveTileCollision1d(
-      position,
-      velocity,
-      CardinalDirection.yMin,
-      yMinCollision,
-    );
-  }
-  if (yMaxCollision > 0) {
-    resolveTileCollision1d(
-      position,
-      velocity,
-      CardinalDirection.yMax,
-      yMaxCollision,
-    );
-  }
 }

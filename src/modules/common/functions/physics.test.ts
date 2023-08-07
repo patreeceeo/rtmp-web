@@ -7,8 +7,10 @@ import {
   simulatePositionWithVelocity,
   simulateVelocityWithAcceleration,
   TILE_SIZE,
+  TileCollision1d,
 } from "./physics.ts";
 import { Matrix2 } from "../math.ts";
+import { EntityId, UNDEFINED_ENTITY } from "~/common/Entity.ts";
 
 Deno.test("physics: acceleration", () => {
   const deltaTime = 10;
@@ -54,35 +56,38 @@ Deno.test("detect tile collision: xMin", () => {
   const options = new SimulateOptions();
   options.hitBox = new Vec2.Instance(2, 2);
 
-  const matrix = new Matrix2<boolean>(2, 2, false);
-  matrix.set(0, 0, true);
+  const matrix = new Matrix2<EntityId>(2, 2, UNDEFINED_ENTITY);
+  matrix.set(0, 0, 0 as EntityId);
 
-  let result: number;
-  result = detectTileCollision1d(
+  const result = new TileCollision1d();
+  detectTileCollision1d(
     position,
     matrix,
     CardinalDirection.xMin,
+    result,
     options,
   );
-  assertEquals(result, options.hitBox.x / 2);
+  assertEquals(result.impactDistance, options.hitBox.x / 2);
 
   position.x += options.hitBox.x / 2;
-  result = detectTileCollision1d(
+  detectTileCollision1d(
     position,
     matrix,
     CardinalDirection.xMin,
+    result,
     options,
   );
-  assertEquals(result, 0);
+  assertEquals(result.impactDistance, 0);
 
   position.x += 1;
-  result = detectTileCollision1d(
+  detectTileCollision1d(
     position,
     matrix,
     CardinalDirection.xMin,
+    result,
     options,
   );
-  assertEquals(result, -1);
+  assertEquals(result.tileEntityId, UNDEFINED_ENTITY);
 });
 
 Deno.test("detect tile collision: xMax", () => {
@@ -90,37 +95,40 @@ Deno.test("detect tile collision: xMax", () => {
   const options = new SimulateOptions();
   options.hitBox = new Vec2.Instance(2, 2);
 
-  const matrix = new Matrix2<boolean>(2, 2, false);
-  matrix.set(1, 0, true);
+  const matrix = new Matrix2<EntityId>(2, 2, UNDEFINED_ENTITY);
+  matrix.set(1, 0, 0 as EntityId);
 
-  let result: number;
-  result = detectTileCollision1d(
+  const result = new TileCollision1d();
+  detectTileCollision1d(
     position,
     matrix,
     CardinalDirection.xMax,
+    result,
     options,
   );
 
-  assertEquals(result, options.hitBox.x / 2);
+  assertEquals(result.impactDistance, options.hitBox.x / 2);
   position.x -= options.hitBox.x / 2;
 
-  result = detectTileCollision1d(
+  detectTileCollision1d(
     position,
     matrix,
     CardinalDirection.xMax,
+    result,
     options,
   );
-  assertEquals(result, 0);
+  assertEquals(result.impactDistance, 0);
 
   position.x -= 1;
 
-  result = detectTileCollision1d(
+  detectTileCollision1d(
     position,
     matrix,
     CardinalDirection.xMax,
+    result,
     options,
   );
-  assertEquals(result, -1);
+  assertEquals(result.tileEntityId, UNDEFINED_ENTITY);
 });
 
 Deno.test("detect tile collision: yMin", () => {
@@ -128,35 +136,38 @@ Deno.test("detect tile collision: yMin", () => {
   const options = new SimulateOptions();
   options.hitBox = new Vec2.Instance(2, 2);
 
-  const matrix = new Matrix2<boolean>(2, 2, false);
-  matrix.set(0, 0, true);
+  const matrix = new Matrix2<EntityId>(2, 2, UNDEFINED_ENTITY);
+  matrix.set(0, 0, 0 as EntityId);
 
-  let result: number;
-  result = detectTileCollision1d(
+  const result = new TileCollision1d();
+  detectTileCollision1d(
     position,
     matrix,
     CardinalDirection.yMin,
+    result,
     options,
   );
-  assertEquals(result, options.hitBox.y / 2);
+  assertEquals(result.impactDistance, options.hitBox.y / 2);
 
   position.y += options.hitBox.y / 2;
-  result = detectTileCollision1d(
+  detectTileCollision1d(
     position,
     matrix,
     CardinalDirection.yMin,
+    result,
     options,
   );
-  assertEquals(result, 0);
+  assertEquals(result.impactDistance, 0);
 
   position.y += 1;
-  result = detectTileCollision1d(
+  detectTileCollision1d(
     position,
     matrix,
     CardinalDirection.yMin,
+    result,
     options,
   );
-  assertEquals(result, -1);
+  assertEquals(result.tileEntityId, UNDEFINED_ENTITY);
 });
 
 Deno.test("detect tile collision: yMax", () => {
@@ -164,35 +175,38 @@ Deno.test("detect tile collision: yMax", () => {
   const options = new SimulateOptions();
   options.hitBox = new Vec2.Instance(2, 2);
 
-  const matrix = new Matrix2<boolean>(2, 2, false);
-  matrix.set(0, 1, true);
+  const matrix = new Matrix2<EntityId>(2, 2, UNDEFINED_ENTITY);
+  matrix.set(0, 1, 0 as EntityId);
 
-  let result: number;
-  result = detectTileCollision1d(
+  const result = new TileCollision1d();
+  detectTileCollision1d(
     position,
     matrix,
     CardinalDirection.yMax,
+    result,
     options,
   );
 
-  assertEquals(result, options.hitBox.y / 2);
+  assertEquals(result.impactDistance, options.hitBox.y / 2);
   position.y -= options.hitBox.y / 2;
 
-  result = detectTileCollision1d(
+  detectTileCollision1d(
     position,
     matrix,
     CardinalDirection.yMax,
+    result,
     options,
   );
-  assertEquals(result, 0);
+  assertEquals(result.impactDistance, 0);
 
   position.y -= 1;
 
-  result = detectTileCollision1d(
+  detectTileCollision1d(
     position,
     matrix,
     CardinalDirection.yMax,
+    result,
     options,
   );
-  assertEquals(result, -1);
+  assertEquals(result.tileEntityId, UNDEFINED_ENTITY);
 });

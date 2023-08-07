@@ -14,6 +14,7 @@ export interface IEntityMaximal extends IEntityBase {
   isClient: boolean;
   isTile: boolean;
   isGrounded: boolean;
+  killOnCollision: boolean;
   isEditorDragging: boolean;
   shoulderCount: number;
   bodyIsStatic: boolean;

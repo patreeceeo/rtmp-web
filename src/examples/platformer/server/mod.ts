@@ -30,6 +30,11 @@ import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
 import { addEntity } from "~/common/Entity.ts";
 import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
 import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
+import { addEventHandler } from "~/common/Event.ts";
+import {
+  CollisionData,
+  EVENT_TYPE_COLLISION,
+} from "../../../modules/common/systems/Physics.ts";
 
 const idleTimeout = 300;
 
@@ -120,6 +125,18 @@ const handleMessagePipeline = new Pipeline(
   [PlayerMovementSystem()],
   new DemandDriver(),
 );
+
+addEventHandler<CollisionData>(EVENT_TYPE_COLLISION, (event) => {
+  if (
+    event.data.subjectEntity.isPlayer && event.data.objectEntity.killOnCollision
+  ) {
+    softDeleteEntity(event.data.subjectEntity.eid);
+    broadcastMessage(PlayerRemove, (p) => {
+      p.nid = ServerNetworkState.getId(event.data.subjectEntity.eid)!;
+      p.sid = MessageState.currentStep;
+    });
+  }
+});
 
 loadTilemap("/public/assets/level.json", false).then(() => {
   const fastPipeline = new Pipeline(

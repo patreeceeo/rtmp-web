@@ -20,6 +20,8 @@ import { EntityWithComponents } from "~/common/EntityWithComponents.ts";
 
 export type EntityId = number & OpaqueType<"entityId">;
 
+export const UNDEFINED_ENTITY = -1 as EntityId;
+
 export interface IEntityProxyConstructor {
   new (eid: EntityId): IEntityBase;
 }
@@ -122,7 +124,7 @@ export class EntityPrefabCollection<
   constructor(readonly components: ComponentTypes) {
     this.#query = defineQuery(this.components);
   }
-  add<InputEntity extends IEntityBase>(entity: InputEntity) {
+  add<InputEntity extends EntityWithComponents<[]>>(entity: InputEntity) {
     const prefab = addComponents<
       ComponentTypes[number]["propName"],
       InputEntity

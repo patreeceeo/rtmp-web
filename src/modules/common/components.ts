@@ -52,6 +52,10 @@ export const GroundedTag = defineTag({
   propName: "isGrounded",
 });
 
+export const KillOnCollisionTag = defineTag({
+  propName: "killOnCollision",
+});
+
 export const EditorDraggingTag = defineTag({
   propName: "isEditorDragging",
 });
@@ -62,6 +66,7 @@ export const TAGS = [
   ClientTag,
   TileTag,
   GroundedTag,
+  KillOnCollisionTag,
   EditorDraggingTag,
 ];
 

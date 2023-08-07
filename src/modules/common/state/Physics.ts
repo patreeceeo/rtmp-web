@@ -1,4 +1,8 @@
-import { EntityPrefabCollection } from "../Entity.ts";
+import {
+  EntityId,
+  EntityPrefabCollection,
+  UNDEFINED_ENTITY,
+} from "../Entity.ts";
 import {
   AccelerationComponent,
   BodyDimensions,
@@ -44,7 +48,7 @@ class PhysicsStateApi {
     this.dynamicEntityComponents,
   );
   readonly tileEntities = new EntityPrefabCollection(this.tileComponents);
-  readonly tileMatrix = new Matrix2<boolean>(32, 32, false);
+  readonly tileMatrix = new Matrix2<EntityId>(32, 32, UNDEFINED_ENTITY);
 }
 
 export const PhysicsState = new PhysicsStateApi();

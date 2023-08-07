@@ -12,6 +12,7 @@ import {
   detectTileCollision1d,
   SimulateOptions,
   TILE_SIZE,
+  TileCollision1d,
 } from "../../common/functions/physics.ts";
 import { PhysicsState } from "../../common/state/Physics.ts";
 import { hasComponent } from "~/common/Component.ts";
@@ -173,6 +174,7 @@ function drawBackground() {
   }
 }
 
+const _tileCollision = new TileCollision1d();
 function drawCollisionDebug() {
   const {
     background: { context2d: ctx },
@@ -196,8 +198,9 @@ function drawCollisionDebug() {
           posPhysics,
           PhysicsState.tileMatrix,
           CardinalDirection.xMin,
+          _tileCollision,
           options,
-        ) >= 0
+        ).impactDistance > 0
       ) {
         ctx!.strokeStyle = "green";
         ctx!.beginPath();
@@ -214,8 +217,9 @@ function drawCollisionDebug() {
           posPhysics,
           PhysicsState.tileMatrix,
           CardinalDirection.yMax,
+          _tileCollision,
           options,
-        ) >= 0
+        ).impactDistance > 0
       ) {
         ctx!.strokeStyle = "yellow";
         ctx!.beginPath();
@@ -232,8 +236,9 @@ function drawCollisionDebug() {
           posPhysics,
           PhysicsState.tileMatrix,
           CardinalDirection.xMax,
+          _tileCollision,
           options,
-        ) >= 0
+        ).impactDistance > 0
       ) {
         ctx!.strokeStyle = "red";
         ctx!.beginPath();
@@ -250,8 +255,9 @@ function drawCollisionDebug() {
           posPhysics,
           PhysicsState.tileMatrix,
           CardinalDirection.yMin,
+          _tileCollision,
           options,
-        ) >= 0
+        ).impactDistance > 0
       ) {
         ctx!.strokeStyle = "purple";
         ctx!.beginPath();

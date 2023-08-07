@@ -1,5 +1,5 @@
 import { OutputState } from "../../client/state/Output.ts";
-import { EntityPrefabCollection, IEntityBase } from "../Entity.ts";
+import { EntityPrefabCollection } from "../Entity.ts";
 import { isClient } from "../env.ts";
 import { PhysicsState } from "./Physics.ts";
 import { set } from "../Vec2.ts";
@@ -10,6 +10,7 @@ import {
   UuidComponent,
 } from "../components.ts";
 import { Player } from "../../../examples/platformer/common/constants.ts";
+import { EntityWithComponents } from "~/common/EntityWithComponents.ts";
 
 // TODO delete this file?
 
@@ -25,7 +26,7 @@ class PlayerStateApi {
 
   readonly entities = new EntityPrefabCollection(this.components);
 
-  addPlayer(entity: IEntityBase) {
+  addPlayer(entity: EntityWithComponents<[]>) {
     const player = this.entities.add(entity);
     player.friction = Player.GROUND_FRICTION;
     set(player.bodyDimensions, Player.WIDTH, Player.HEIGHT);
