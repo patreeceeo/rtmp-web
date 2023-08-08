@@ -3,7 +3,6 @@ import {
   almostEquals,
   clamp,
   copy,
-  equals,
   getLengthSquared,
   sub,
 } from "~/common/Vec2.ts";

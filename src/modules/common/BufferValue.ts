@@ -237,8 +237,8 @@ export function getByteLength<Iface>(spec: IBufferValueSpec<Iface>): number {
     return spec.byteLength;
   } else {
     for (const key in spec.props) {
-      // deno-lint-ignore no-explicit-any
       if (
+        // deno-lint-ignore no-explicit-any
         (spec as IBufferProxyObjectSpec<Record<string, any>>).props[key][0] >=
           maxByteOffset
       ) {

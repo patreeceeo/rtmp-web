@@ -1,10 +1,6 @@
 import { MessageStateApi } from "./Message.ts";
 import { assertEquals } from "asserts";
-import {
-  defMessageType,
-  IPayloadAny,
-  MAX_MESSAGE_BYTE_LENGTH,
-} from "../../common/Message.ts";
+import { defMessageType, IPayloadAny } from "../../common/Message.ts";
 import { map, toArray } from "../Iterable.ts";
 import { PrimitiveValue } from "../BufferValue.ts";
 import { Uuid } from "../NetworkApi.ts";

@@ -1,20 +1,7 @@
 import { Box, IBox } from "../Box.ts";
 import { invariant } from "../Error.ts";
-import {
-  getDistanceBetweenEllipses,
-  Matrix2,
-  normalizeAngle,
-  PI2,
-  rad2deg,
-} from "../math.ts";
-import {
-  add,
-  clamp,
-  extend,
-  getLengthSquared,
-  Instance,
-  ReadOnly,
-} from "../Vec2.ts";
+import { getDistanceBetweenEllipses, Matrix2 } from "../math.ts";
+import { add, clamp, extend, Instance, ReadOnly } from "../Vec2.ts";
 
 export interface ISimulateOptions {
   friction: number;

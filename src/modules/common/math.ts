@@ -1,4 +1,3 @@
-import { invariant } from "./Error.ts";
 import { Instance } from "./Vec2.ts";
 
 export const PI2 = 2 * Math.PI;

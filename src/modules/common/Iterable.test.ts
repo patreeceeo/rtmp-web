@@ -1,5 +1,5 @@
-import { assert, assertEquals } from "asserts";
-import { filter, map, toArray } from "./Iterable.ts";
+import { assertEquals } from "asserts";
+import { map, toArray } from "./Iterable.ts";
 
 Deno.test("Iterable#toArray", () => {
   function* genFn() {
@@ -21,12 +21,12 @@ Deno.test("Iterable#map", () => {
   assertEquals(toArray(map(genFn(), "sid")), [1, 2, "red", "blue"]);
 });
 
-function time(fn: () => void) {
-  const start = performance.now();
-  fn();
-  const end = performance.now();
-  return end - start;
-}
+// function time(fn: () => void) {
+//   const start = performance.now();
+//   fn();
+//   const end = performance.now();
+//   return end - start;
+// }
 
 // TODO these tests fail after upgrading Deno. What does this mean for performance?
 // Deno.test("performance: map", () => {

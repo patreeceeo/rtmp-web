@@ -5,7 +5,7 @@ import { setupCanvas } from "~/client/canvas.ts";
 import { EditorState } from "~/editor/state/EditorState.ts";
 import { SpriteState } from "~/client/state/Sprite.ts";
 import { castEntity, getEntity, matchEntity } from "~/common/Entity.ts";
-import { hasAllComponents, hasComponent } from "~/common/Component.ts";
+import { hasComponent } from "~/common/Component.ts";
 import {
   GroundedTag,
   ImageCollectionComponent,
