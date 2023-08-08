@@ -205,13 +205,3 @@ export function sendMessageToClient<P extends IPayloadAny>(
   MsgDef.write(view, 0, writePayload);
   sendIfOpen(client, buffer);
 }
-
-const testBuffer = new ArrayBuffer(4);
-const testView = new DataView(testBuffer, 0);
-let testSid = 0;
-export function sendTest() {
-  testView.setUint8(0, 0);
-  testView.setUint16(0, testSid);
-  testSid++;
-  broadcastData(testView);
-}
