@@ -39,7 +39,6 @@ import { DebugState } from "../../../modules/client/state/Debug.ts";
 import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
 import { ReconcileState } from "../../../modules/client/state/Reconcile.ts";
 import { PlayerSnapshotReconciler } from "./reconcilers.ts";
-import { SyncSystem } from "~/client/systems/SyncSystem.ts";
 import { requestSprites } from "./sprites.ts";
 
 useClient(import.meta, "ws://localhost:12321");
@@ -226,7 +225,6 @@ loadTilemap("/public/assets/level.json").then(async () => {
       PurgeSystem(),
       PingSystem({ timeout: 10 * 1000 }),
       DebugSystem({ pingStatTimeFrame: 5000, fpsStatTimeFrame: 500 }),
-      SyncSystem(),
     ],
     new FixedIntervalDriver(150),
   );
