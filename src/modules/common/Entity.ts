@@ -12,7 +12,7 @@ import {
   hasAllComponents,
   IAnyComponentType,
 } from "./Component.ts";
-import { SoftDeletedTag } from "./components.ts";
+import { TAGS } from "./components.ts";
 import { defineQuery, IQuery } from "./Query.ts";
 import { OpaqueType } from "./util.ts";
 import { defaultWorld } from "./World.ts";
@@ -62,9 +62,14 @@ export class Pool {
 }
 
 function createEntity(world = defaultWorld): EntityWithComponents<[]> {
-  return {
+  const entity = {
     eid: _addEntity(world) as EntityId,
   } as EntityWithComponents<[]>;
+
+  for (const tag of TAGS) {
+    tag.registerWithEntity(entity);
+  }
+  return entity;
 }
 
 export function mapEntity<C extends IAnyComponentType[]>(
@@ -93,15 +98,8 @@ export function hasEntity(eid: EntityId, world = defaultWorld): boolean {
   return entityExists(world, eid);
 }
 
-export function getEntity(eid: EntityId): IEntityBase | undefined {
-  return pool.get(eid);
-}
-
-export function softDeleteEntity(
-  eid: EntityId,
-  world = defaultWorld,
-): void {
-  addComponent(SoftDeletedTag, getEntity(eid)!, world);
+export function getEntity(eid: EntityId): EntityWithComponents<[]> | undefined {
+  return pool.get(eid) as EntityWithComponents<[]> | undefined;
 }
 
 export function deleteEntity(eid: EntityId, world = defaultWorld): void {

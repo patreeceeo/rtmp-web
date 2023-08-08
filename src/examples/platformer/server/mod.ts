@@ -27,7 +27,7 @@ import {
 } from "../../../modules/common/Message.ts";
 import { initPing, sendPing } from "../../../modules/common/state/Ping.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
-import { addEntity, softDeleteEntity } from "~/common/Entity.ts";
+import { addEntity } from "~/common/Entity.ts";
 import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
 import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
 
@@ -93,7 +93,7 @@ class DotsServerApp implements ServerApp {
     const client = ServerNetworkState.getClientForSocket(ws);
     if (client) {
       console.log("Client disconnected", client.uuid);
-      softDeleteEntity(client.eid);
+      client.isSoftDeleted = true;
     } else {
       console.log("Client purged");
     }

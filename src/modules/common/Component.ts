@@ -55,6 +55,13 @@ export interface IComponentType<
   onRemove(target: IEntityBase, componentType: this): void;
 }
 
+export interface ITagComponentType<
+  S extends ISchema,
+  PropName extends keyof IEntityMaximal,
+> extends IComponentType<S, PropName> {
+  registerWithEntity(target: IEntityBase): void;
+}
+
 export type IAnyComponentType = IComponentType<ISchema, keyof IEntityMaximal>;
 
 interface IComponentConfigBase<
@@ -79,37 +86,48 @@ type ITagConfig<PropName extends string> = IComponentConfigBase<
 
 export function defineTag<PropName extends keyof IEntityMaximal>(
   config: ITagConfig<PropName>,
-): IComponentType<ITagSchema, PropName> {
+): ITagComponentType<ITagSchema, PropName> {
   const store = createStore<ITagSchema>();
+  const base = {
+    configurable: true,
+    enumerable: true,
+  };
   const result = Object.freeze({
     propName: config.propName,
     schema: {},
     store,
     queryable: store,
     modifiers: ModifierFlags.None,
+    registerWithEntity(target: IEntityBase) {
+      Object.defineProperty(target, this.propName, {
+        get: this.getValue.bind(this, defaultWorld, store, target.eid),
+        set: this.setValue.bind(this, defaultWorld, store, target.eid),
+        ...base,
+      });
+    },
     getValue(world: IWorld, store: StoreType<ITagSchema>, eid: EntityId) {
       return _hasComponent(world, store, eid);
     },
+    setValue(
+      world: IWorld,
+      store: StoreType<ITagSchema>,
+      eid: EntityId,
+      value: boolean,
+    ) {
+      if (value) {
+        addToStore(world, store, eid);
+      } else {
+        removeFromStore(world, store, eid);
+      }
+    },
     onAdd(target: IEntityBase) {
-      Object.defineProperty(target, this.propName, {
-        value: true,
-        configurable: true,
-        writable: false,
-        enumerable: true,
-      });
       config.onAdd?.(target, result);
     },
     onRemove(target: IEntityBase) {
-      Object.defineProperty(target, this.propName, {
-        value: false,
-        configurable: true,
-        writable: false,
-        enumerable: false,
-      });
       config.onRemove?.(target, result);
     },
   });
-  return result as unknown as IComponentType<ITagSchema, PropName>;
+  return result as unknown as ITagComponentType<ITagSchema, PropName>;
 }
 
 interface IComponentConfig<

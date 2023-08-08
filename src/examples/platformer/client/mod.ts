@@ -33,7 +33,7 @@ import { initPing, updatePing } from "../../../modules/common/state/Ping.ts";
 import { PingSystem } from "../../../modules/client/systems/Ping.ts";
 import { SCREEN_HEIGHT_PX, SCREEN_WIDTH_PX } from "../mod.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
-import { addEntity, softDeleteEntity } from "~/common/Entity.ts";
+import { addEntity, getEntity } from "~/common/Entity.ts";
 import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
 import { DebugState } from "../../../modules/client/state/Debug.ts";
 import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
@@ -184,7 +184,7 @@ function handlePlayerAdded(
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
   const eid = ClientNetworkState.getEntityId(playerRemove.nid)!;
   console.log("player removed:", playerRemove.nid);
-  softDeleteEntity(eid);
+  getEntity(eid)!.isSoftDeleted = true;
   // TODO move this stuff to PurgeSystem
   ClientNetworkState.deleteId(playerRemove.nid);
 }
