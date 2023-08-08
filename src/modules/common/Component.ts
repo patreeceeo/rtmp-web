@@ -65,6 +65,13 @@ export interface ITagComponentType<
   registerWithEntity(target: IEntityBase): void;
 }
 
+export interface ITagComponentType<
+  S extends ISchema,
+  PropName extends keyof IEntityMaximal,
+> extends IComponentType<S, PropName> {
+  registerWithEntity(target: IEntityBase): void;
+}
+
 export type IAnyComponentType = IComponentType<ISchema, keyof IEntityMaximal>;
 
 interface IComponentConfigBase<
