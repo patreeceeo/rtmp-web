@@ -157,6 +157,7 @@ export class ECSInstanceOptions<
   ) {}
 }
 
+// deno-lint-ignore no-explicit-any
 const _ecsInstanceOptions = new ECSInstanceOptions<any>(() => {}, () => {});
 
 export class ECSInstance<Schema extends { x: PrimativeType; y: PrimativeType }>
