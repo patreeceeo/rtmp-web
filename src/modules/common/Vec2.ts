@@ -148,12 +148,24 @@ export class Instance implements Interface {
   constructor(public x = 0, public y = 0) {}
 }
 
+export class ECSInstanceOptions<
+  Schema extends { x: PrimativeType; y: PrimativeType },
+> {
+  constructor(
+    public trapSet: (o: ECSInstance<Schema>, key: keyof Schema) => void,
+    public trapGet: (o: ECSInstance<Schema>, key: keyof Schema) => void,
+  ) {}
+}
+
+const _ecsInstanceOptions = new ECSInstanceOptions<any>(() => {}, () => {});
+
 export class ECSInstance<Schema extends { x: PrimativeType; y: PrimativeType }>
   implements Interface {
   public maxLength: number;
   constructor(
     readonly store: StoreType<Schema>,
     public eid: EntityId,
+    public options = _ecsInstanceOptions,
   ) {
     const byteLength = Math.min(
       (store.x as TypedArray).BYTES_PER_ELEMENT,
@@ -162,19 +174,23 @@ export class ECSInstance<Schema extends { x: PrimativeType; y: PrimativeType }>
     this.maxLength = (1 << (byteLength * 8 - 1)) - 1;
   }
   get x() {
+    this.options.trapGet(this, "x");
     return (this.store.x as Array<number>)[this.eid];
   }
 
   set x(v) {
+    this.options.trapSet(this, "x");
     // TODO this maxLength gaurd should be built in to numeric types?
     (this.store.x as Array<number>)[this.eid] = getAbsMin(v, this.maxLength);
   }
 
   get y() {
+    this.options.trapGet(this, "y");
     return (this.store.y as Array<number>)[this.eid];
   }
 
   set y(v) {
+    this.options.trapSet(this, "y");
     (this.store.y as Array<number>)[this.eid] = getAbsMin(v, this.maxLength);
   }
 }
