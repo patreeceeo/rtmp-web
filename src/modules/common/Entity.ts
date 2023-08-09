@@ -140,7 +140,7 @@ export class EntityPrefabCollection<
     });
   }
   has(
-    entity: EntityWithComponents<ComponentTypes>,
+    entity: EntityWithComponents<[]>,
   ) {
     const eids = this.#query(defaultWorld);
     return entityExists(defaultWorld, entity.eid) && eids.includes(entity.eid);
