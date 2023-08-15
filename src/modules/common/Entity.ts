@@ -17,6 +17,7 @@ import { defineQuery, IQuery } from "./Query.ts";
 import { OpaqueType } from "./util.ts";
 import { defaultWorld } from "./World.ts";
 import { EntityWithComponents } from "~/common/EntityWithComponents.ts";
+import { Pool } from "~/common/Pool.ts";
 
 export type EntityId = number & OpaqueType<"entityId">;
 
@@ -27,40 +28,6 @@ export interface IEntityProxyConstructor {
 }
 export interface IEntityBase {
   readonly eid: EntityId;
-}
-
-export class Pool {
-  #items: IEntityBase[] = [];
-  #size = 0;
-
-  constructor() {
-    this.#size = 0;
-  }
-  get size() {
-    return this.#size;
-  }
-  acquire(world = defaultWorld): EntityWithComponents<[]> {
-    const entity = createEntity(world);
-    this.#items[entity.eid] = entity;
-    this.#size++;
-    return entity;
-  }
-  get(eid: EntityId): IEntityBase | undefined {
-    return this.#items[eid];
-  }
-  set(entity: IEntityBase) {
-    const wasDefined = entity.eid in this.#items;
-    this.#items[entity.eid] = entity;
-    if (!wasDefined) {
-      this.#size++;
-    }
-  }
-  release(eid: EntityId) {
-    if (eid in this.#items) {
-      delete this.#items[eid];
-      this.#size--;
-    }
-  }
 }
 
 function createEntity(world = defaultWorld): EntityWithComponents<[]> {
@@ -85,11 +52,11 @@ export function mapEntity<C extends IAnyComponentType[]>(
   for (const component of expectedComponents) {
     addComponent(component, entity, world);
   }
-  pool.set(entity);
+  pool.set(entity as EntityWithComponents<[]>);
   return entity as EntityWithComponents<C>;
 }
 
-const pool = new Pool();
+const pool = new Pool(createEntity, (entity) => entity.eid);
 
 // TODO it would be nice to be able to pass an array of components to add
 export function addEntity(world = defaultWorld): EntityWithComponents<[]> {
@@ -136,7 +103,7 @@ export class EntityPrefabCollection<
   > {
     const eids = this.#query(defaultWorld);
     return eids.map((eid: number) => {
-      return pool.get(eid as EntityId) as EntityWithComponents<ComponentTypes>;
+      return pool.get(eid)! as unknown as EntityWithComponents<ComponentTypes>;
     });
   }
   has(
@@ -146,7 +113,7 @@ export class EntityPrefabCollection<
     return entityExists(defaultWorld, entity.eid) && eids.includes(entity.eid);
   }
   get(eid: EntityId): EntityWithComponents<ComponentTypes> | undefined {
-    return pool.get(eid) as EntityWithComponents<ComponentTypes>;
+    return pool.get(eid)! as unknown as EntityWithComponents<ComponentTypes>;
   }
 }
 
