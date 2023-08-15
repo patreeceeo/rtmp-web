@@ -17,6 +17,7 @@ import { invariant } from "./Error.ts";
 import { ModifierFlags } from "./Query.ts";
 import { defaultWorld } from "./World.ts";
 import { IEntityMaximal } from "~/common/entities.ts";
+import { Assign, PossibleObjectKey } from "~/common/util.ts";
 
 export type ISchema = _ISchema;
 export type StoreType<T extends ISchema> = _StoreType<T>;
@@ -151,7 +152,14 @@ interface IComponentConfig<
 export function defineComponent<
   S extends ISchema = ITagSchema,
   PropName extends keyof IEntityMaximal = keyof IEntityMaximal,
->(config: IComponentConfig<S, PropName>): IComponentType<S, PropName> {
+  StaticAssigns extends Record<PossibleObjectKey, unknown> = Record<
+    PossibleObjectKey,
+    never
+  >,
+>(
+  config: IComponentConfig<S, PropName>,
+  staticAssigns: StaticAssigns = {} as Record<PossibleObjectKey, never>,
+): Assign<IComponentType<S, PropName>, StaticAssigns> {
   const store = createStore(config.schema);
   return Object.freeze({
     propName: config.propName,
@@ -199,6 +207,7 @@ export function defineComponent<
         enumerable: false,
       });
     },
+    ...staticAssigns,
   });
 }
 
@@ -261,8 +270,10 @@ export function hasComponent<E extends IEntityBase>(
   entity: E,
   world = defaultWorld,
 ): boolean {
-  return _hasComponent(world, componentType.store, entity.eid) ||
-    componentType.modifiers != ModifierFlags.None;
+  return (
+    _hasComponent(world, componentType.store, entity.eid) ||
+    componentType.modifiers != ModifierFlags.None
+  );
 }
 
 export function hasAllComponents<E extends IEntityBase>(
