@@ -18,6 +18,7 @@ import { ModifierFlags } from "./Query.ts";
 import { defaultWorld } from "./World.ts";
 import { IEntityMaximal } from "~/common/entities.ts";
 import { Assign, PossibleObjectKey } from "~/common/util.ts";
+import { Pool } from "~/common/Pool.ts";
 
 export type ISchema = _ISchema;
 export type StoreType<T extends ISchema> = _StoreType<T>;
@@ -149,6 +150,13 @@ interface IComponentConfig<
   ) => void;
 }
 
+interface IObjectComponentConfig<
+  S extends ISchema = ITagSchema,
+  PropName extends keyof IEntityMaximal = keyof IEntityMaximal,
+> extends IComponentConfig<S, PropName> {
+  identify: (value: IEntityMaximal[PropName]) => number;
+}
+
 export function defineComponent<
   S extends ISchema = ITagSchema,
   PropName extends keyof IEntityMaximal = keyof IEntityMaximal,
@@ -209,6 +217,36 @@ export function defineComponent<
     },
     ...staticAssigns,
   });
+}
+
+export function defineObjectComponent<
+  S extends ISchema = ITagSchema,
+  PropName extends keyof IEntityMaximal = keyof IEntityMaximal,
+  StaticAssigns extends Record<PossibleObjectKey, unknown> = Record<
+    PossibleObjectKey,
+    never
+  >,
+>(
+  config: IObjectComponentConfig<S, PropName>,
+  staticAssigns: StaticAssigns = {} as Record<PossibleObjectKey, never>,
+): Assign<IComponentType<S, PropName>, StaticAssigns> {
+  const pool = new Pool<IEntityMaximal[PropName], [StoreType<S>, EntityId]>(
+    (store: StoreType<S>, eid: EntityId) =>
+      config.getValue(defaultWorld, store, eid),
+    (o) => config.identify(o),
+  );
+  const Component = defineComponent({
+    schema: config.schema,
+    propName: config.propName,
+    getValue(
+      _world: IWorld,
+      store: StoreType<S>,
+      eid: EntityId,
+    ) {
+      return pool.get(eid) || pool.acquire(store, eid);
+    },
+  }, staticAssigns);
+  return Component;
 }
 
 export function addComponent<
