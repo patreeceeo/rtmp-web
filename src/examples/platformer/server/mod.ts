@@ -16,7 +16,6 @@ import {
 import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { ProduceSnapshotSystem } from "../../../modules/server/systems/ProduceSnapshot.ts";
-import { LevelState } from "../../../modules/common/state/LevelState.ts";
 import { MsgType, PlayerAdd, PlayerRemove } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
@@ -30,32 +29,22 @@ import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
 import { addEntity } from "~/common/Entity.ts";
 import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
 import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
-import { addEventHandler } from "~/common/Event.ts";
-import {
-  CollisionData,
-  EVENT_TYPE_COLLISION,
-} from "../../../modules/common/systems/Physics.ts";
+import { spawnPlayer } from "../common/functions.ts";
 
 const idleTimeout = 300;
 
 class DotsServerApp implements ServerApp {
   idleTimeout = idleTimeout;
   handleOpen(ws: WebSocket, _: Event) {
-    const addedPlayer = PlayerState.addPlayer(addEntity());
+    const addedPlayer = spawnPlayer(addEntity());
     const playerNid = ServerNetworkState.createId();
     const client = ServerNetworkState.getClientForSocket(ws)!;
     ServerNetworkState.addChild(client.uuid, playerNid);
     addedPlayer.uuid = playerNid;
     console.log("player nid", playerNid);
 
-    Vec2.set(
-      addedPlayer.position,
-      LevelState.dimensions.xMax / 2,
-      LevelState.dimensions.yMin,
-    );
     addedPlayer.imageCollection = (addedPlayer.eid / 2) % 2;
 
-    Vec2.copy(addedPlayer.targetPosition, addedPlayer.position);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
 
     sendMessageToClient(ws, PlayerAdd, (p) => {
@@ -125,18 +114,6 @@ const handleMessagePipeline = new Pipeline(
   [PlayerMovementSystem()],
   new DemandDriver(),
 );
-
-addEventHandler<CollisionData>(EVENT_TYPE_COLLISION, (event) => {
-  if (
-    event.data.subjectEntity.isPlayer && event.data.objectEntity.killOnCollision
-  ) {
-    softDeleteEntity(event.data.subjectEntity.eid);
-    broadcastMessage(PlayerRemove, (p) => {
-      p.nid = ServerNetworkState.getId(event.data.subjectEntity.eid)!;
-      p.sid = MessageState.currentStep;
-    });
-  }
-});
 
 loadTilemap("/public/assets/level.json", false).then(() => {
   const fastPipeline = new Pipeline(

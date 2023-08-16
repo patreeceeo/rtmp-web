@@ -50,7 +50,7 @@ class OutputStateApi {
     PreviousPositionComponent,
     TargetPositionComponent,
     PreviousTargetPositionComponent_Output,
-    BodyDimensions,
+    ImageIdComponent,
     ImageCollectionComponent,
     PoseComponent,
   ] as const;
@@ -65,6 +65,10 @@ class OutputStateApi {
   );
   readonly activeDynamicEntities = new EntityPrefabCollection([
     Not(SoftDeletedTag),
+    ...this.dynamicEntityComponents,
+  ]);
+  readonly dynamicCollisionEntities = new EntityPrefabCollection([
+    BodyDimensions,
     ...this.dynamicEntityComponents,
   ]);
   readonly staticEntities = new EntityPrefabCollection(

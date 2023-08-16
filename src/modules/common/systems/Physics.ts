@@ -26,10 +26,9 @@ import { Instance } from "../Vec2.ts";
 import { IPhysicsEntity, PhysicsState } from "../state/Physics.ts";
 import { PoseType } from "~/client/functions/sprite.ts";
 import { addComponent, hasComponent, removeComponent } from "../Component.ts";
-import { GroundedTag, PlayerTag } from "../components.ts";
+import { BodyDimensions, GroundedTag, LifeComponent } from "../components.ts";
 import { Player } from "../../../examples/platformer/common/constants.ts";
 import { executeEventHandlers, registerEventType } from "~/common/Event.ts";
-import { invertAngle } from "~/common/math.ts";
 import { getEntity, UNDEFINED_ENTITY } from "~/common/Entity.ts";
 import { EntityWithComponents } from "~/common/EntityWithComponents.ts";
 
@@ -58,7 +57,7 @@ export const PhysicsSystem: SystemLoader<
   }
 
   function exec() {
-    for (const dynamicEntity of PhysicsState.dynamicEntities.query()) {
+    for (const dynamicEntity of PhysicsState.keneticEntities.query()) {
       const options = getPhysicsOptions(dynamicEntity);
       if (!isClient) {
         copy(dynamicEntity.targetPosition, dynamicEntity.position);
@@ -87,19 +86,22 @@ export const PhysicsSystem: SystemLoader<
         ? PoseType.facingRight
         : PoseType.facingLeft;
 
-      // console.log("y vel", dynamicEntity.velocity.y);
+      // console.log("y vel", dynamicEntity.velocity.y, "for", dynamicEntity.eid);
       simulatePositionWithVelocity(
         dynamicEntity.position,
         dynamicEntity.velocity,
         fixedDeltaTime,
         options,
       );
+
       // TODO(perf) space partitioning
-      handleTileCollisions(
-        dynamicEntity,
-        dynamicEntity.position,
-        getTileCollisions(dynamicEntity.position, options),
-      );
+      if (dynamicEntity.physRestitution > 0) {
+        handleTileCollisions(
+          dynamicEntity,
+          dynamicEntity.position,
+          getTileCollisions(dynamicEntity.position, options),
+        );
+      }
 
       if (isClient) {
         simulatePositionWithVelocity(
@@ -108,62 +110,74 @@ export const PhysicsSystem: SystemLoader<
           fixedDeltaTime,
           options,
         );
-        handleTileCollisions(
-          dynamicEntity,
-          dynamicEntity.targetPosition,
-          getTileCollisions(dynamicEntity.targetPosition, options),
-        );
+        if (dynamicEntity.physRestitution > 0) {
+          handleTileCollisions(
+            dynamicEntity,
+            dynamicEntity.targetPosition,
+            getTileCollisions(dynamicEntity.targetPosition, options),
+          );
+        }
       }
 
-      detectTileCollision1d(
-        dynamicEntity.targetPosition,
-        PhysicsState.tileMatrix,
-        CardinalDirection.yMax,
-        _tileCollisions.yMax,
-        options,
-      );
-      const isGrounded = _tileCollisions.yMax.impactDistance >= 0 &&
-        _tileCollisions.yMax.tileEntityId !== UNDEFINED_ENTITY;
-      if (isGrounded) {
-        addComponent(GroundedTag, dynamicEntity);
-      } else {
-        removeComponent(GroundedTag, dynamicEntity);
+      if (dynamicEntity.physRestitution > 0) {
+        detectTileCollision1d(
+          dynamicEntity.targetPosition,
+          PhysicsState.tileMatrix,
+          CardinalDirection.yMax,
+          _tileCollisions.yMax,
+          options,
+        );
+        const isGrounded = _tileCollisions.yMax.impactDistance >= 0 &&
+          _tileCollisions.yMax.tileEntityId !== UNDEFINED_ENTITY;
+        if (isGrounded) {
+          addComponent(GroundedTag, dynamicEntity);
+        } else {
+          removeComponent(GroundedTag, dynamicEntity);
+        }
       }
 
       dynamicEntity.shoulderCount = 0;
-      for (const dynamicEntityB of PhysicsState.dynamicEntities.query()) {
-        if (dynamicEntityB === dynamicEntity) continue;
-        if (
-          isShoulderPosition(
+      if (dynamicEntity.physRestitution > 0) {
+        for (const dynamicEntityB of PhysicsState.keneticEntities.query()) {
+          if (dynamicEntityB === dynamicEntity) continue;
+          if (dynamicEntityB.physRestitution === 0) continue;
+          if (
+            isShoulderPosition(
+              dynamicEntity.position,
+              dynamicEntityB.position,
+              options.hitBox.x,
+            ) &&
+            dynamicEntity.shoulderCount > 0
+          ) {
+            continue;
+          }
+          handleDynamicEntityCollisions(
+            dynamicEntity,
+            dynamicEntityB,
             dynamicEntity.position,
             dynamicEntityB.position,
-            options.hitBox.x,
-          ) &&
-          dynamicEntity.shoulderCount > 0
-        ) {
-          continue;
-        }
-        handleDynamicEntityCollisions(
-          dynamicEntity,
-          dynamicEntityB,
-          dynamicEntity.position,
-          dynamicEntityB.position,
-          options,
-        );
+            options,
+          );
 
-        handleDynamicEntityCollisions(
-          dynamicEntity,
-          dynamicEntityB,
-          dynamicEntity.targetPosition,
-          dynamicEntityB.targetPosition,
-          options,
-        );
+          handleDynamicEntityCollisions(
+            dynamicEntity,
+            dynamicEntityB,
+            dynamicEntity.targetPosition,
+            dynamicEntityB.targetPosition,
+            options,
+          );
+        }
       }
 
       const isShouldered = dynamicEntity.shoulderCount > 0;
+      const isCollidable = hasComponent(BodyDimensions, dynamicEntity);
+      const isFalling = isCollidable
+        ? !(dynamicEntity.isGrounded || isShouldered)
+        : true;
 
+      // TODO this should happen for all keneitc entities
       if (
-        hasComponent(PlayerTag, dynamicEntity) && !isGrounded
+        hasComponent(LifeComponent, dynamicEntity) && isFalling
           ? Math.abs(dynamicEntity.velocity.x) < Player.MAX_FLY_SPEED
           : true
       ) {
@@ -174,7 +188,8 @@ export const PhysicsSystem: SystemLoader<
           options,
         );
       }
-      if (!isGrounded && !isShouldered) {
+
+      if (isFalling) {
         // console.log("not grounded", groundedCollision);
         // if(hasComponent(GroundedTag, dynamicEntity)) {
         //   set(dynamicEntity.acceleration, 0, 0);
@@ -182,9 +197,7 @@ export const PhysicsSystem: SystemLoader<
         dynamicEntity.maxSpeed = Player.MAX_FALL_SPEED;
         dynamicEntity.friction = Player.AIR_FRICTION;
         simulateGravity(dynamicEntity.velocity, fixedDeltaTime, options);
-      }
-
-      if (isGrounded || isShouldered) {
+      } else {
         // console.log("grounded", groundedCollision);
         dynamicEntity.maxSpeed = Player.MAX_GROUND_SPEED;
         dynamicEntity.friction = Player.GROUND_FRICTION;

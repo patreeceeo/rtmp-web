@@ -1,7 +1,6 @@
 import "../mod.ts";
 import * as Vec2 from "~/common/Vec2.ts";
 import { InputState } from "~/common/state/Input.ts";
-import { PlayerState } from "~/common/state/Player.ts";
 import {
   AnimationDriver,
   DemandDriver,
@@ -40,6 +39,7 @@ import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
 import { ReconcileState } from "../../../modules/client/state/Reconcile.ts";
 import { PlayerSnapshotReconciler } from "./reconcilers.ts";
 import { requestSprites } from "./sprites.ts";
+import { spawnPlayer } from "../common/functions.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -174,7 +174,7 @@ function handlePlayerAdded(
   { isLocal, nid, position, spriteMapId }: IPlayerAdd,
 ) {
   console.log("player uuid:", nid);
-  const player = PlayerState.addPlayer(addEntity());
+  const player = spawnPlayer(addEntity());
   Vec2.copy(player.position, position);
   Vec2.copy(player.targetPosition, position);
   player.imageCollection = spriteMapId;

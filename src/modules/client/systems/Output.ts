@@ -286,10 +286,10 @@ function drawHelpers() {
   } = OutputState;
   const ctx = context2d!;
 
-  const entities = OutputState.dynamicEntities.query();
+  const entities = OutputState.dynamicCollisionEntities.query();
   for (const entity of entities) {
-    const { x, y } = entity.targetPosition;
     const { x: w, y: h } = entity.bodyDimensions;
+    const { x, y } = entity.targetPosition;
     const w2 = w >> 1;
     const h2 = h >> 1;
     const isGrounded = hasComponent(GroundedTag, entity);
@@ -339,7 +339,8 @@ function eraseDynamicEntities() {
   const ctx = context2d!;
   for (const entity of OutputState.dynamicEntities.query()) {
     const sprite = SpriteState.find(entity.imageCollection, entity.pose)!;
-    const { x: w, y: h } = entity.bodyDimensions;
+    const image = getFromCache(entity.imageId);
+    const { width: w, height: h } = image;
     const w2 = w >> 1;
     const h2 = h >> 1;
     ctx.clearRect(
@@ -374,7 +375,7 @@ function drawPlayers() {
   const ctx = context2d!;
   for (const entity of OutputState.activeDynamicEntities.query()) {
     const sprite = SpriteState.find(entity.imageCollection, entity.pose)!;
-    const { x: w, y: h } = entity.bodyDimensions;
+    const { width: w, height: h } = sprite;
     const w2 = w >> 1;
     const h2 = h >> 1;
     drawSpriteOptions.x = roundTo8thBit(entity.position.x) - w2;

@@ -6,10 +6,17 @@ import {
   BodyDimensions,
   BodyStaticTag,
   KillOnCollisionTag,
+  LifeComponent,
   PositionComponent,
   TileTag,
 } from "~/common/components.ts";
 import { addEntity } from "~/common/Entity.ts";
+import { addEventHandler } from "~/common/Event.ts";
+import {
+  CollisionData,
+  EVENT_TYPE_COLLISION,
+} from "~/common/systems/Physics.ts";
+import { PlayerState } from "~/common/state/Player.ts";
 
 export const SCREEN_WIDTH_PX = 512;
 export const SCREEN_HEIGHT_PX = 512;
@@ -36,4 +43,19 @@ const killerFloor2 = addComponents([
   BodyStaticTag,
   BodyDimensions,
 ], addEntity());
+
 Vec2.set(killerFloor2.position, 5 << 5, 16 << 5);
+
+addEventHandler<CollisionData>(EVENT_TYPE_COLLISION, (event) => {
+  const { subjectEntity, objectEntity } = event.data;
+  if (
+    PlayerState.entities.has(subjectEntity)
+  ) {
+    const player = PlayerState.entities.get(subjectEntity.eid)!;
+    if (
+      player.life.mode === LifeComponent.ALIVE && objectEntity.killOnCollision
+    ) {
+      player.life.mode = LifeComponent.DYING;
+    }
+  }
+});

@@ -9,6 +9,7 @@ import {
   EditorDraggingTag,
   FrictionComponent,
   MaxSpeedComponent,
+  PhysRestitutionComponent,
   PoseComponent,
   PositionComponent,
   ShoulderCount,
@@ -21,22 +22,23 @@ import { Not } from "../Query.ts";
 import { Matrix2 } from "../math.ts";
 
 export type IPhysicsEntity = ReturnType<
-  typeof PhysicsState.dynamicEntities.add
+  typeof PhysicsState.keneticEntities.add
 >;
 
 class PhysicsStateApi {
-  readonly dynamicEntityComponents = [
+  readonly keneticComponents = [
     Not(SoftDeletedTag),
     Not(EditorDraggingTag),
     PositionComponent,
     ShoulderCount,
     TargetPositionComponent,
-    BodyDimensions,
     VelocityComponent,
     MaxSpeedComponent,
     FrictionComponent,
     AccelerationComponent,
     PoseComponent,
+    BodyDimensions,
+    PhysRestitutionComponent,
   ] as const;
   readonly tileComponents = [
     Not(SoftDeletedTag),
@@ -44,8 +46,8 @@ class PhysicsStateApi {
     BodyDimensions,
     TileTag,
   ] as const;
-  readonly dynamicEntities = new EntityPrefabCollection(
-    this.dynamicEntityComponents,
+  readonly keneticEntities = new EntityPrefabCollection(
+    this.keneticComponents,
   );
   readonly tileEntities = new EntityPrefabCollection(this.tileComponents);
   readonly tileMatrix = new Matrix2<EntityId>(32, 32, UNDEFINED_ENTITY);

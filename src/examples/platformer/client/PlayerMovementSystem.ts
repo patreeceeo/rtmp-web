@@ -1,15 +1,18 @@
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { Button } from "../../../modules/common/Button.ts";
 import { hasComponent } from "../../../modules/common/Component.ts";
-import { GroundedTag } from "../../../modules/common/components.ts";
+import {
+  GroundedTag,
+  LifeComponent,
+} from "../../../modules/common/components.ts";
 import { getDistanceSquared } from "../../../modules/common/math.ts";
 import { InputState } from "../../../modules/common/state/Input.ts";
 import { MessageState } from "../../../modules/common/state/Message.ts";
 import { NetworkState } from "../../../modules/common/state/Network.ts";
 import { PlayerState } from "../../../modules/common/state/Player.ts";
-import { copy, getLengthSquared } from "../../../modules/common/Vec2.ts";
+import { copy, getLengthSquared, set } from "../../../modules/common/Vec2.ts";
 import { Player } from "../common/constants.ts";
-import { applyPlayerJump } from "../common/functions.ts";
+import { applyPlayerJump, spawnPlayer } from "../common/functions.ts";
 import { NegotiatePhysics, PlayerJump, PlayerMove } from "../common/message.ts";
 
 /**
@@ -17,23 +20,47 @@ import { NegotiatePhysics, PlayerJump, PlayerMove } from "../common/message.ts";
  * input. It updates the local entity and send commands to the server
  * to update the corresponding entities across the network.
  */
-export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
-  () => {
-    let jumpIntensity = 0;
-    let wasJumpPressed = false;
-    let doubleJump = false;
-    let wasGrounded = false;
+export const PlayerMovementSystem: SystemLoader<
+  ISystemExecutionContext
+> = () => {
+  let jumpIntensity = 0;
+  let wasJumpPressed = false;
+  let doubleJump = false;
+  let wasGrounded = false;
 
-    function exec() {
-      let ddx = 0;
-      let startJump = false;
-      const isJumpPressed = InputState.isButtonPressed(Button.Space);
+  function exec(context: ISystemExecutionContext) {
+    let ddx = 0;
+    let startJump = false;
+    const isJumpPressed = InputState.isButtonPressed(Button.Space);
 
-      for (const player of PlayerState.entities.query()) {
-        const nid = NetworkState.getId(player.eid)!;
+    for (const player of PlayerState.entities.query()) {
+      const nid = NetworkState.getId(player.eid)!;
 
-        // TODO(perf) local tag
-        if (NetworkState.isLocal(nid)) {
+      // TODO(perf) local tag
+      if (NetworkState.isLocal(nid)) {
+        player.life.modeTime += context.deltaTime;
+        if (
+          player.life.mode === LifeComponent.DYING && player.life.modeTime < 25
+        ) {
+          set(player.velocity, 0, 0);
+          set(player.acceleration, 0, 0);
+        }
+        if (
+          player.life.mode === LifeComponent.DYING && player.life.modeTime >= 25
+        ) {
+          set(player.velocity, 0, Player.DEATH_Y_VELOCITY);
+          set(player.acceleration, 0, 0);
+          player.physRestitution = 0;
+          player.life.mode = LifeComponent.DEAD;
+        } else if (player.life.mode === LifeComponent.DEAD) {
+          if (player.velocity.y >= 0) {
+            set(player.velocity, 0, 0);
+            set(player.acceleration, 0, 0);
+          }
+          if (player.life.modeTime > 1000) {
+            spawnPlayer(player);
+          }
+        } else {
           const isGrounded = hasComponent(GroundedTag, player);
           const isShouldered = player.shoulderCount > 0;
 
@@ -80,9 +107,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
             );
           }
 
-          if (
-            jumpIntensity > 0 && !isJumpPressed
-          ) {
+          if (jumpIntensity > 0 && !isJumpPressed) {
             startJump = true;
           }
 
@@ -137,5 +162,6 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
       } // const player of PlayerState.entities.query()
       wasJumpPressed = isJumpPressed;
     }
-    return { exec };
-  };
+  }
+  return { exec };
+};

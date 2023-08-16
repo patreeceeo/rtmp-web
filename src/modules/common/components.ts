@@ -1,5 +1,6 @@
 import {
   defineComponent,
+  defineObjectComponent,
   defineTag,
   PrimativeTypes,
   StoreType,
@@ -9,6 +10,7 @@ import { Uuid } from "~/common/NetworkApi.ts";
 import { ECSInstance, Vec2LargeSchema, Vec2SmallSchema } from "./Vec2.ts";
 import { IWorld } from "./World.ts";
 import { ImageCollectionEnum, PoseType } from "~/client/functions/sprite.ts";
+import { Life, LifeMode, LifeSchema } from "~/common/Life.ts";
 
 export const SoftDeletedTag = defineTag({
   propName: "isSoftDeleted",
@@ -36,9 +38,21 @@ export const UuidComponent = defineComponent({
   },
 });
 
-export const PlayerTag = defineTag({
-  propName: "isPlayer",
-});
+export const LifeComponent = defineObjectComponent(
+  {
+    schema: LifeSchema,
+    propName: "life",
+    getValue(
+      _world: IWorld,
+      store: StoreType<typeof LifeSchema>,
+      eid: EntityId,
+    ) {
+      return new Life(store, eid);
+    },
+    identify: (o) => o.eid,
+  },
+  LifeMode,
+);
 
 export const ClientTag = defineTag({
   propName: "isClient",
@@ -46,6 +60,10 @@ export const ClientTag = defineTag({
 
 export const TileTag = defineTag({
   propName: "isTile",
+});
+
+export const PlayerTag = defineTag({
+  propName: "isPlayer",
 });
 
 export const GroundedTag = defineTag({
@@ -62,9 +80,9 @@ export const EditorDraggingTag = defineTag({
 
 export const TAGS = [
   SoftDeletedTag,
-  PlayerTag,
   ClientTag,
   TileTag,
+  PlayerTag,
   GroundedTag,
   KillOnCollisionTag,
   EditorDraggingTag,
@@ -97,7 +115,7 @@ export const BodyStaticTag = defineTag({
   propName: "bodyIsStatic",
 });
 
-export const BodyDimensions = defineComponent({
+export const BodyDimensions = defineObjectComponent({
   schema: Vec2SmallSchema,
   propName: "bodyDimensions",
   getValue(
@@ -107,9 +125,32 @@ export const BodyDimensions = defineComponent({
   ) {
     return new ECSInstance(store, eid);
   },
+  identify: (o) => o.eid,
 });
 
-export const PositionComponent = defineComponent({
+const PhysRestitutionSchema = { value: PrimativeTypes.ui8 };
+export const PhysRestitutionComponent = defineComponent({
+  schema: PhysRestitutionSchema,
+  propName: "physRestitution",
+  getValue(
+    _world: IWorld,
+    store: StoreType<typeof PhysRestitutionSchema>,
+    eid: EntityId,
+  ) {
+    return store.value[eid];
+  },
+
+  setValue(
+    _world: IWorld,
+    store: StoreType<typeof PhysRestitutionSchema>,
+    eid: EntityId,
+    value: number,
+  ) {
+    store.value[eid] = value;
+  },
+});
+
+export const PositionComponent = defineObjectComponent({
   schema: Vec2LargeSchema,
   propName: "position",
   getValue(
@@ -119,9 +160,10 @@ export const PositionComponent = defineComponent({
   ) {
     return new ECSInstance(store, eid);
   },
+  identify: (o) => o.eid,
 });
 
-export const TargetPositionComponent = defineComponent({
+export const TargetPositionComponent = defineObjectComponent({
   schema: Vec2LargeSchema,
   propName: "targetPosition",
   getValue(
@@ -131,9 +173,10 @@ export const TargetPositionComponent = defineComponent({
   ) {
     return new ECSInstance(store, eid);
   },
+  identify: (o) => o.eid,
 });
 
-export const PreviousPositionComponent = defineComponent({
+export const PreviousPositionComponent = defineObjectComponent({
   schema: Vec2LargeSchema,
   propName: "previousPosition",
   getValue(
@@ -143,9 +186,10 @@ export const PreviousPositionComponent = defineComponent({
   ) {
     return new ECSInstance(store, eid);
   },
+  identify: (o) => o.eid,
 });
 
-export const PreviousTargetPositionComponent_Output = defineComponent({
+export const PreviousTargetPositionComponent_Output = defineObjectComponent({
   schema: Vec2LargeSchema,
   propName: "previousTargetPosition_output",
   getValue(
@@ -155,9 +199,10 @@ export const PreviousTargetPositionComponent_Output = defineComponent({
   ) {
     return new ECSInstance(store, eid);
   },
+  identify: (o) => o.eid,
 });
 
-export const PreviousTargetPositionComponent_Network = defineComponent({
+export const PreviousTargetPositionComponent_Network = defineObjectComponent({
   schema: Vec2LargeSchema,
   propName: "previousTargetPosition_network",
   getValue(
@@ -167,9 +212,10 @@ export const PreviousTargetPositionComponent_Network = defineComponent({
   ) {
     return new ECSInstance(store, eid);
   },
+  identify: (o) => o.eid,
 });
 
-export const VelocityComponent = defineComponent({
+export const VelocityComponent = defineObjectComponent({
   schema: Vec2LargeSchema,
   propName: "velocity",
   getValue(
@@ -177,8 +223,12 @@ export const VelocityComponent = defineComponent({
     store: StoreType<typeof Vec2LargeSchema>,
     eid: EntityId,
   ) {
-    return new ECSInstance(store, eid);
+    return new ECSInstance(
+      store,
+      eid,
+    );
   },
+  identify: (o) => o.eid,
 });
 
 const MaxSpeedSchema = { value: PrimativeTypes.ui16 };
@@ -225,7 +275,7 @@ export const FrictionComponent = defineComponent({
   },
 });
 
-export const AccelerationComponent = defineComponent({
+export const AccelerationComponent = defineObjectComponent({
   schema: Vec2SmallSchema,
   propName: "acceleration",
   getValue(
@@ -235,6 +285,7 @@ export const AccelerationComponent = defineComponent({
   ) {
     return new ECSInstance(store, eid);
   },
+  identify: (o) => o.eid,
 });
 
 const ImageCollectionSchema = {

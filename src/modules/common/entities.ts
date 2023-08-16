@@ -6,11 +6,13 @@ import {
   Vec2SmallSchema,
 } from "~/common/Vec2.ts";
 import { ImageCollectionEnum, PoseType } from "~/client/functions/sprite.ts";
+import { Life } from "~/common/Life.ts";
 
 export interface IEntityMaximal extends IEntityBase {
   uuid: Uuid;
   isSoftDeleted: boolean;
   isPlayer: boolean;
+  life: Life;
   isClient: boolean;
   isTile: boolean;
   isGrounded: boolean;
@@ -19,6 +21,7 @@ export interface IEntityMaximal extends IEntityBase {
   shoulderCount: number;
   bodyIsStatic: boolean;
   bodyDimensions: ECSInstance<typeof Vec2SmallSchema>;
+  physRestitution: number;
   position: ECSInstance<typeof Vec2LargeSchema>;
   targetPosition: ECSInstance<typeof Vec2LargeSchema>;
   previousPosition: ECSInstance<typeof Vec2LargeSchema>;
