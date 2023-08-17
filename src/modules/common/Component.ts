@@ -19,6 +19,7 @@ import { defaultWorld } from "./World.ts";
 import { IEntityMaximal } from "~/common/entities.ts";
 import { Assign, PossibleObjectKey } from "~/common/util.ts";
 import { Pool } from "~/common/Pool.ts";
+import { EntityWithComponents } from "~/common/EntityWithComponents.ts";
 
 export type ISchema = _ISchema;
 export type StoreType<T extends ISchema> = _StoreType<T>;
@@ -53,8 +54,8 @@ export interface IComponentType<
     store: StoreType<S>,
     eid: EntityId,
   ): IEntityMaximal[PropName];
-  onAdd(target: IEntityBase, componentType: this): void;
-  onRemove(target: IEntityBase, componentType: this): void;
+  onAdd(target: EntityWithComponents<[this]>, componentType: this): void;
+  onRemove(target: EntityWithComponents<[this]>, componentType: this): void;
 }
 
 export interface ITagComponentType<
@@ -68,20 +69,14 @@ export type IAnyComponentType = IComponentType<ISchema, keyof IEntityMaximal>;
 
 interface IComponentConfigBase<
   S extends ISchema,
-  PropName extends string = string,
+  PropName extends keyof IEntityMaximal,
 > {
   propName: PropName;
-  onAdd?: (
-    target: IEntityBase,
-    type: IComponentType<S, keyof IEntityMaximal>,
-  ) => void;
-  onRemove?: (
-    target: IEntityBase,
-    type: IComponentType<S, keyof IEntityMaximal>,
-  ) => void;
+  onAdd?: IComponentType<S, PropName>["onAdd"];
+  onRemove?: IComponentType<S, PropName>["onRemove"];
 }
 
-type ITagConfig<PropName extends string> = IComponentConfigBase<
+type ITagConfig<PropName extends keyof IEntityMaximal> = IComponentConfigBase<
   ITagSchema,
   PropName
 >;
@@ -94,7 +89,8 @@ export function defineTag<PropName extends keyof IEntityMaximal>(
     configurable: true,
     enumerable: true,
   };
-  const result = Object.freeze({
+  type _ComponentType = ITagComponentType<ITagSchema, PropName>;
+  const result: _ComponentType = Object.freeze({
     propName: config.propName,
     schema: {},
     store,
@@ -108,7 +104,7 @@ export function defineTag<PropName extends keyof IEntityMaximal>(
       });
     },
     getValue(world: IWorld, store: StoreType<ITagSchema>, eid: EntityId) {
-      return _hasComponent(world, store, eid);
+      return _hasComponent(world, store, eid) as IEntityMaximal[PropName];
     },
     setValue(
       world: IWorld,
@@ -122,14 +118,14 @@ export function defineTag<PropName extends keyof IEntityMaximal>(
         removeFromStore(world, store, eid);
       }
     },
-    onAdd(target: IEntityBase) {
+    onAdd(target: EntityWithComponents<[_ComponentType]>) {
       config.onAdd?.(target, result);
     },
-    onRemove(target: IEntityBase) {
+    onRemove(target: EntityWithComponents<[_ComponentType]>) {
       config.onRemove?.(target, result);
     },
   });
-  return result as unknown as ITagComponentType<ITagSchema, PropName>;
+  return result;
 }
 
 interface IComponentConfig<
@@ -203,6 +199,10 @@ export function defineComponent<
           ...base,
         });
       }
+      config.onAdd?.(
+        target as EntityWithComponents<[IComponentType<S, PropName>]>,
+        componentType,
+      );
     },
     onRemove(target: IEntityBase) {
       Object.defineProperty(target, this.propName, {
@@ -236,8 +236,7 @@ export function defineObjectComponent<
     (o) => config.identify(o),
   );
   const Component = defineComponent({
-    schema: config.schema,
-    propName: config.propName,
+    ...config,
     getValue(
       _world: IWorld,
       store: StoreType<S>,
@@ -264,7 +263,10 @@ export function addComponent<
   );
   if (componentType.modifiers === ModifierFlags.None) {
     addToStore(world, componentType.store, entity.eid);
-    componentType.onAdd(entity, componentType);
+    componentType.onAdd(
+      entity as unknown as EntityWithComponents<[typeof componentType]>,
+      componentType,
+    );
   }
   return entity as WithPropertyForComponent<E, PropName>;
 }
@@ -285,7 +287,7 @@ export function addComponents<
 
 export function removeComponent<
   PropName extends keyof IEntityMaximal,
-  E extends IEntityBase,
+  E extends EntityWithComponents<[IComponentType<ISchema, PropName>]>,
 >(
   componentType: IComponentType<ISchema, PropName>,
   entity: E,
@@ -297,8 +299,8 @@ export function removeComponent<
     `Not implemented: Remove Not(ComponentX) from entity without ComponentX`,
   );
   if (componentType.modifiers === ModifierFlags.None) {
-    removeFromStore(world, componentType.store, entity.eid);
     componentType.onRemove(entity, componentType);
+    removeFromStore(world, componentType.store, entity.eid);
   }
   return entity as Omit<E, PropName>;
 }
