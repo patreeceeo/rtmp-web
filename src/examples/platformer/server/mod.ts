@@ -43,8 +43,6 @@ class DotsServerApp implements ServerApp {
     addedPlayer.uuid = playerNid;
     console.log("player nid", playerNid);
 
-    addedPlayer.imageCollection = (addedPlayer.eid / 2) % 2;
-
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
 
     sendMessageToClient(ws, PlayerAdd, (p) => {

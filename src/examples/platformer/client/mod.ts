@@ -40,6 +40,7 @@ import { ReconcileState } from "../../../modules/client/state/Reconcile.ts";
 import { PlayerSnapshotReconciler } from "./reconcilers.ts";
 import { requestSprites } from "./sprites.ts";
 import { spawnPlayer } from "../common/functions.ts";
+import { ParticleEffectSystem } from "~/client/ParticleEffectSystem.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -214,6 +215,7 @@ loadTilemap("/public/assets/level.json").then(async () => {
       PlayerMovementSystem(),
       ClientNetworkSystem(),
       PhysicsSystem({ fixedDeltaTime: 4 }),
+      ParticleEffectSystem(),
     ],
     new FixedIntervalDriver(8),
   );

@@ -9,6 +9,7 @@ import { Player } from "./constants.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 import { copy, set } from "~/common/Vec2.ts";
 import { LevelState } from "~/common/state/LevelState.ts";
+import { getRandomIntBetween } from "~/common/random.ts";
 
 type PlayerJumpComponents = [
   typeof MaxSpeedComponent,
@@ -19,7 +20,7 @@ export function spawnPlayer(
   entity: EntityWithComponents<[]>,
 ): EntityWithComponents<typeof PlayerState.entities.components> {
   const player = PlayerState.entities.add(entity);
-  player.life.mode = LifeComponent.ALIVE;
+  player.life.mode = LifeComponent.PLAYER_ALIVE;
   player.shoulderCount = 0;
   player.friction = Player.GROUND_FRICTION;
   player.maxSpeed = Player.MAX_GROUND_SPEED;
@@ -33,6 +34,7 @@ export function spawnPlayer(
     LevelState.dimensions.yMin,
   );
   copy(player.targetPosition, player.position);
+  player.imageCollection = getRandomIntBetween(1, 2);
   return player;
 }
 

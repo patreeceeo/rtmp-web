@@ -2,8 +2,9 @@ import { PrimativeTypes, StoreType } from "~/common/Component.ts";
 import { EntityId } from "~/common/Entity.ts";
 
 export enum LifeMode {
-  ALIVE,
-  DYING,
+  PLAYER_ALIVE,
+  PLAYER_DYING_ASCENT,
+  PLAYER_EXPLODE,
   DEAD,
 }
 

@@ -57,71 +57,86 @@ export const PhysicsSystem: SystemLoader<
   }
 
   function exec() {
-    for (const dynamicEntity of PhysicsState.keneticEntities.query()) {
-      const options = getPhysicsOptions(dynamicEntity);
+    for (const entity of PhysicsState.keneticEntities.query()) {
+      const options = getPhysicsOptions(entity);
+      simulatePositionWithVelocity(
+        entity.position,
+        entity.velocity,
+        fixedDeltaTime,
+        options,
+      );
+      simulateGravity(entity.velocity, fixedDeltaTime, options);
+      handleTileCollisions(
+        entity,
+        entity.position,
+        getTileCollisions(entity.position, options),
+      );
+    }
+    for (const entity of PhysicsState.playerEntities.query()) {
+      const options = getPhysicsOptions(entity);
       if (!isClient) {
-        copy(dynamicEntity.targetPosition, dynamicEntity.position);
+        copy(entity.targetPosition, entity.position);
       } else {
         add(
-          dynamicEntity.targetPosition,
-          dynamicEntity.velocity,
+          entity.targetPosition,
+          entity.velocity,
           fixedDeltaTime,
         );
 
         // Calculate how far we are from where we should be
-        copy(tempPositionDelta, dynamicEntity.targetPosition);
-        sub(tempPositionDelta, dynamicEntity.position);
+        copy(tempPositionDelta, entity.targetPosition);
+        sub(tempPositionDelta, entity.position);
         if (getLengthSquared(tempPositionDelta) > 0) {
-          clamp(tempPositionDelta, dynamicEntity.maxSpeed * fixedDeltaTime);
+          clamp(tempPositionDelta, entity.maxSpeed * fixedDeltaTime);
 
           // if (!isZero(tempPositionDelta)) {
           //   console.log("add delta", toJSON(tempPositionDelta));
           // }
-          add(dynamicEntity.position, tempPositionDelta);
+          add(entity.position, tempPositionDelta);
         }
       }
-      dynamicEntity.pose = dynamicEntity.acceleration.x == 0
-        ? dynamicEntity.pose
-        : dynamicEntity.acceleration.x > 0
+      entity.pose = entity.acceleration.x == 0
+        ? entity.pose
+        : entity.acceleration.x > 0
         ? PoseType.facingRight
         : PoseType.facingLeft;
 
       // console.log("y vel", dynamicEntity.velocity.y, "for", dynamicEntity.eid);
       simulatePositionWithVelocity(
-        dynamicEntity.position,
-        dynamicEntity.velocity,
+        entity.position,
+        entity.velocity,
         fixedDeltaTime,
         options,
       );
 
       // TODO(perf) space partitioning
-      if (dynamicEntity.physRestitution > 0) {
+      if (entity.physRestitution > 0) {
         handleTileCollisions(
-          dynamicEntity,
-          dynamicEntity.position,
-          getTileCollisions(dynamicEntity.position, options),
+          entity,
+          entity.position,
+          getTileCollisions(entity.position, options),
         );
       }
 
       if (isClient) {
         simulatePositionWithVelocity(
-          dynamicEntity.targetPosition,
-          dynamicEntity.velocity,
+          entity.targetPosition,
+          entity.velocity,
           fixedDeltaTime,
           options,
         );
-        if (dynamicEntity.physRestitution > 0) {
+        if (entity.physRestitution > 0) {
           handleTileCollisions(
-            dynamicEntity,
-            dynamicEntity.targetPosition,
-            getTileCollisions(dynamicEntity.targetPosition, options),
+            entity,
+            entity.targetPosition,
+            getTileCollisions(entity.targetPosition, options),
           );
         }
       }
 
-      if (dynamicEntity.physRestitution > 0) {
+      if (entity.physRestitution > 0) {
         detectTileCollision1d(
-          dynamicEntity.targetPosition,
+          entity.targetPosition,
           PhysicsState.tileMatrix,
           CardinalDirection.yMax,
           _tileCollisions.yMax,
@@ -130,60 +145,60 @@ export const PhysicsSystem: SystemLoader<
         const isGrounded = _tileCollisions.yMax.impactDistance >= 0 &&
           _tileCollisions.yMax.tileEntityId !== UNDEFINED_ENTITY;
         if (isGrounded) {
-          addComponent(GroundedTag, dynamicEntity);
+          addComponent(GroundedTag, entity);
         } else {
-          removeComponent(GroundedTag, dynamicEntity);
+          removeComponent(GroundedTag, entity);
         }
       }
 
-      dynamicEntity.shoulderCount = 0;
-      if (dynamicEntity.physRestitution > 0) {
-        for (const dynamicEntityB of PhysicsState.keneticEntities.query()) {
-          if (dynamicEntityB === dynamicEntity) continue;
+      entity.shoulderCount = 0;
+      if (entity.physRestitution > 0) {
+        for (const dynamicEntityB of PhysicsState.playerEntities.query()) {
+          if (dynamicEntityB === entity) continue;
           if (dynamicEntityB.physRestitution === 0) continue;
           if (
             isShoulderPosition(
-              dynamicEntity.position,
+              entity.position,
               dynamicEntityB.position,
               options.hitBox.x,
             ) &&
-            dynamicEntity.shoulderCount > 0
+            entity.shoulderCount > 0
           ) {
             continue;
           }
           handleDynamicEntityCollisions(
-            dynamicEntity,
+            entity,
             dynamicEntityB,
-            dynamicEntity.position,
+            entity.position,
             dynamicEntityB.position,
             options,
           );
 
           handleDynamicEntityCollisions(
-            dynamicEntity,
+            entity,
             dynamicEntityB,
-            dynamicEntity.targetPosition,
+            entity.targetPosition,
             dynamicEntityB.targetPosition,
             options,
           );
         }
       }
 
-      const isShouldered = dynamicEntity.shoulderCount > 0;
-      const isCollidable = hasComponent(BodyDimensions, dynamicEntity);
+      const isShouldered = entity.shoulderCount > 0;
+      const isCollidable = hasComponent(BodyDimensions, entity);
       const isFalling = isCollidable
-        ? !(dynamicEntity.isGrounded || isShouldered)
+        ? !(entity.isGrounded || isShouldered)
         : true;
 
       // TODO this should happen for all keneitc entities
       if (
-        hasComponent(LifeComponent, dynamicEntity) && isFalling
-          ? Math.abs(dynamicEntity.velocity.x) < Player.MAX_FLY_SPEED
+        hasComponent(LifeComponent, entity) && isFalling
+          ? Math.abs(entity.velocity.x) < Player.MAX_FLY_SPEED
           : true
       ) {
         simulateVelocityWithAcceleration(
-          dynamicEntity.velocity,
-          dynamicEntity.acceleration,
+          entity.velocity,
+          entity.acceleration,
           fixedDeltaTime,
           options,
         );
@@ -194,13 +209,13 @@ export const PhysicsSystem: SystemLoader<
         // if(hasComponent(GroundedTag, dynamicEntity)) {
         //   set(dynamicEntity.acceleration, 0, 0);
         // }
-        dynamicEntity.maxSpeed = Player.MAX_FALL_SPEED;
-        dynamicEntity.friction = Player.AIR_FRICTION;
-        simulateGravity(dynamicEntity.velocity, fixedDeltaTime, options);
+        entity.maxSpeed = Player.MAX_FALL_SPEED;
+        entity.friction = Player.AIR_FRICTION;
+        simulateGravity(entity.velocity, fixedDeltaTime, options);
       } else {
         // console.log("grounded", groundedCollision);
-        dynamicEntity.maxSpeed = Player.MAX_GROUND_SPEED;
-        dynamicEntity.friction = Player.GROUND_FRICTION;
+        entity.maxSpeed = Player.MAX_GROUND_SPEED;
+        entity.friction = Player.GROUND_FRICTION;
       }
     } // const dynamicEntity of PhysicsState.dynamicEntities.query()
   }
@@ -322,8 +337,12 @@ function isShoulderPosition(
 }
 
 function handleDynamicEntityCollisions(
-  entityA: IPhysicsEntity,
-  entityB: IPhysicsEntity,
+  entityA: ReturnType<
+  typeof PhysicsState.playerEntities.add
+>,
+  entityB: ReturnType<
+  typeof PhysicsState.playerEntities.add
+>,
   positionA: Instance,
   positionB: Instance,
   options: SimulateOptions,

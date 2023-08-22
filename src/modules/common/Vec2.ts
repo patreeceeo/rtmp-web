@@ -60,6 +60,12 @@ export function add<T extends Instance>(dest: T, d: Instance, scale = 1): T {
   return dest;
 }
 
+export function addScalars<T extends Instance>(dest: T, sx: number, sy: number): T {
+  dest.x += sx;
+  dest.y += sy;
+  return dest;
+}
+
 export function scale<T extends Instance>(dest: T, s: number): T {
   dest.x *= s;
   dest.y *= s;

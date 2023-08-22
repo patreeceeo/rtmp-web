@@ -1,9 +1,10 @@
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { Button } from "../../../modules/common/Button.ts";
-import { hasComponent } from "../../../modules/common/Component.ts";
+import { hasComponent, addComponent } from "../../../modules/common/Component.ts";
 import {
   GroundedTag,
   LifeComponent,
+ParticleEffectComponent,
 } from "../../../modules/common/components.ts";
 import { getDistanceSquared } from "../../../modules/common/math.ts";
 import { InputState } from "../../../modules/common/state/Input.ts";
@@ -40,26 +41,22 @@ export const PlayerMovementSystem: SystemLoader<
       if (NetworkState.isLocal(nid)) {
         player.life.modeTime += context.deltaTime;
         if (
-          player.life.mode === LifeComponent.DYING && player.life.modeTime < 25
+          player.life.mode === LifeComponent.PLAYER_DYING_ASCENT
         ) {
-          set(player.velocity, 0, 0);
-          set(player.acceleration, 0, 0);
-        }
-        if (
-          player.life.mode === LifeComponent.DYING && player.life.modeTime >= 25
-        ) {
-          set(player.velocity, 0, Player.DEATH_Y_VELOCITY);
-          set(player.acceleration, 0, 0);
-          player.physRestitution = 0;
-          player.life.mode = LifeComponent.DEAD;
-        } else if (player.life.mode === LifeComponent.DEAD) {
-          if (player.velocity.y >= 0) {
-            set(player.velocity, 0, 0);
+          if(player.life.modeTime < 25) {
+            set(player.velocity, 0, Player.DEATH_Y_VELOCITY);
             set(player.acceleration, 0, 0);
+            player.physRestitution = 0;
           }
-          if (player.life.modeTime > 1000) {
-            spawnPlayer(player);
+          if (player.velocity.y >= 0) {
+            player.life.mode = LifeComponent.PLAYER_EXPLODE;
           }
+        } else if (player.life.mode === LifeComponent.PLAYER_EXPLODE) {
+            const spawner = addComponent(ParticleEffectComponent, player);
+            spawner.particleEffect = ParticleEffectComponent.PIXEL_EXPLOSION;
+            player.life.mode = LifeComponent.DEAD;
+        } else if (player.life.mode === LifeComponent.DEAD && player.life.modeTime > 1500) {
+          spawnPlayer(player);
         } else {
           const isGrounded = hasComponent(GroundedTag, player);
           const isShouldered = player.shoulderCount > 0;

@@ -7,6 +7,7 @@ import {
 } from "~/common/Vec2.ts";
 import { ImageCollectionEnum, PoseType } from "~/client/functions/sprite.ts";
 import { Life } from "~/common/Life.ts";
+import { EcsRgbaColor } from "~/common/RgbaColor.ts";
 
 export interface IEntityMaximal extends IEntityBase {
   uuid: Uuid;
@@ -16,6 +17,7 @@ export interface IEntityMaximal extends IEntityBase {
   isClient: boolean;
   isTile: boolean;
   isGrounded: boolean;
+  isParticle: boolean;
   killOnCollision: boolean;
   isEditorDragging: boolean;
   shoulderCount: number;
@@ -35,4 +37,6 @@ export interface IEntityMaximal extends IEntityBase {
   imageCollection: ImageCollectionEnum;
   pose: PoseType;
   lastActiveTime: number;
+  particleEffect: number;
+  rgbaColor: EcsRgbaColor;
 }

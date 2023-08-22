@@ -10,6 +10,7 @@ import {
   FrictionComponent,
   MaxSpeedComponent,
   PhysRestitutionComponent,
+  PlayerTag,
   PoseComponent,
   PositionComponent,
   ShoulderCount,
@@ -26,9 +27,10 @@ export type IPhysicsEntity = ReturnType<
 >;
 
 class PhysicsStateApi {
-  readonly keneticComponents = [
+  readonly playerComponents = [
     Not(SoftDeletedTag),
     Not(EditorDraggingTag),
+    PlayerTag,
     PositionComponent,
     ShoulderCount,
     TargetPositionComponent,
@@ -46,9 +48,18 @@ class PhysicsStateApi {
     BodyDimensions,
     TileTag,
   ] as const;
-  readonly keneticEntities = new EntityPrefabCollection(
-    this.keneticComponents,
+  readonly playerEntities = new EntityPrefabCollection(
+    this.playerComponents,
   );
+  readonly keneticEntities = new EntityPrefabCollection([
+    Not(SoftDeletedTag),
+    Not(PlayerTag),
+    PositionComponent,
+    VelocityComponent,
+    BodyDimensions,
+    PhysRestitutionComponent,
+  ])
+
   readonly tileEntities = new EntityPrefabCollection(this.tileComponents);
   readonly tileMatrix = new Matrix2<EntityId>(32, 32, UNDEFINED_ENTITY);
 }

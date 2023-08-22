@@ -15,9 +15,10 @@ import {
   TileCollision1d,
 } from "../../common/functions/physics.ts";
 import { PhysicsState } from "../../common/state/Physics.ts";
-import { hasComponent } from "~/common/Component.ts";
+import { addComponent, hasComponent } from "~/common/Component.ts";
 import {
   GroundedTag,
+  PreviousPositionComponent,
   ShoulderCount,
   UuidComponent,
 } from "~/common/components.ts";
@@ -44,8 +45,8 @@ export const OutputSystem: SystemLoader = async () => {
   setupCanvas(OutputState.foreground.element, resolution);
   setupCanvas(OutputState.background.element, resolution);
 
-  OutputState.foreground.clientRect = OutputState.foreground.element
-    .getBoundingClientRect();
+  OutputState.foreground.clientRect =
+    OutputState.foreground.element.getBoundingClientRect();
 
   const foregroundCtx = OutputState.foreground.element.getContext("2d")!;
   if (foregroundCtx) {
@@ -96,11 +97,36 @@ export const OutputSystem: SystemLoader = async () => {
         DebugState.enabled && drawHelpers();
         lastRender = context.elapsedTime;
       }
+      drawParticles();
     }
   }
 
   return { exec };
 };
+
+function drawParticles() {
+  const {
+    foreground: { context2d },
+  } = OutputState;
+  const ctx = context2d!;
+  for (const entity of OutputState.inputPixelEntities.query()) {
+    addComponent(PreviousPositionComponent, entity);
+  }
+  for (const entity of OutputState.pixelEntities.query()) {
+    const { r, g, b, a } = entity.rgbaColor;
+    ctx.clearRect(roundTo8thBit(entity.previousPosition.x), roundTo8thBit(entity.previousPosition.y), 1, 1);
+    Vec2.copy(entity.previousPosition, entity.position);
+    if (!entity.isSoftDeleted) {
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
+      ctx.fillRect(
+        roundTo8thBit(entity.position.x),
+        roundTo8thBit(entity.position.y),
+        1,
+        1
+      );
+    }
+  }
+}
 
 const gradients = new Map<string, CanvasGradient>();
 function getOrCreateLinearGradient(key: string, ctx: CanvasRenderingContext2D) {
@@ -119,7 +145,7 @@ function getOrCreateLinearGradient(key: string, ctx: CanvasRenderingContext2D) {
 function drawCloud(
   cloud: ICloud,
   ctx: CanvasRenderingContext2D,
-  resolution: Vec2.ReadOnly,
+  resolution: Vec2.ReadOnly
 ) {
   const { position, size } = cloud;
   const yFlipped = resolution.y - position.y;
@@ -137,7 +163,7 @@ function drawCloud(
     yRadius,
     0,
     0,
-    PI2,
+    PI2
   );
   ctx.fill();
   ctx.fillRect(position.x, yFlipped, size.x, size.y);
@@ -199,7 +225,7 @@ function drawCollisionDebug() {
           PhysicsState.tileMatrix,
           CardinalDirection.xMin,
           _tileCollision,
-          options,
+          options
         ).impactDistance > 0
       ) {
         ctx!.strokeStyle = "green";
@@ -207,7 +233,7 @@ function drawCollisionDebug() {
         ctx!.moveTo(roundTo8thBit(posPhysics.x), roundTo8thBit(posPhysics.y));
         ctx!.lineTo(
           roundTo8thBit(posPhysics.x),
-          roundTo8thBit(posPhysics.y) + step,
+          roundTo8thBit(posPhysics.y) + step
         );
         ctx!.stroke();
         ctx!.closePath();
@@ -218,7 +244,7 @@ function drawCollisionDebug() {
           PhysicsState.tileMatrix,
           CardinalDirection.yMax,
           _tileCollision,
-          options,
+          options
         ).impactDistance > 0
       ) {
         ctx!.strokeStyle = "yellow";
@@ -226,7 +252,7 @@ function drawCollisionDebug() {
         ctx!.moveTo(roundTo8thBit(posPhysics.x), roundTo8thBit(posPhysics.y));
         ctx!.lineTo(
           roundTo8thBit(posPhysics.x) + step,
-          roundTo8thBit(posPhysics.y),
+          roundTo8thBit(posPhysics.y)
         );
         ctx!.stroke();
         ctx!.closePath();
@@ -237,7 +263,7 @@ function drawCollisionDebug() {
           PhysicsState.tileMatrix,
           CardinalDirection.xMax,
           _tileCollision,
-          options,
+          options
         ).impactDistance > 0
       ) {
         ctx!.strokeStyle = "red";
@@ -245,7 +271,7 @@ function drawCollisionDebug() {
         ctx!.moveTo(roundTo8thBit(posPhysics.x), roundTo8thBit(posPhysics.y));
         ctx!.lineTo(
           roundTo8thBit(posPhysics.x),
-          roundTo8thBit(posPhysics.y) + step,
+          roundTo8thBit(posPhysics.y) + step
         );
         ctx!.stroke();
         ctx!.closePath();
@@ -256,7 +282,7 @@ function drawCollisionDebug() {
           PhysicsState.tileMatrix,
           CardinalDirection.yMin,
           _tileCollision,
-          options,
+          options
         ).impactDistance > 0
       ) {
         ctx!.strokeStyle = "purple";
@@ -264,7 +290,7 @@ function drawCollisionDebug() {
         ctx!.moveTo(roundTo8thBit(posPhysics.x), roundTo8thBit(posPhysics.y));
         ctx!.lineTo(
           roundTo8thBit(posPhysics.x) + step,
-          roundTo8thBit(posPhysics.y),
+          roundTo8thBit(posPhysics.y)
         );
         ctx!.stroke();
         ctx!.closePath();
@@ -293,7 +319,8 @@ function drawHelpers() {
     const w2 = w >> 1;
     const h2 = h >> 1;
     const isGrounded = hasComponent(GroundedTag, entity);
-    const isShouldered = hasComponent(ShoulderCount, entity) &&
+    const isShouldered =
+      hasComponent(ShoulderCount, entity) &&
       castEntity(entity, [ShoulderCount]).shoulderCount > 0;
 
     ctx.beginPath();
@@ -302,12 +329,13 @@ function drawHelpers() {
     ctx.stroke();
     ctx.closePath();
 
-    ctx.font = "10px silkscreen";
     if (hasComponent(UuidComponent, entity)) {
+      ctx.fillStyle = "black";
+      ctx.font = "10px silkscreen";
       ctx.fillText(
         castEntity(entity, [UuidComponent]).uuid.toString(),
         roundTo8thBit(x) - w2,
-        roundTo8thBit(y) - h2 - 3,
+        roundTo8thBit(y) - h2 - 3
       );
     }
   }
@@ -338,8 +366,9 @@ function eraseDynamicEntities() {
   } = OutputState;
   const ctx = context2d!;
   for (const entity of OutputState.dynamicEntities.query()) {
-    const sprite = SpriteState.find(entity.imageCollection, entity.pose)!;
-    const image = getFromCache(entity.imageId);
+    const sprite = SpriteState.find(entity.imageCollection, entity.pose);
+    if(!sprite) continue;
+    const image = getFromCache(sprite.imageId);
     const { width: w, height: h } = image;
     const w2 = w >> 1;
     const h2 = h >> 1;
@@ -347,21 +376,21 @@ function eraseDynamicEntities() {
       entity.previousPosition.x - 2 - w2,
       entity.previousPosition.y - 14 - h2,
       sprite.width + 4 + w2,
-      sprite.height + 4 + h2,
+      sprite.height + 4 + h2
     );
     ctx.clearRect(
       entity.previousTargetPosition_output.x - 2 - w2,
       entity.previousTargetPosition_output.y - 2 - h2,
       sprite.width + 4 + w2,
-      sprite.height + 4 + h2,
+      sprite.height + 4 + h2
     );
     entity.previousPosition.x = roundTo8thBit(entity.position.x);
     entity.previousPosition.y = roundTo8thBit(entity.position.y);
     entity.previousTargetPosition_output.x = roundTo8thBit(
-      entity.targetPosition.x,
+      entity.targetPosition.x
     );
     entity.previousTargetPosition_output.y = roundTo8thBit(
-      entity.targetPosition.y,
+      entity.targetPosition.y
     );
   }
 }
@@ -374,7 +403,8 @@ function drawPlayers() {
   } = OutputState;
   const ctx = context2d!;
   for (const entity of OutputState.activeDynamicEntities.query()) {
-    const sprite = SpriteState.find(entity.imageCollection, entity.pose)!;
+    const sprite = SpriteState.find(entity.imageCollection, entity.pose);
+    if(!sprite) continue;
     const { width: w, height: h } = sprite;
     const w2 = w >> 1;
     const h2 = h >> 1;

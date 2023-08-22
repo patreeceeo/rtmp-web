@@ -21,7 +21,7 @@ class PlayerStateApi {
     UuidComponent,
     BodyDimensions,
     PreviousTargetPositionComponent_Network,
-    ...PhysicsState.keneticEntities.components,
+    ...PhysicsState.playerEntities.components,
     ...(isClient ? OutputState.activeDynamicEntities.components : []),
   ]);
 }

@@ -53,9 +53,9 @@ addEventHandler<CollisionData>(EVENT_TYPE_COLLISION, (event) => {
   ) {
     const player = PlayerState.entities.get(subjectEntity.eid)!;
     if (
-      player.life.mode === LifeComponent.ALIVE && objectEntity.killOnCollision
+      player.life.mode === LifeComponent.PLAYER_ALIVE && objectEntity.killOnCollision
     ) {
-      player.life.mode = LifeComponent.DYING;
+      player.life.mode = LifeComponent.PLAYER_DYING_ASCENT;
     }
   }
 });

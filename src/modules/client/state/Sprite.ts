@@ -13,6 +13,7 @@ class SpriteStateApi {
   }
   *getRequests(): Generator<[ImageCollectionEnum, PoseType, SpriteRequest]> {
     for (const [images, reqs] of this.#imageUrls.entries()) {
+      if(!reqs) continue;
       for (const [pose, req] of reqs.entries()) {
         yield [images, pose, req];
       }
@@ -22,7 +23,7 @@ class SpriteStateApi {
     (this.#sprites[images] = this.#sprites[images] || [])[pose] = sprite;
   }
   find(images: ImageCollectionEnum, pose: PoseType) {
-    return this.#sprites[images][pose];
+    return images in this.#sprites ? this.#sprites[images][pose] : undefined;
   }
 }
 

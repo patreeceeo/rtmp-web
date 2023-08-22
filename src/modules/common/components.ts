@@ -1,3 +1,4 @@
+import { EntityId } from "./Entity.ts";
 import {
   defineComponent,
   defineObjectComponent,
@@ -5,12 +6,12 @@ import {
   PrimativeTypes,
   StoreType,
 } from "./Component.ts";
-import { EntityId } from "./Entity.ts";
 import { Uuid } from "~/common/NetworkApi.ts";
-import { ECSInstance, Vec2LargeSchema, Vec2SmallSchema } from "./Vec2.ts";
+import { ECSInstance, Vec2LargeSchema, Vec2SmallSchema } from "~/common/Vec2.ts";
 import { IWorld } from "./World.ts";
 import { ImageCollectionEnum, PoseType } from "~/client/functions/sprite.ts";
 import { Life, LifeMode, LifeSchema } from "~/common/Life.ts";
+import { EcsRgbaColor, RgbaColorSchema } from "~/common/RgbaColor.ts";
 
 export const SoftDeletedTag = defineTag({
   propName: "isSoftDeleted",
@@ -23,7 +24,7 @@ export const UuidComponent = defineComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof UuidSchema>,
-    eid: EntityId,
+    eid: EntityId
   ): Uuid {
     return store.value[eid] as Uuid;
   },
@@ -32,7 +33,7 @@ export const UuidComponent = defineComponent({
     _world: IWorld,
     store: StoreType<typeof UuidSchema>,
     eid: EntityId,
-    value: Uuid,
+    value: Uuid
   ) {
     store.value[eid] = value;
   },
@@ -45,13 +46,16 @@ export const LifeComponent = defineObjectComponent(
     getValue(
       _world: IWorld,
       store: StoreType<typeof LifeSchema>,
-      eid: EntityId,
+      eid: EntityId
     ) {
       return new Life(store, eid);
     },
     identify: (o) => o.eid,
+    onAdd: (entity) => {
+      entity.life.mode = LifeMode.PLAYER_ALIVE;
+    }
   },
-  LifeMode,
+  LifeMode
 );
 
 export const ClientTag = defineTag({
@@ -70,6 +74,10 @@ export const GroundedTag = defineTag({
   propName: "isGrounded",
 });
 
+export const ParticleTag = defineTag({
+  propName: "isParticle",
+});
+
 export const KillOnCollisionTag = defineTag({
   propName: "killOnCollision",
 });
@@ -84,6 +92,7 @@ export const TAGS = [
   TileTag,
   PlayerTag,
   GroundedTag,
+  ParticleTag,
   KillOnCollisionTag,
   EditorDraggingTag,
 ];
@@ -96,7 +105,7 @@ export const ShoulderCount = defineComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof ShoulderCountSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
     return store.value[eid];
   },
@@ -105,7 +114,7 @@ export const ShoulderCount = defineComponent({
     _world: IWorld,
     store: StoreType<typeof ShoulderCountSchema>,
     eid: EntityId,
-    value: number,
+    value: number
   ) {
     store.value[eid] = Math.min(value, MAX_SHOULDER_COUNT);
   },
@@ -121,7 +130,7 @@ export const BodyDimensions = defineObjectComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof Vec2SmallSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
     return new ECSInstance(store, eid);
   },
@@ -135,7 +144,7 @@ export const PhysRestitutionComponent = defineComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof PhysRestitutionSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
     return store.value[eid];
   },
@@ -144,7 +153,7 @@ export const PhysRestitutionComponent = defineComponent({
     _world: IWorld,
     store: StoreType<typeof PhysRestitutionSchema>,
     eid: EntityId,
-    value: number,
+    value: number
   ) {
     store.value[eid] = value;
   },
@@ -156,7 +165,7 @@ export const PositionComponent = defineObjectComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof Vec2LargeSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
     return new ECSInstance(store, eid);
   },
@@ -169,7 +178,7 @@ export const TargetPositionComponent = defineObjectComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof Vec2LargeSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
     return new ECSInstance(store, eid);
   },
@@ -182,7 +191,7 @@ export const PreviousPositionComponent = defineObjectComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof Vec2LargeSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
     return new ECSInstance(store, eid);
   },
@@ -195,7 +204,7 @@ export const PreviousTargetPositionComponent_Output = defineObjectComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof Vec2LargeSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
     return new ECSInstance(store, eid);
   },
@@ -208,7 +217,7 @@ export const PreviousTargetPositionComponent_Network = defineObjectComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof Vec2LargeSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
     return new ECSInstance(store, eid);
   },
@@ -221,12 +230,9 @@ export const VelocityComponent = defineObjectComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof Vec2LargeSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
-    return new ECSInstance(
-      store,
-      eid,
-    );
+    return new ECSInstance(store, eid);
   },
   identify: (o) => o.eid,
 });
@@ -239,7 +245,7 @@ export const MaxSpeedComponent = defineComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof MaxSpeedSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
     return store.value[eid];
   },
@@ -248,7 +254,7 @@ export const MaxSpeedComponent = defineComponent({
     _world: IWorld,
     store: StoreType<typeof MaxSpeedSchema>,
     eid: EntityId,
-    value: number,
+    value: number
   ) {
     store.value[eid] = Math.min(value, MAX_MAX_SPEED);
   },
@@ -261,7 +267,7 @@ export const FrictionComponent = defineComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof FrictionSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
     return store.value[eid];
   },
@@ -269,7 +275,7 @@ export const FrictionComponent = defineComponent({
     _world: IWorld,
     store: StoreType<typeof FrictionSchema>,
     eid: EntityId,
-    value: number,
+    value: number
   ) {
     store.value[eid] = value;
   },
@@ -281,7 +287,7 @@ export const AccelerationComponent = defineObjectComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof Vec2SmallSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
     return new ECSInstance(store, eid);
   },
@@ -298,7 +304,7 @@ export const ImageCollectionComponent = defineComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof ImageCollectionSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
     return store.value[eid];
   },
@@ -306,7 +312,7 @@ export const ImageCollectionComponent = defineComponent({
     _world: IWorld,
     store: StoreType<typeof ImageCollectionSchema>,
     eid: EntityId,
-    value: ImageCollectionEnum,
+    value: ImageCollectionEnum
   ) {
     store.value[eid] = value;
   },
@@ -326,7 +332,7 @@ export const PoseComponent = defineComponent({
     _world: IWorld,
     store: StoreType<typeof PoseSchema>,
     eid: EntityId,
-    value: PoseType,
+    value: PoseType
   ) {
     store.value[eid] = value;
   },
@@ -342,7 +348,7 @@ export const ImageIdComponent = defineComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof ImageIdSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
     return store.value[eid];
   },
@@ -350,7 +356,7 @@ export const ImageIdComponent = defineComponent({
     _world: IWorld,
     store: StoreType<typeof ImageIdSchema>,
     eid: EntityId,
-    value: number,
+    value: number
   ) {
     store.value[eid] = value;
   },
@@ -365,7 +371,7 @@ export const LastActiveTimeComponent = defineComponent({
   getValue(
     _world: IWorld,
     store: StoreType<typeof LastActiveTimeSchema>,
-    eid: EntityId,
+    eid: EntityId
   ) {
     return store.value[eid];
   },
@@ -373,8 +379,48 @@ export const LastActiveTimeComponent = defineComponent({
     _world: IWorld,
     store: StoreType<typeof LastActiveTimeSchema>,
     eid: EntityId,
-    value: PoseType,
+    value: PoseType
   ) {
     store.value[eid] = value;
   },
+});
+
+enum ParticleEffectEnum {
+  NONE,
+  PIXEL_EXPLOSION,
+}
+const ParticleEffectSchema = {
+  value: PrimativeTypes.ui8,
+};
+export const ParticleEffectComponent = defineComponent({
+  schema: ParticleEffectSchema,
+  propName: "particleEffect",
+  getValue(
+    _world: IWorld,
+    store: StoreType<typeof ParticleEffectSchema>,
+    eid: EntityId
+  ) {
+    return store.value[eid];
+  },
+  setValue(
+    _world: IWorld,
+    store: StoreType<typeof ParticleEffectSchema>,
+    eid: EntityId,
+    value: ParticleEffectEnum
+  ) {
+    store.value[eid] = value;
+  },
+}, ParticleEffectEnum);
+
+export const RgbaColorComponent = defineObjectComponent({
+  schema: RgbaColorSchema,
+  propName: "rgbaColor",
+  getValue(
+    _world: IWorld,
+    store: StoreType<typeof RgbaColorSchema>,
+    eid: EntityId
+  ) {
+    return new EcsRgbaColor(store, eid);
+  },
+  identify: (o) => o.eid,
 });
