@@ -1,19 +1,18 @@
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { Button } from "../../../modules/common/Button.ts";
-import { hasComponent, addComponent } from "../../../modules/common/Component.ts";
+import { hasComponent } from "../../../modules/common/Component.ts";
 import {
   GroundedTag,
   LifeComponent,
-ParticleEffectComponent,
 } from "../../../modules/common/components.ts";
 import { getDistanceSquared } from "../../../modules/common/math.ts";
 import { InputState } from "../../../modules/common/state/Input.ts";
 import { MessageState } from "../../../modules/common/state/Message.ts";
 import { NetworkState } from "../../../modules/common/state/Network.ts";
 import { PlayerState } from "../../../modules/common/state/Player.ts";
-import { copy, getLengthSquared, set } from "../../../modules/common/Vec2.ts";
+import { copy, getLengthSquared } from "../../../modules/common/Vec2.ts";
 import { Player } from "../common/constants.ts";
-import { applyPlayerJump, spawnPlayer } from "../common/functions.ts";
+import { applyPlayerJump } from "../common/functions.ts";
 import { NegotiatePhysics, PlayerJump, PlayerMove } from "../common/message.ts";
 
 /**
@@ -29,7 +28,7 @@ export const PlayerMovementSystem: SystemLoader<
   let doubleJump = false;
   let wasGrounded = false;
 
-  function exec(context: ISystemExecutionContext) {
+  function exec() {
     let ddx = 0;
     let startJump = false;
     const isJumpPressed = InputState.isButtonPressed(Button.Space);
@@ -39,25 +38,7 @@ export const PlayerMovementSystem: SystemLoader<
 
       // TODO(perf) local tag
       if (NetworkState.isLocal(nid)) {
-        player.life.modeTime += context.deltaTime;
-        if (
-          player.life.mode === LifeComponent.PLAYER_DYING_ASCENT
-        ) {
-          if(player.life.modeTime < 25) {
-            set(player.velocity, 0, Player.DEATH_Y_VELOCITY);
-            set(player.acceleration, 0, 0);
-            player.physRestitution = 0;
-          }
-          if (player.velocity.y >= 0) {
-            player.life.mode = LifeComponent.PLAYER_EXPLODE;
-          }
-        } else if (player.life.mode === LifeComponent.PLAYER_EXPLODE) {
-            const spawner = addComponent(ParticleEffectComponent, player);
-            spawner.particleEffect = ParticleEffectComponent.PIXEL_EXPLOSION;
-            player.life.mode = LifeComponent.DEAD;
-        } else if (player.life.mode === LifeComponent.DEAD && player.life.modeTime > 1500) {
-          spawnPlayer(player);
-        } else {
+        if (player.life.mode === LifeComponent.PLAYER_ALIVE) {
           const isGrounded = hasComponent(GroundedTag, player);
           const isShouldered = player.shoulderCount > 0;
 

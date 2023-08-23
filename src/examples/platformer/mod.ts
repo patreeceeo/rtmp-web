@@ -17,6 +17,11 @@ import {
   EVENT_TYPE_COLLISION,
 } from "~/common/systems/Physics.ts";
 import { PlayerState } from "~/common/state/Player.ts";
+import { isClient } from "~/common/env.ts";
+import { sendMessageToClient } from "~/server/mod.ts";
+import { NetworkState } from "~/common/state/Network.ts";
+import { MessageState } from "~/common/state/Message.ts";
+import { DeathMessage } from "./common/message.ts";
 
 export const SCREEN_WIDTH_PX = 512;
 export const SCREEN_HEIGHT_PX = 512;
@@ -53,9 +58,16 @@ addEventHandler<CollisionData>(EVENT_TYPE_COLLISION, (event) => {
   ) {
     const player = PlayerState.entities.get(subjectEntity.eid)!;
     if (
-      player.life.mode === LifeComponent.PLAYER_ALIVE && objectEntity.killOnCollision
+      player.life.mode === LifeComponent.PLAYER_ALIVE &&
+      objectEntity.killOnCollision
     ) {
       player.life.mode = LifeComponent.PLAYER_DYING_ASCENT;
+      if (!isClient) {
+        MessageState.addSnapshot(DeathMessage, (p) => {
+          p.nid = player.uuid;
+          p.sid = MessageState.currentStep;
+        });
+      }
     }
   }
 });

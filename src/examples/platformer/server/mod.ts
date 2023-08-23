@@ -30,6 +30,7 @@ import { addEntity } from "~/common/Entity.ts";
 import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
 import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
 import { spawnPlayer } from "../common/functions.ts";
+import { LifeSystem } from "../common/systems/LifeSystem.ts";
 
 const idleTimeout = 300;
 
@@ -117,6 +118,7 @@ loadTilemap("/public/assets/level.json", false).then(() => {
   const fastPipeline = new Pipeline(
     [
       PhysicsSystem({ fixedDeltaTime: 4 }),
+      LifeSystem(),
       ProduceSnapshotSystem(),
       NetworkSystem(),
     ],
