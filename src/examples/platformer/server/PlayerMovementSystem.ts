@@ -83,7 +83,6 @@ export const PlayerMovementSystem: SystemLoader<
           }
           break;
         case NegotiatePhysics.type: {
-          if (player.life.mode !== LifeComponent.PLAYER_ALIVE) return;
           const { position, velocity } = cmdPayload as INegotiatePhysics;
           copy(tempPositionDelta, position);
           sub(tempPositionDelta, player.position);
