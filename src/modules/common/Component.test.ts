@@ -55,7 +55,8 @@ Deno.test("Component with simple schema", () => {
 
 Deno.test("Component with complex schema", () => {
   const entity = addEntity();
-  const { position } = addComponent(PositionComponent, entity);
+  const entityWithPosition = addComponent(PositionComponent, entity);
+  const { position } = entityWithPosition;
 
   assertEquals(position.x, 0);
   assertEquals(position.y, 0);
@@ -68,7 +69,7 @@ Deno.test("Component with complex schema", () => {
   assertEquals(position.x, position.store.x[entity.eid]);
   assertEquals(position.y, position.store.y[entity.eid]);
 
-  const e2 = removeComponent(PositionComponent, entity);
+  const e2 = removeComponent(PositionComponent, entityWithPosition);
   assertThrows(() => (e2 as any).position);
 });
 
