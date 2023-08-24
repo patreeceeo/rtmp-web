@@ -18,4 +18,6 @@ export const Player = Object.freeze({
   MAX_COLLISION_PLAY_DISTANCE: 20,
   /** in 256ths of a pixel */
   POSITION_EPSILON: 512,
+  DEATH_Y_VELOCITY: -160,
+  PHYS_RESTITUTION: 255,
 });

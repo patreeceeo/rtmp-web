@@ -1,5 +1,7 @@
-import { IBox } from "../Box.ts";
+import { Box, IBox } from "../Box.ts";
 import { isClient } from "../env.ts";
+import { Instance } from "~/common/Vec2.ts";
+import { RgbaColor, RgbaChannelEnum } from "~/common/RgbaColor.ts";
 
 export enum ImageFormat {
   PNG = "image/png",
@@ -42,6 +44,8 @@ export class ImageOptions {
 const _canvas: HTMLCanvasElement = isClient
   ? document.createElement("canvas")
   : null as unknown as HTMLCanvasElement;
+const _canvasRenderingContextSettings: CanvasRenderingContext2DSettings = {willReadFrequently: true};
+const _ctx = isClient ? _canvas.getContext("2d", _canvasRenderingContextSettings)! : null as unknown as CanvasRenderingContext2D;
 const _defaultOptions = new ImageOptions();
 const _defaultLoadOptions = new LoadOptions();
 
@@ -119,3 +123,57 @@ export async function getChunk(
   await target.decode();
   return target;
 }
+
+const box = new Box();
+export async function *getContiguousChunks(image: HTMLImageElement, chunkSize: Instance) {
+  box.w = chunkSize.x;
+  box.h = chunkSize.y;
+  while (box.yMin < image.naturalHeight) {
+    while (box.xMin < image.naturalWidth) {
+      const chunk = await getChunk(image, box);
+      box.xMin += chunkSize.x;
+      yield chunk;
+    }
+    box.xMin = 0;
+    box.yMin += chunkSize.y;
+  }
+}
+
+const _imageDataSettings: ImageDataSettings = {colorSpace: "srgb"}
+function getImageData(image: HTMLImageElement) {
+  _canvas.width = image.naturalWidth;
+  _canvas.height = image.naturalHeight;
+  _ctx.drawImage(image, 0, 0);
+  return _ctx.getImageData(0, 0, image.naturalWidth, image.naturalHeight, _imageDataSettings);
+}
+
+
+class Pixel {
+  constructor(
+    public color: RgbaColor,
+    public position: Instance,
+  ) {}
+}
+
+const reusedPixel = new Pixel(new RgbaColor(), new Instance());
+
+export function *getPixels(image: HTMLImageElement): Generator<Pixel> {
+  const data = getImageData(image);
+  const {naturalWidth: width, naturalHeight: height} = image;
+  const position = reusedPixel.position;
+  const color = reusedPixel.color;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      position.x = x;
+      position.y = y;
+      color.r = data.data[i + RgbaChannelEnum.RED];
+      color.g = data.data[i + RgbaChannelEnum.GREEN];
+      color.b = data.data[i + RgbaChannelEnum.BLUE];
+      color.a = data.data[i + RgbaChannelEnum.ALPHA];
+      yield reusedPixel;
+    }
+  }
+}
+
+

@@ -1,10 +1,16 @@
-import { EntityPrefabCollection } from "../Entity.ts";
+import {
+  EntityId,
+  EntityPrefabCollection,
+  UNDEFINED_ENTITY,
+} from "../Entity.ts";
 import {
   AccelerationComponent,
   BodyDimensions,
   EditorDraggingTag,
   FrictionComponent,
   MaxSpeedComponent,
+  PhysRestitutionComponent,
+  PlayerTag,
   PoseComponent,
   PositionComponent,
   ShoulderCount,
@@ -17,22 +23,24 @@ import { Not } from "../Query.ts";
 import { Matrix2 } from "../math.ts";
 
 export type IPhysicsEntity = ReturnType<
-  typeof PhysicsState.dynamicEntities.add
+  typeof PhysicsState.keneticEntities.add
 >;
 
 class PhysicsStateApi {
-  readonly dynamicEntityComponents = [
+  readonly playerComponents = [
     Not(SoftDeletedTag),
     Not(EditorDraggingTag),
+    PlayerTag,
     PositionComponent,
     ShoulderCount,
     TargetPositionComponent,
-    BodyDimensions,
     VelocityComponent,
     MaxSpeedComponent,
     FrictionComponent,
     AccelerationComponent,
     PoseComponent,
+    BodyDimensions,
+    PhysRestitutionComponent,
   ] as const;
   readonly tileComponents = [
     Not(SoftDeletedTag),
@@ -40,11 +48,20 @@ class PhysicsStateApi {
     BodyDimensions,
     TileTag,
   ] as const;
-  readonly dynamicEntities = new EntityPrefabCollection(
-    this.dynamicEntityComponents,
+  readonly playerEntities = new EntityPrefabCollection(
+    this.playerComponents,
   );
+  readonly keneticEntities = new EntityPrefabCollection([
+    Not(SoftDeletedTag),
+    Not(PlayerTag),
+    PositionComponent,
+    VelocityComponent,
+    BodyDimensions,
+    PhysRestitutionComponent,
+  ])
+
   readonly tileEntities = new EntityPrefabCollection(this.tileComponents);
-  readonly tileMatrix = new Matrix2<boolean>(32, 32, false);
+  readonly tileMatrix = new Matrix2<EntityId>(32, 32, UNDEFINED_ENTITY);
 }
 
 export const PhysicsState = new PhysicsStateApi();

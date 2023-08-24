@@ -1,37 +1,29 @@
-import { OutputState } from "../../client/state/Output.ts";
-import { EntityPrefabCollection, IEntityBase } from "../Entity.ts";
-import { isClient } from "../env.ts";
-import { PhysicsState } from "./Physics.ts";
-import { set } from "../Vec2.ts";
+import { EntityPrefabCollection } from "../Entity.ts";
 import {
+  BodyDimensions,
+  LifeComponent,
   PlayerTag,
   PreviousTargetPositionComponent_Network,
   ShoulderCount,
   UuidComponent,
 } from "../components.ts";
-import { Player } from "../../../examples/platformer/common/constants.ts";
+import { PhysicsState } from "~/common/state/Physics.ts";
+import { isClient } from "~/common/env.ts";
+import { OutputState } from "~/client/state/Output.ts";
 
 // TODO delete this file?
 
 class PlayerStateApi {
-  readonly components = [
+  readonly entities = new EntityPrefabCollection([
     PlayerTag,
+    LifeComponent,
     ShoulderCount,
     UuidComponent,
-    ...PhysicsState.dynamicEntityComponents,
-    ...(isClient ? OutputState.dynamicEntityComponents : []),
+    BodyDimensions,
     PreviousTargetPositionComponent_Network,
-  ] as const;
-
-  readonly entities = new EntityPrefabCollection(this.components);
-
-  addPlayer(entity: IEntityBase) {
-    const player = this.entities.add(entity);
-    player.friction = Player.GROUND_FRICTION;
-    set(player.bodyDimensions, Player.WIDTH, Player.HEIGHT);
-    player.maxSpeed = Player.MAX_GROUND_SPEED;
-    return player;
-  }
+    ...PhysicsState.playerEntities.components,
+    ...(isClient ? OutputState.activeDynamicEntities.components : []),
+  ]);
 }
 
 export const PlayerState = new PlayerStateApi();

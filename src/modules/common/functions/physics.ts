@@ -1,4 +1,5 @@
 import { Box, IBox } from "../Box.ts";
+import { EntityId, UNDEFINED_ENTITY } from "~/common/Entity.ts";
 import { invariant } from "../Error.ts";
 import { getDistanceBetweenEllipses, Matrix2 } from "../math.ts";
 import { add, clamp, extend, Instance, ReadOnly } from "../Vec2.ts";
@@ -113,11 +114,19 @@ export function getHalfHitBox(hitBox: ReadOnly, direction: CardinalDirection) {
   }
 }
 
+export class TileCollision1d {
+  constructor(
+    public impactDistance = 0,
+    public tileEntityId = UNDEFINED_ENTITY,
+  ) {}
+}
+
 /** return the amount of overlap with a tile in the given direction, zero if contact without collision, or negative if no contact */
 export function detectTileCollision1d(
   position: Instance,
-  tileMatrix: Matrix2<boolean>,
+  tileMatrix: Matrix2<EntityId>,
   direction: CardinalDirection,
+  result = new TileCollision1d(),
   options: ISimulateOptions = defaultOptions,
 ) {
   const hitBox = options.hitBox;
@@ -134,24 +143,30 @@ export function detectTileCollision1d(
 
   const tileEdge = (isMax ? edgeTile : edgeTile + 1) << TILE_SIZE_BITLENGTH;
 
-  if (
-    isX
-      ? tileMatrix.get(edgeTile, centerTileInPerpDimension)
-      : tileMatrix.get(centerTileInPerpDimension, edgeTile)
-  ) {
-    return Math.min(
+  const tileEntityId = isX
+    ? tileMatrix.get(edgeTile, centerTileInPerpDimension)
+    : tileMatrix.get(centerTileInPerpDimension, edgeTile);
+
+  result.impactDistance = 0;
+  result.tileEntityId = UNDEFINED_ENTITY;
+
+  if (tileEntityId !== UNDEFINED_ENTITY) {
+    result.impactDistance = Math.min(
       Math.abs(halfHitBox),
       isMax ? edge - tileEdge : tileEdge - edge,
     );
-  } else if (
-    isX
-      ? tileMatrix.get(nextTile, centerTileInPerpDimension)
-      : tileMatrix.get(centerTileInPerpDimension, nextTile)
-  ) {
-    return 0;
+    result.tileEntityId = tileEntityId;
   } else {
-    return -1;
+    const nextTileEntityId = isX
+      ? tileMatrix.get(nextTile, centerTileInPerpDimension)
+      : tileMatrix.get(centerTileInPerpDimension, nextTile);
+
+    if (nextTileEntityId !== UNDEFINED_ENTITY) {
+      result.impactDistance = 0;
+      result.tileEntityId = nextTileEntityId;
+    }
   }
+  return result;
 }
 
 export function getCollisionDistance(
@@ -166,13 +181,15 @@ export function getCollisionDistance(
     xDistance < options.hitBox.x + tolerance * 2 &&
     yDistance < options.hitBox.y + tolerance * 2
   ) {
-    return -1 *
+    return (
+      -1 *
       getDistanceBetweenEllipses(
         positionA,
         positionB,
         options.hitBox.x / 2,
         options.hitBox.y / 2,
-      );
+      )
+    );
   } else {
     return -1 - tolerance;
   }
@@ -240,13 +257,13 @@ export function resolveCollision(
     const sumV = Math.abs(xAv) + Math.abs(xBv);
 
     if (positionA.x > positionB.x) {
-      positionA.x += dx >> 1 - 1;
+      positionA.x += dx >> (1 - 1);
       positionB.x -= dx >> 1;
       velocityA.x = sumV / 2;
       velocityB.x = sumV / -2;
     }
     if (positionA.x < positionB.x) {
-      positionA.x -= dx >> 1 - 1;
+      positionA.x -= dx >> (1 - 1);
       positionB.x += dx >> 1;
       velocityA.x = sumV / 2;
       velocityB.x = sumV / -2;
@@ -255,11 +272,11 @@ export function resolveCollision(
   if (yRatio >= xRatio) {
     // console.log("resolving Y collision", dy);
     if (positionA.y > positionB.y) {
-      positionA.y += dy >> 1 - 1;
+      positionA.y += dy >> (1 - 1);
       positionB.y -= dy >> 1;
     }
     if (positionA.y < positionB.y) {
-      positionA.y -= dy >> 1 - 1;
+      positionA.y -= dy >> (1 - 1);
       positionB.y += dy >> 1;
     }
   }

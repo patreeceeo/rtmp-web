@@ -1,7 +1,10 @@
 import { ISystemExecutionContext, SystemLoader } from "~/common/systems/mod.ts";
 import { Button } from "../../../modules/common/Button.ts";
 import { hasComponent } from "../../../modules/common/Component.ts";
-import { GroundedTag } from "../../../modules/common/components.ts";
+import {
+  GroundedTag,
+  LifeComponent,
+} from "../../../modules/common/components.ts";
 import { getDistanceSquared } from "../../../modules/common/math.ts";
 import { InputState } from "../../../modules/common/state/Input.ts";
 import { MessageState } from "../../../modules/common/state/Message.ts";
@@ -17,23 +20,25 @@ import { NegotiatePhysics, PlayerJump, PlayerMove } from "../common/message.ts";
  * input. It updates the local entity and send commands to the server
  * to update the corresponding entities across the network.
  */
-export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
-  () => {
-    let jumpIntensity = 0;
-    let wasJumpPressed = false;
-    let doubleJump = false;
-    let wasGrounded = false;
+export const PlayerMovementSystem: SystemLoader<
+  ISystemExecutionContext
+> = () => {
+  let jumpIntensity = 0;
+  let wasJumpPressed = false;
+  let doubleJump = false;
+  let wasGrounded = false;
 
-    function exec() {
-      let ddx = 0;
-      let startJump = false;
-      const isJumpPressed = InputState.isButtonPressed(Button.Space);
+  function exec() {
+    let ddx = 0;
+    let startJump = false;
+    const isJumpPressed = InputState.isButtonPressed(Button.Space);
 
-      for (const player of PlayerState.entities.query()) {
-        const nid = NetworkState.getId(player.eid)!;
+    for (const player of PlayerState.entities.query()) {
+      const nid = NetworkState.getId(player.eid)!;
 
-        // TODO(perf) local tag
-        if (NetworkState.isLocal(nid)) {
+      // TODO(perf) local tag
+      if (NetworkState.isLocal(nid)) {
+        if (player.life.mode === LifeComponent.PLAYER_ALIVE) {
           const isGrounded = hasComponent(GroundedTag, player);
           const isShouldered = player.shoulderCount > 0;
 
@@ -80,9 +85,7 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
             );
           }
 
-          if (
-            jumpIntensity > 0 && !isJumpPressed
-          ) {
+          if (jumpIntensity > 0 && !isJumpPressed) {
             startJump = true;
           }
 
@@ -137,5 +140,6 @@ export const PlayerMovementSystem: SystemLoader<ISystemExecutionContext> =
       } // const player of PlayerState.entities.query()
       wasJumpPressed = isJumpPressed;
     }
-    return { exec };
-  };
+  }
+  return { exec };
+};

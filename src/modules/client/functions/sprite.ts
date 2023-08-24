@@ -22,6 +22,7 @@ export enum SpriteEnum {
 }
 
 export enum ImageCollectionEnum {
+  NONE,
   penguin,
   penguin2,
 }

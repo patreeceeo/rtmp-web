@@ -16,7 +16,6 @@ import {
 import { ServerNetworkState } from "../../../modules/server/state/Network.ts";
 import { MessageState } from "~/common/state/Message.ts";
 import { ProduceSnapshotSystem } from "../../../modules/server/systems/ProduceSnapshot.ts";
-import { LevelState } from "../../../modules/common/state/LevelState.ts";
 import { MsgType, PlayerAdd, PlayerRemove } from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import { PhysicsSystem } from "../../../modules/common/systems/Physics.ts";
@@ -27,30 +26,24 @@ import {
 } from "../../../modules/common/Message.ts";
 import { initPing, sendPing } from "../../../modules/common/state/Ping.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
-import { addEntity, softDeleteEntity } from "~/common/Entity.ts";
+import { addEntity } from "~/common/Entity.ts";
 import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
 import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
+import { spawnPlayer } from "../common/functions.ts";
+import { LifeSystem } from "../common/systems/LifeSystem.ts";
 
 const idleTimeout = 300;
 
 class DotsServerApp implements ServerApp {
   idleTimeout = idleTimeout;
   handleOpen(ws: WebSocket, _: Event) {
-    const addedPlayer = PlayerState.addPlayer(addEntity());
+    const addedPlayer = spawnPlayer(addEntity());
     const playerNid = ServerNetworkState.createId();
     const client = ServerNetworkState.getClientForSocket(ws)!;
     ServerNetworkState.addChild(client.uuid, playerNid);
     addedPlayer.uuid = playerNid;
     console.log("player nid", playerNid);
 
-    Vec2.set(
-      addedPlayer.position,
-      LevelState.dimensions.xMax / 2,
-      LevelState.dimensions.yMin,
-    );
-    addedPlayer.imageCollection = (addedPlayer.eid / 2) % 2;
-
-    Vec2.copy(addedPlayer.targetPosition, addedPlayer.position);
     ServerNetworkState.setNetworkEntity(playerNid, addedPlayer.eid, false);
 
     sendMessageToClient(ws, PlayerAdd, (p) => {
@@ -93,7 +86,7 @@ class DotsServerApp implements ServerApp {
     const client = ServerNetworkState.getClientForSocket(ws);
     if (client) {
       console.log("Client disconnected", client.uuid);
-      softDeleteEntity(client.eid);
+      client.isSoftDeleted = true;
     } else {
       console.log("Client purged");
     }
@@ -125,6 +118,7 @@ loadTilemap("/public/assets/level.json", false).then(() => {
   const fastPipeline = new Pipeline(
     [
       PhysicsSystem({ fixedDeltaTime: 4 }),
+      LifeSystem(),
       ProduceSnapshotSystem(),
       NetworkSystem(),
     ],

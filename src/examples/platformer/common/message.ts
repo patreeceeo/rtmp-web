@@ -19,10 +19,12 @@ export enum MsgType {
   playerJump,
   playerRemoved,
   playerSnapshot,
+  death,
   negotiatePhysics,
 }
 
 export type {
+  IDeathMessage,
   INegotiatePhysics,
   IPlayerAdd,
   IPlayerJump,
@@ -32,6 +34,7 @@ export type {
 };
 
 export {
+  DeathMessage,
   NegotiatePhysics,
   PlayerAdd,
   PlayerJump,
@@ -149,6 +152,12 @@ const PlayerJumpSpec: IBufferProxyObjectSpec<IPlayerJump> = {
 const PlayerJump = defMessageType<IPlayerJump>(
   MsgType.playerJump,
   PlayerJumpSpec,
+);
+
+type IDeathMessage = INilPayload;
+const DeathMessage = defMessageType<INilPayload>(
+  MsgType.death,
+  NilPayloadSpec,
 );
 
 interface INegotiatePhysics extends INilPayload {

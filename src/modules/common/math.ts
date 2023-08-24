@@ -7,6 +7,10 @@ export function normalizeAngle(angle: number) {
   return newAngle < 0 ? newAngle + PI2 : newAngle;
 }
 
+export function invertAngle(angle: number) {
+  return normalizeAngle(angle + Math.PI);
+}
+
 export function rad2deg(radians: number) {
   return (normalizeAngle(radians) * 180) / Math.PI;
 }

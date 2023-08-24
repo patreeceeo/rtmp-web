@@ -1,6 +1,7 @@
 import { Reconciler } from "../../../modules/client/state/Reconcile.ts";
 import {
   AccelerationComponent,
+  LifeComponent,
   PoseComponent,
   PositionComponent,
   SoftDeletedTag,
@@ -21,6 +22,7 @@ const PLAYER_SNAPSHOT_COMPONENTS = [
   PoseComponent,
   VelocityComponent,
   AccelerationComponent,
+  LifeComponent,
 ] as const;
 
 export class PlayerSnapshotReconciler extends Reconciler<
@@ -39,7 +41,8 @@ export class PlayerSnapshotReconciler extends Reconciler<
       (isZero(player.acceleration) ||
         !NetworkState.isLocal(playerNid)) &&
       playerNid === sstNid &&
-      sid > this.#lastReconciledStep
+      sid > this.#lastReconciledStep &&
+      player.life.mode === LifeComponent.PLAYER_ALIVE
     );
   }
 

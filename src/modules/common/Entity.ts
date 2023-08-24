@@ -12,13 +12,16 @@ import {
   hasAllComponents,
   IAnyComponentType,
 } from "./Component.ts";
-import { SoftDeletedTag } from "./components.ts";
+import { TAGS } from "./components.ts";
 import { defineQuery, IQuery } from "./Query.ts";
 import { OpaqueType } from "./util.ts";
 import { defaultWorld } from "./World.ts";
 import { EntityWithComponents } from "~/common/EntityWithComponents.ts";
+import { Pool } from "~/common/Pool.ts";
 
 export type EntityId = number & OpaqueType<"entityId">;
+
+export const UNDEFINED_ENTITY = -1 as EntityId;
 
 export interface IEntityProxyConstructor {
   new (eid: EntityId): IEntityBase;
@@ -27,44 +30,15 @@ export interface IEntityBase {
   readonly eid: EntityId;
 }
 
-export class Pool {
-  #items: IEntityBase[] = [];
-  #size = 0;
-
-  constructor() {
-    this.#size = 0;
-  }
-  get size() {
-    return this.#size;
-  }
-  acquire(world = defaultWorld): EntityWithComponents<[]> {
-    const entity = createEntity(world);
-    this.#items[entity.eid] = entity;
-    this.#size++;
-    return entity;
-  }
-  get(eid: EntityId): IEntityBase | undefined {
-    return this.#items[eid];
-  }
-  set(entity: IEntityBase) {
-    const wasDefined = entity.eid in this.#items;
-    this.#items[entity.eid] = entity;
-    if (!wasDefined) {
-      this.#size++;
-    }
-  }
-  release(eid: EntityId) {
-    if (eid in this.#items) {
-      delete this.#items[eid];
-      this.#size--;
-    }
-  }
-}
-
 function createEntity(world = defaultWorld): EntityWithComponents<[]> {
-  return {
+  const entity = {
     eid: _addEntity(world) as EntityId,
   } as EntityWithComponents<[]>;
+
+  for (const tag of TAGS) {
+    tag.registerWithEntity(entity);
+  }
+  return entity;
 }
 
 export function mapEntity<C extends IAnyComponentType[]>(
@@ -78,11 +52,11 @@ export function mapEntity<C extends IAnyComponentType[]>(
   for (const component of expectedComponents) {
     addComponent(component, entity, world);
   }
-  pool.set(entity);
+  pool.set(entity as EntityWithComponents<[]>);
   return entity as EntityWithComponents<C>;
 }
 
-const pool = new Pool();
+const pool = new Pool(createEntity, (entity) => entity.eid);
 
 // TODO it would be nice to be able to pass an array of components to add
 export function addEntity(world = defaultWorld): EntityWithComponents<[]> {
@@ -93,15 +67,8 @@ export function hasEntity(eid: EntityId, world = defaultWorld): boolean {
   return entityExists(world, eid);
 }
 
-export function getEntity(eid: EntityId): IEntityBase | undefined {
-  return pool.get(eid);
-}
-
-export function softDeleteEntity(
-  eid: EntityId,
-  world = defaultWorld,
-): void {
-  addComponent(SoftDeletedTag, getEntity(eid)!, world);
+export function getEntity(eid: EntityId): EntityWithComponents<[]> | undefined {
+  return pool.get(eid) as EntityWithComponents<[]> | undefined;
 }
 
 export function deleteEntity(eid: EntityId, world = defaultWorld): void {
@@ -124,7 +91,7 @@ export class EntityPrefabCollection<
   constructor(readonly components: ComponentTypes) {
     this.#query = defineQuery(this.components);
   }
-  add<InputEntity extends IEntityBase>(entity: InputEntity) {
+  add<InputEntity extends EntityWithComponents<[]>>(entity: InputEntity) {
     const prefab = addComponents<
       ComponentTypes[number]["propName"],
       InputEntity
@@ -136,17 +103,17 @@ export class EntityPrefabCollection<
   > {
     const eids = this.#query(defaultWorld);
     return eids.map((eid: number) => {
-      return pool.get(eid as EntityId) as EntityWithComponents<ComponentTypes>;
+      return pool.get(eid)! as unknown as EntityWithComponents<ComponentTypes>;
     });
   }
   has(
-    entity: EntityWithComponents<ComponentTypes>,
+    entity: EntityWithComponents<[]>,
   ) {
     const eids = this.#query(defaultWorld);
     return entityExists(defaultWorld, entity.eid) && eids.includes(entity.eid);
   }
   get(eid: EntityId): EntityWithComponents<ComponentTypes> | undefined {
-    return pool.get(eid) as EntityWithComponents<ComponentTypes>;
+    return pool.get(eid)! as unknown as EntityWithComponents<ComponentTypes>;
   }
 }
 

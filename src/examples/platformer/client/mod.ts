@@ -1,7 +1,6 @@
 import "../mod.ts";
 import * as Vec2 from "~/common/Vec2.ts";
 import { InputState } from "~/common/state/Input.ts";
-import { PlayerState } from "~/common/state/Player.ts";
 import {
   AnimationDriver,
   DemandDriver,
@@ -18,7 +17,12 @@ import { OutputSystem } from "~/client/systems/Output.ts";
 import { InputSystem } from "../../../modules/client/systems/Input.ts";
 import { ReconcileSystem } from "../../../modules/client/systems/Reconcile.ts";
 import { useClient } from "hot_mod/dist/client/mod.js";
-import { IPlayerAdd, IPlayerRemove, MsgType } from "../common/message.ts";
+import {
+  IDeathMessage,
+  IPlayerAdd,
+  IPlayerRemove,
+  MsgType,
+} from "../common/message.ts";
 import { DataViewMovable } from "../../../modules/common/DataView.ts";
 import {
   readMessagePayload,
@@ -33,13 +37,19 @@ import { initPing, updatePing } from "../../../modules/common/state/Ping.ts";
 import { PingSystem } from "../../../modules/client/systems/Ping.ts";
 import { SCREEN_HEIGHT_PX, SCREEN_WIDTH_PX } from "../mod.ts";
 import { PurgeSystem } from "../../../modules/common/systems/PurgeSystem.ts";
-import { addEntity, softDeleteEntity } from "~/common/Entity.ts";
+import { addEntity, getEntity } from "~/common/Entity.ts";
 import { loadTilemap } from "../../../modules/common/loaders/TiledTMJTilemapLoader.ts";
 import { DebugState } from "../../../modules/client/state/Debug.ts";
 import { PlayerMovementSystem } from "./PlayerMovementSystem.ts";
 import { ReconcileState } from "../../../modules/client/state/Reconcile.ts";
 import { PlayerSnapshotReconciler } from "./reconcilers.ts";
 import { requestSprites } from "./sprites.ts";
+import { spawnPlayer } from "../common/functions.ts";
+import { ParticleEffectSystem } from "~/client/ParticleEffectSystem.ts";
+import { LifeSystem } from "../common/systems/LifeSystem.ts";
+import { NetworkState } from "~/common/state/Network.ts";
+import { PlayerState } from "~/common/state/Player.ts";
+import { LifeComponent } from "~/common/components.ts";
 
 useClient(import.meta, "ws://localhost:12321");
 
@@ -155,6 +165,13 @@ export class DotsClientApp extends ClientApp {
         updatePing(id, performance.now());
         break;
       }
+      case MsgType.death: {
+        const payload = readMessagePayload(view, 0, type) as IDeathMessage;
+        const eid = NetworkState.getEntityId(payload.nid)!;
+        const entity = PlayerState.entities.get(eid)!;
+        entity.life.mode = LifeComponent.PLAYER_DYING_ASCENT;
+        break;
+      }
       default:
         // TODO payload gets read twice
         MessageState.copySnapshotFrom(view);
@@ -174,7 +191,7 @@ function handlePlayerAdded(
   { isLocal, nid, position, spriteMapId }: IPlayerAdd,
 ) {
   console.log("player uuid:", nid);
-  const player = PlayerState.addPlayer(addEntity());
+  const player = spawnPlayer(addEntity());
   Vec2.copy(player.position, position);
   Vec2.copy(player.targetPosition, position);
   player.imageCollection = spriteMapId;
@@ -184,7 +201,7 @@ function handlePlayerAdded(
 function handlePlayerRemoved(_server: WebSocket, playerRemove: IPlayerRemove) {
   const eid = ClientNetworkState.getEntityId(playerRemove.nid)!;
   console.log("player removed:", playerRemove.nid);
-  softDeleteEntity(eid);
+  getEntity(eid)!.isSoftDeleted = true;
   // TODO move this stuff to PurgeSystem
   ClientNetworkState.deleteId(playerRemove.nid);
 }
@@ -212,8 +229,10 @@ loadTilemap("/public/assets/level.json").then(async () => {
   const fastPipeline = new Pipeline(
     [
       PlayerMovementSystem(),
+      LifeSystem(),
       ClientNetworkSystem(),
       PhysicsSystem({ fixedDeltaTime: 4 }),
+      ParticleEffectSystem(),
     ],
     new FixedIntervalDriver(8),
   );

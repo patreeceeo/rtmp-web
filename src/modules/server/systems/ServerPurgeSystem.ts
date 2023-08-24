@@ -4,7 +4,7 @@ import { MessageState } from "~/common/state/Message.ts";
 import { broadcastMessage } from "../mod.ts";
 import { ServerNetworkState } from "../state/Network.ts";
 import { Uuid } from "../../common/NetworkApi.ts";
-import { hasEntity, softDeleteEntity } from "../../common/Entity.ts";
+import { hasEntity } from "../../common/Entity.ts";
 import { PlayerState } from "~/common/state/Player.ts";
 
 type MessageTranscoder<P extends IPayloadAny> = [
@@ -35,13 +35,15 @@ export const ServerPurgeSystem: SystemLoader<
       const inactiveTime = elapsedTime - client.lastActiveTime;
       if (inactiveTime > idleTimeout * 1000 || client.isSoftDeleted) {
         console.log("removing client", client.uuid);
-        softDeleteEntity(client.eid);
+        client.isSoftDeleted = true;
         for (const uuid of ServerNetworkState.getChildren(client.uuid)) {
           const playerEid = ServerNetworkState.getEntityId(uuid!)!;
           const player = PlayerState.entities.get(playerEid);
 
           if (hasEntity(playerEid) && !player!.isSoftDeleted) {
-            softDeleteEntity(playerEid);
+            if (player) {
+              player.isSoftDeleted = true;
+            }
             console.log(`broadcasting player_removed(uuid=${uuid})`);
             broadcastMessage(
               opts.msgPlayerRemoved[0],

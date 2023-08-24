@@ -5,12 +5,14 @@ import {
   BodyStaticTag,
   ImageCollectionComponent,
   ImageIdComponent,
+  RgbaColorComponent,
   PoseComponent,
   PositionComponent,
   PreviousPositionComponent,
   PreviousTargetPositionComponent_Output,
   SoftDeletedTag,
   TargetPositionComponent,
+ParticleTag,
 } from "../../common/components.ts";
 import { Not } from "~/common/Query.ts";
 import { EntityPrefabCollection } from "../../common/Entity.ts";
@@ -50,7 +52,6 @@ class OutputStateApi {
     PreviousPositionComponent,
     TargetPositionComponent,
     PreviousTargetPositionComponent_Output,
-    BodyDimensions,
     ImageCollectionComponent,
     PoseComponent,
   ] as const;
@@ -67,9 +68,25 @@ class OutputStateApi {
     Not(SoftDeletedTag),
     ...this.dynamicEntityComponents,
   ]);
+  readonly dynamicCollisionEntities = new EntityPrefabCollection([
+    BodyDimensions,
+    ...this.dynamicEntityComponents,
+  ]);
   readonly staticEntities = new EntityPrefabCollection(
     this.staticEntityComponents,
   );
+  readonly inputPixelEntities = new EntityPrefabCollection([
+    Not(SoftDeletedTag),
+    PositionComponent,
+    ParticleTag,
+    RgbaColorComponent
+  ]);
+  readonly pixelEntities = new EntityPrefabCollection([
+    PositionComponent,
+    ParticleTag,
+    RgbaColorComponent,
+    PreviousPositionComponent,
+  ]);
 }
 
 export const OutputState = isClient

@@ -24,6 +24,7 @@ import {
   PlayerMove,
   PlayerSnapshot,
 } from "../common/message.ts";
+import { LifeComponent } from "~/common/components.ts";
 
 let lastHandledStep = SID_ORIGIN;
 const lastHandledStepByClient = new Map<Uuid, number>();
